@@ -1,0 +1,4 @@
+---
+title: isMulti
+category: predicates
+---

@@ -1,0 +1,6 @@
+---
+---
+
+# Predicates
+
+<PredicatesList />

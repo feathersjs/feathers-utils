@@ -1,0 +1,4 @@
+---
+title: isProvider
+category: predicates
+---

@@ -1,0 +1,14 @@
+{
+  "extends": "@tsconfig/node22/tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "esModuleInterop": true,
+    "types": ["vitest/globals", "vitest/importMeta"],
+    "declaration": true,
+    "paths": {
+      "feathers-utils": ["./src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}

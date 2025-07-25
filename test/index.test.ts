@@ -1,0 +1,103 @@
+import { assert } from 'vitest'
+import * as exportedHooks from '../src/hooks/index.js'
+import * as exportedUtils from '../src/utils/index.js'
+import * as exportedPredicates from '../src/predicates/index.js'
+import * as exportedTransformers from '../src/transformers/index.js'
+
+const hooks = [
+  'cache',
+  'checkMulti',
+  'checkRequired',
+  'combine',
+  'createRelated',
+  'debug',
+  'disablePagination',
+  'disallow',
+  'iff',
+  'iffElse',
+  'onDelete',
+  'paramsForServer',
+  'paramsFromClient',
+  'preventChanges',
+  'setData',
+  'setField',
+  'setResult',
+  'setSlug',
+  'softDelete',
+  'stashBefore',
+  'throwIf',
+  'throwIfIsMulti',
+  'throwIfIsProvider',
+  'transformData',
+  'transformQuery',
+  'transformResult',
+  'traverse',
+  'unless',
+  'when',
+] satisfies (keyof typeof exportedHooks)[]
+
+const utils = [
+  'addSkip',
+  'checkContext',
+  'contextToJson',
+  'defineHooks',
+  'getDataIsArray',
+  'getExposedMethods',
+  'getPaginate',
+  'getResultIsArray',
+  'iterateFind',
+  'mutateData',
+  'mutateResult',
+  'shouldSkip',
+  'skipResult',
+  'skippable',
+  'transformParams',
+] satisfies (keyof typeof exportedUtils)[]
+
+const predicates = [
+  'isProvider',
+  'isMulti',
+  'not',
+  'every',
+  'some',
+  'isContext',
+  'isPaginated',
+] satisfies (keyof typeof exportedPredicates)[]
+
+const transformers = [
+  'setNow',
+  'lowercase',
+  'trim',
+  'parseDate',
+  'pick',
+  'omit',
+] satisfies (keyof typeof exportedTransformers)[]
+
+describe('expose', () => {
+  it('expose all hooks', () => {
+    assert.deepEqual(Object.keys(exportedHooks).sort(), hooks.sort())
+  })
+  it('expose all utils', () => {
+    assert.deepEqual(Object.keys(exportedUtils).sort(), utils.sort())
+  })
+  it('expose all predicates', () => {
+    assert.deepEqual(Object.keys(exportedPredicates).sort(), predicates.sort())
+  })
+  it('expose all transformers', () => {
+    assert.deepEqual(
+      Object.keys(exportedTransformers).sort(),
+      transformers.sort(),
+    )
+  })
+
+  it('expose all members', () => {
+    assert.deepEqual(
+      [
+        ...Object.keys(exportedHooks).sort(),
+        ...Object.keys(exportedUtils).sort(),
+        ...Object.keys(exportedPredicates).sort(),
+      ].sort(),
+      [...hooks, ...utils, ...predicates].sort(),
+    )
+  })
+})

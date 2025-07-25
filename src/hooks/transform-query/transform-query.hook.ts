@@ -1,0 +1,22 @@
+import type { HookContext, NextFunction, Query } from '@feathersjs/feathers'
+import type { TransformerFn } from '../../types.js'
+
+/**
+ * Transforms the query object.
+ */
+export const transformQuery = <
+  Q extends Query,
+  H extends HookContext = HookContext,
+>(
+  transformer: TransformerFn<Q, H>,
+) => {
+  return (context: H, next?: NextFunction) => {
+    context.params.query = transformer(context.params.query ?? {}, context)
+
+    if (next) {
+      return next().then(() => context)
+    }
+
+    return context
+  }
+}
