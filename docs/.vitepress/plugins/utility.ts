@@ -21,14 +21,17 @@ export default (utility: Utility) => {
   ]
 
   if (utility.frontmatter?.see) {
-    code.push(
-      `See also: ${utility.frontmatter.see
-        .map(
-          (x) =>
-            `[\`${x.split('/').pop()}\`](/${x.split('/').map(kebabCase).join('/')}.html)`,
-        )
-        .join(' ')}`,
-    )
+    const seeAlso = `See also: ${utility.frontmatter.see
+      .map((x) => {
+        const parts = x.split('/')
+        const lastPart = parts.at(-1)
+        return `[\`${lastPart}\`](/${parts.map(kebabCase).join('/')}${parts.length === 1 ? '/' : '.html'})`
+      })
+      .join(' ')}`
+
+    console.log(seeAlso)
+
+    code.push(seeAlso)
   }
 
   code.push(`${utility.description}

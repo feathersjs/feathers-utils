@@ -4,6 +4,6 @@
 
 This documentation has several parts:
 
-- [Hooks API](./hooks.md) - The API for the available hooks
-- [Utilities API](./utils.md) - The API for the available utility methods
-- [Predicates API](./predicates.md) - The API for the available predicates
+- [Hooks API](/hooks/) - The API for the available hooks
+- [Utilities API](/utils/) - The API for the available utility methods
+- [Predicates API](/predicates/) - The API for the available predicates

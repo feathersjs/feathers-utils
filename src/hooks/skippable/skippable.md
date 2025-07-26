@@ -1,6 +1,6 @@
 ---
 title: skippable
-category: utils
+category: hooks
 see: ["predicates", "utils/addSkip"]
 ---
 
