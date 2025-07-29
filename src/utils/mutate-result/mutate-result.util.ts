@@ -1,5 +1,5 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
-import { getResultIsArray } from '../get-result-is-array/get-result-is-array.js'
+import { getResultIsArray } from '../get-result-is-array/get-result-is-array.util.js'
 import { isPromise } from '../../common/index.js'
 import copy from 'fast-copy'
 import type { DispatchOption, TransformerFn } from '../../types.js'
@@ -32,8 +32,8 @@ export async function mutateResult<H extends HookContext = HookContext>(
 
     let hasPromises = false
 
-    const results = result.map((item) => {
-      const result = transformer(item, context)
+    const results = result.map((item, i) => {
+      const result = transformer(item, { context, i })
 
       if (isPromise(result)) {
         hasPromises = true

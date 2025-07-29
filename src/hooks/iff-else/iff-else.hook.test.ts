@@ -2,8 +2,8 @@
 import type { HookContext } from '@feathersjs/feathers'
 import { assert } from 'vitest'
 import { iffElse } from './iff-else.hook.js'
-import { some } from '../../predicates/some/some.js'
-import { every } from '../../predicates/every/every.js'
+import { some } from '../../predicates/some/some.predicate.js'
+import { every } from '../../predicates/every/every.predicate.js'
 import { clone } from '../../common/index.js'
 
 let hook: any

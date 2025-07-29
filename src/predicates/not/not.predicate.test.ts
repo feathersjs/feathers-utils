@@ -1,8 +1,8 @@
 import { assert } from 'vitest'
 import { iff } from '../../hooks/index.js'
 import { clone, isPromise } from '../../common/index.js'
-import { not } from './not.js'
-import { isProvider } from '../is-provider/is-provider.js'
+import { not } from './not.predicate.js'
+import { isProvider } from '../is-provider/is-provider.predicate.js'
 
 let hookServer: any
 let hook: any

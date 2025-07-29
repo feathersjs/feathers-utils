@@ -1,5 +1,5 @@
 import type { HookContext } from '@feathersjs/feathers'
-import { skipResult } from './skip-result.js'
+import { skipResult } from './skip-result.util.js'
 
 describe('skipResult', function () {
   const paginatedService = {

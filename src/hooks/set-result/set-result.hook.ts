@@ -7,9 +7,9 @@ import { Forbidden } from '@feathersjs/errors'
 
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { type PropertyPath } from 'lodash'
-import { contextToJson } from '../../utils/context-to-json/context-to-json.js'
+import { contextToJson } from '../../utils/context-to-json/context-to-json.util.js'
 import { getResultIsArray } from '../../utils/index.js'
-import type { PredicateItemWithContext } from '../../types.js'
+import type { DispatchOption, PredicateItemWithContext } from '../../types.js'
 
 export interface SetResultOptions {
   /**
@@ -27,6 +27,7 @@ export interface SetResultOptions {
    * If not provided, throws a `Forbidden` error with a message indicating the missing field.
    */
   error?: (context: HookContext, from: PropertyPath) => FeathersError
+  dispatch?: DispatchOption
 }
 
 /**
@@ -57,8 +58,8 @@ export function setResult<H extends HookContext = HookContext>(
 ) {
   const { allowUndefined = false, overwrite = true } = options ?? {}
 
-  const syncFn = (context: H) => {
-    const { result } = getResultIsArray(context)
+  const forResultOrDispatch = (context: H, dispatch: boolean) => {
+    const { result } = getResultIsArray(context, { dispatch })
 
     const contextJson = contextToJson(context)
 
@@ -97,11 +98,20 @@ export function setResult<H extends HookContext = HookContext>(
     return context
   }
 
-  return (context: H, next?: NextFunction) => {
-    if (next) {
-      next().then(() => syncFn(context))
+  const fn = (context: H) => {
+    if (options?.dispatch === 'both') {
+      forResultOrDispatch(context, true)
+      return forResultOrDispatch(context, false)
     }
 
-    return syncFn(context)
+    return forResultOrDispatch(context, !!options?.dispatch)
+  }
+
+  return (context: H, next?: NextFunction) => {
+    if (next) {
+      next().then(() => fn(context))
+    }
+
+    return fn(context)
   }
 }

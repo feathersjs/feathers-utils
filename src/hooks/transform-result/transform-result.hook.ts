@@ -1,5 +1,5 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
-import { mutateResult } from '../../utils/mutate-result/mutate-result.js'
+import { mutateResult } from '../../utils/mutate-result/mutate-result.util.js'
 import type { DispatchOption, TransformerFn } from '../../types.js'
 
 export type TransformResultOptions = {

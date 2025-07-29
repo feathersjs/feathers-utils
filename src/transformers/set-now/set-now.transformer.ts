@@ -1,6 +1,7 @@
 import _set from 'lodash/set.js'
 import type { MaybeArray } from '../../internal.utils.js'
 import { toArray } from '../../internal.utils.js'
+import type { TransformerFn } from '../../types.js'
 
 /**
  * Sets the specified fields of an item to the current date and time.
@@ -19,7 +20,7 @@ import { toArray } from '../../internal.utils.js'
  * }
  * ```
  */
-export const setNow = (fieldNames: MaybeArray<string>) => {
+export const setNow = (fieldNames: MaybeArray<string>): TransformerFn => {
   const fieldNamesArr = toArray(fieldNames)
 
   return (item: any) => {

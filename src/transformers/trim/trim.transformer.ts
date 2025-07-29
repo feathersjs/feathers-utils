@@ -3,6 +3,7 @@ import type { MaybeArray } from '../../internal.utils.js'
 import { toArray } from '../../internal.utils.js'
 import _get from 'lodash/get.js'
 import _set from 'lodash/set.js'
+import type { TransformerFn } from '../../types.js'
 
 /**
  * Trims the specified fields of an item.
@@ -19,7 +20,7 @@ import _set from 'lodash/set.js'
  * }
  * ```
  */
-export const trim = (fieldNames: MaybeArray<string>) => {
+export const trim = (fieldNames: MaybeArray<string>): TransformerFn => {
   const fieldNamesArr = toArray(fieldNames)
 
   return (item: any) => {

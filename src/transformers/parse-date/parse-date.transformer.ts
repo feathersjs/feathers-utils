@@ -1,8 +1,9 @@
 import { toArray, type MaybeArray } from '../../internal.utils.js'
 import _get from 'lodash/get.js'
 import _set from 'lodash/set.js'
+import type { TransformerFn } from '../../types.js'
 
-export const parseDate = (fieldNames: MaybeArray<string>) => {
+export const parseDate = (fieldNames: MaybeArray<string>): TransformerFn => {
   const fieldNamesArr = toArray(fieldNames)
 
   return (item: any) => {

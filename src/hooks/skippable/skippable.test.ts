@@ -1,4 +1,4 @@
-import { shouldSkip } from '../../predicates/should-skip/should-skip.js'
+import { shouldSkip } from '../../predicates/should-skip/should-skip.predicate.js'
 import { skippable } from './skippable.js'
 
 describe('skippable', () => {

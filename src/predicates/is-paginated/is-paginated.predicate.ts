@@ -1,5 +1,5 @@
 import type { HookContext } from '@feathersjs/feathers'
-import { getPaginate } from '../../utils/get-paginate/get-paginate.js'
+import { getPaginate } from '../../utils/get-paginate/get-paginate.util.js'
 
 /**
  * util to check if a hook is a paginated hook using `getPaginate`

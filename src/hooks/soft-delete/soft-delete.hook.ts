@@ -1,7 +1,7 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { checkContext } from '../../utils/index.js'
 import type { TransformParamsFn } from '../../types.js'
-import { transformParams } from '../../utils/transform-params/transform-params.js'
+import { transformParams } from '../../utils/transform-params/transform-params.util.js'
 import type { Promisable } from '../../internal.utils.js'
 
 export type SoftDeleteOptionFunction<H extends HookContext = HookContext> = (

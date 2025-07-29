@@ -1,8 +1,8 @@
 import type { HookContext } from '@feathersjs/feathers'
-import { isPaginated } from './is-paginated.js'
+import { getPaginate } from './get-paginate.util.js'
 
-describe('predicates/isPaginated', () => {
-  it('returns true for service.options.paginate', function () {
+describe('getPaginate', () => {
+  it('returns service.options.paginate', function () {
     const serviceOptions = {
       paginate: {
         default: 10,
@@ -10,18 +10,17 @@ describe('predicates/isPaginated', () => {
       },
     }
 
-    const paginate = isPaginated({
+    const paginate = getPaginate({
       params: {},
       service: {
         options: serviceOptions,
       },
-      method: 'find',
     } as HookContext)
 
-    assert.deepStrictEqual(paginate, true)
+    assert.deepStrictEqual(paginate, { default: 10, max: 50 })
   })
 
-  it('returns false for params.paginate: false', function () {
+  it('returns undefined for params.paginate: false', function () {
     const serviceOptions = {
       paginate: {
         default: 10,
@@ -29,44 +28,46 @@ describe('predicates/isPaginated', () => {
       },
     }
 
-    const paginate = isPaginated({
+    const paginate = getPaginate({
       params: { paginate: false },
       service: {
         options: serviceOptions,
       },
     } as HookContext)
 
-    assert.deepStrictEqual(paginate, false)
+    assert.deepStrictEqual(paginate, undefined)
   })
 
-  it('returns true for context.adapter.paginate', function () {
+  it('returns context.adapter.paginate over service.options.paginate', function () {
     const serviceOptions = {
-      paginate: false,
+      paginate: {
+        default: 10,
+        max: 50,
+      },
     }
 
-    const paginate = isPaginated({
+    const paginate = getPaginate({
       params: { adapter: { paginate: { default: 20, max: 100 } } },
       service: {
         options: serviceOptions,
       },
-      method: 'find',
     } as HookContext)
 
-    assert.deepStrictEqual(paginate, true)
+    assert.deepStrictEqual(paginate, { default: 20, max: 100 })
   })
 
-  it('returns false for no paginate', function () {
+  it('returns undefined for no paginate', function () {
     const serviceOptions = {
       paginate: false,
     }
 
-    const paginate = isPaginated({
+    const paginate = getPaginate({
       params: {},
       service: {
         options: serviceOptions,
       },
     } as HookContext)
 
-    assert.deepStrictEqual(paginate, false)
+    assert.deepStrictEqual(paginate, undefined)
   })
 })

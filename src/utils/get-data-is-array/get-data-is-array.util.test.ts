@@ -1,4 +1,4 @@
-import { getDataIsArray } from './get-data-is-array.js'
+import { getDataIsArray } from './get-data-is-array.util.js'
 
 describe('getDataIsArray', () => {
   it('falsy data', () => {

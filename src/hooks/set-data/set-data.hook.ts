@@ -7,7 +7,7 @@ import { Forbidden } from '@feathersjs/errors'
 
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { type PropertyPath } from 'lodash'
-import { contextToJson } from '../../utils/context-to-json/context-to-json.js'
+import { contextToJson } from '../../utils/context-to-json/context-to-json.util.js'
 import { getDataIsArray } from '../../utils/index.js'
 import type { PredicateItemWithContext } from '../../types.js'
 

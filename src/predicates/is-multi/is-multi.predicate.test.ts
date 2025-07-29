@@ -1,5 +1,5 @@
 import type { HookContext } from '@feathersjs/feathers'
-import { isMulti } from './is-multi.js'
+import { isMulti } from './is-multi.predicate.js'
 
 describe('predicates/isMulti', () => {
   it('returns true', function () {

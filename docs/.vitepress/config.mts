@@ -53,45 +53,40 @@ export default defineConfig({
     ],
     logo: '/feathers-utils-logo.png',
     sidebar: [
+      { text: 'Overview', link: '/overview' },
+      { text: 'Why moving from feathers-hooks-common', link: '/why' },
+      { text: 'Migrating', link: '/migrating-from-feathers-hooks-common' },
       {
-        text: 'Guide',
-        items: [
-          { text: 'Overview', link: '/overview' },
-          { text: 'Migrating', link: '/migrating-from-feathers-hooks-common' },
-          {
-            text: 'Hooks',
-            link: '/hooks',
-            collapsed: false,
-            items: utilities
-              .filter((x) => x.category === 'hooks')
-              .map((x) => ({
-                text: x.title,
-                link: x.path,
-              })),
-          },
-          {
-            text: 'Utilities',
-            link: '/utils',
-            collapsed: false,
-            items: utilities
-              .filter((x) => x.category === 'utils')
-              .map((x) => ({
-                text: x.title,
-                link: x.path,
-              })),
-          },
-          {
-            text: 'Predicates',
-            link: '/predicates',
-          },
-          {
-            text: 'Transformers',
-            link: '/transformers',
-          },
-          { text: 'Migrating', link: '/migrating' },
-          { text: 'Guides', link: '/guides' },
-        ],
+        text: 'Hooks',
+        link: '/hooks',
+        collapsed: false,
+        items: utilities
+          .filter((x) => x.category === 'hooks')
+          .map((x) => ({
+            text: x.title,
+            link: x.path,
+          })),
       },
+      {
+        text: 'Utilities',
+        link: '/utils',
+        collapsed: false,
+        items: utilities
+          .filter((x) => x.category === 'utils')
+          .map((x) => ({
+            text: x.title,
+            link: x.path,
+          })),
+      },
+      {
+        text: 'Predicates',
+        link: '/predicates',
+      },
+      {
+        text: 'Transformers',
+        link: '/transformers',
+      },
+      { text: 'Utility Types', link: '/utility-types' },
     ],
     nav: [
       {
@@ -111,6 +106,9 @@ export default defineConfig({
     footer: {
       message: 'Released under the MIT License.',
       copyright: 'Copyright © 2016-present Feathers contributors',
+    },
+    search: {
+      provider: 'local',
     },
   },
   markdown: {

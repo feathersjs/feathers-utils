@@ -1,6 +1,6 @@
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
-import { getExposedMethods } from './get-exposed-methods.js'
+import { getExposedMethods } from './get-exposed-methods.util.js'
 
 describe('getExposedMethods', () => {
   it('returns an array of exposed methods', () => {

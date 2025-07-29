@@ -1,6 +1,7 @@
 import _pick from 'lodash/pick.js'
 import type { MaybeArray } from '../../internal.utils.js'
 import { toArray } from '../../internal.utils.js'
+import type { TransformerFn } from '../../types.js'
 
 /**
  * Picks the specified fields from an item.
@@ -17,7 +18,7 @@ import { toArray } from '../../internal.utils.js'
  * }
  * ```
  */
-export const pick = (fieldNames: MaybeArray<string>) => {
+export const pick = (fieldNames: MaybeArray<string>): TransformerFn => {
   const fieldNamesArr = toArray(fieldNames)
 
   return (item: any) => {

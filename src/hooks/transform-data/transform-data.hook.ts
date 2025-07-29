@@ -1,5 +1,5 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
-import { mutateData } from '../../utils/mutate-data/mutate-data.js'
+import { mutateData } from '../../utils/mutate-data/mutate-data.util.js'
 import type { TransformerFn } from '../../types.js'
 
 /**

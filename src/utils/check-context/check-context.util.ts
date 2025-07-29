@@ -1,6 +1,6 @@
 import type { HookContext } from '@feathersjs/feathers'
 import type { HookType, MethodName } from '../../types.js'
-import { isContext } from '../../predicates/is-context/is-context.js'
+import { isContext } from '../../predicates/is-context/is-context.predicate.js'
 
 /**
  * Restrict a hook to run for certain methods and method types.

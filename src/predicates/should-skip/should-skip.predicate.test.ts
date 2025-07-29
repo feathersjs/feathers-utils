@@ -1,5 +1,5 @@
 import type { HookContext } from '@feathersjs/feathers'
-import { shouldSkip } from './should-skip.js'
+import { shouldSkip } from './should-skip.predicate.js'
 
 describe('shouldSkip', function () {
   it('returns false if skipHooks not defined', function () {

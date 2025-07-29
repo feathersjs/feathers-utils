@@ -2,7 +2,7 @@
 import { assert } from 'vitest'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
-import { combine } from './combine.js'
+import { combine } from './combine.util.js'
 import { clone } from '../../common/index.js'
 
 const startId = 6

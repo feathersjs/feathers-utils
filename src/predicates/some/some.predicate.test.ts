@@ -1,6 +1,6 @@
 import { expect } from 'vitest'
 import type { HookContext } from '@feathersjs/feathers'
-import { some } from './some.js'
+import { some } from './some.predicate.js'
 
 describe('predicates/some', () => {
   it('returns true synchronously when empty', () => {

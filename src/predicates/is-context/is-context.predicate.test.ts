@@ -1,4 +1,4 @@
-import { isContext } from './is-context.js'
+import { isContext } from './is-context.predicate.js'
 
 describe('isContext', () => {
   it('returns correct for path', () => {

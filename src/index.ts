@@ -3,3 +3,4 @@ export * from './utils/index.js'
 export * from './predicates/index.js'
 
 export * from './types.js'
+export * from './utility-types/index.js'

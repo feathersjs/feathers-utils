@@ -86,6 +86,7 @@
   "dependencies": {
     "@feathersjs/errors": "^5.0.34",
     "fast-copy": "^3.0.2",
+    "fast-equals": "^5.2.2",
     "lodash": "^4.17.21",
     "neotraverse": "^0.6.18"
   },

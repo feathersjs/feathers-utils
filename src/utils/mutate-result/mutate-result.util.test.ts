@@ -1,5 +1,5 @@
 import { expect } from 'vitest'
-import { mutateResult } from './mutate-result.js'
+import { mutateResult } from './mutate-result.util.js'
 
 describe('mutateResult', () => {
   it("mutates context.result on paginated 'find'", async () => {

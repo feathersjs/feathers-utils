@@ -1,5 +1,5 @@
 import type { HookContext } from '@feathersjs/feathers'
-import { getDataIsArray } from '../get-data-is-array/get-data-is-array.js'
+import { getDataIsArray } from '../get-data-is-array/get-data-is-array.util.js'
 import { isPromise } from '../../common/index.js'
 import type { Promisable } from '../../internal.utils.js'
 import type { TransformerFn } from '../../types.js'
@@ -20,8 +20,8 @@ export function mutateData<H extends HookContext = HookContext>(
 
   let hasPromises = false
 
-  const results = data.map((item) => {
-    const result = transformer(item, context)
+  const results = data.map((item, i) => {
+    const result = transformer(item, { context, i })
 
     if (isPromise(result)) {
       hasPromises = true

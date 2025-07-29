@@ -3,8 +3,8 @@ import type { HookContext } from '@feathersjs/feathers'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { iff } from '../../hooks/index.js'
-import { every } from './every.js'
-import { not } from '../not/not.js'
+import { every } from './every.predicate.js'
+import { not } from '../not/not.predicate.js'
 
 describe('predicates/every', () => {
   it('returns true synchronously when empty', () => {

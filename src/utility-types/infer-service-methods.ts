@@ -102,6 +102,11 @@ export type InferUpdateDataFromPath<
   Path extends string,
 > = InferUpdateData<GetService<App, Path>>
 
+export type InferUpdateResultFromPath<
+  App extends Application,
+  Path extends string,
+> = InferUpdateResult<GetService<App, Path>>
+
 // MARK: patch
 
 export type InferPatchData<S> = S extends {
@@ -125,6 +130,12 @@ export type InferPatchDataFromPath<
   Path extends string,
 > = InferPatchData<GetService<App, Path>>
 
+export type InferPatchResultFromPath<
+  App extends Application,
+  Path extends string,
+  IdOrNullable = any,
+> = InferPatchResult<GetService<App, Path>, IdOrNullable>
+
 // MARK: remove
 
 export type InferRemoveResult<S, IdOrNullable = any> = S extends {
@@ -137,26 +148,16 @@ export type InferRemoveResult<S, IdOrNullable = any> = S extends {
       : Awaited<R>
   : never
 
-export type GetService<
-  App extends Application,
-  Path extends string,
-> = App['services'][Path]
-
-export type InferUpdateResultFromPath<
-  App extends Application,
-  Path extends string,
-> = InferUpdateResult<GetService<App, Path>>
-export type InferPatchResultFromPath<
-  App extends Application,
-  Path extends string,
-  IdOrNullable = any,
-> = InferPatchResult<GetService<App, Path>, IdOrNullable>
-
 export type InferRemoveResultFromPath<
   App extends Application,
   Path extends string,
   IdOrNullable = any,
 > = InferRemoveResult<GetService<App, Path>, IdOrNullable>
+
+export type GetService<
+  App extends Application,
+  Path extends string,
+> = App['services'][Path]
 
 export type InferDataFromPath<
   App extends Application,

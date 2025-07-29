@@ -3,6 +3,7 @@ import _set from 'lodash/set.js'
 import type { MaybeArray } from '../../internal.utils.js'
 import { toArray } from '../../internal.utils.js'
 import { BadRequest } from '@feathersjs/errors'
+import type { TransformerFn } from '../../types.js'
 
 /**
  * Transforms the specified fields of an item to lowercase.
@@ -19,7 +20,7 @@ import { BadRequest } from '@feathersjs/errors'
  * }
  * ```
  */
-export const lowercase = (fieldNames: MaybeArray<string>) => {
+export const lowercase = (fieldNames: MaybeArray<string>): TransformerFn => {
   const fieldNamesArr = toArray(fieldNames)
 
   return (item: any) => {

@@ -1,6 +1,6 @@
 import { expect } from 'vitest'
 
-import { checkContext } from './check-context.js'
+import { checkContext } from './check-context.util.js'
 import type { HookContext } from '@feathersjs/feathers'
 
 const make = (type: any, method: any) => ({ type, method }) as HookContext

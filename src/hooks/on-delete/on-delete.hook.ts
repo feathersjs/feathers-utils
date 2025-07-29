@@ -33,7 +33,10 @@ export interface OnDeleteOptions<Path extends string = string> {
 }
 
 /**
- * hook to manipulate related items on delete
+ * hook to manipulate related items on delete.
+ *
+ * This can be handled by your database, but this hook allows you to do it in your application logic.
+ * Then you get service events and hooks for the related items.
  *
  * @see https://utils.feathersjs.com/hooks/on-delete.html
  */

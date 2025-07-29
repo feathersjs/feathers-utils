@@ -1,7 +1,7 @@
 import type { Params } from '@feathersjs/feathers'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
-import { iterateFind } from './iterate-find.js'
+import { iterateFind } from './iterate-find.util.js'
 
 type User = {
   id: number

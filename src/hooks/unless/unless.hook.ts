@@ -3,7 +3,7 @@ import { iffElse } from '../iff-else/iff-else.hook.js'
 import type { PredicateFn, HookFunction } from '../../types.js'
 
 /**
- * Execute a series of hooks if a sync or async predicate is falsey.
+ * Execute a series of hooks if a sync or async predicate is falsy.
  *
  * @see https://utils.feathersjs.com/hooks/unless.html
  */

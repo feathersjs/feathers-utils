@@ -1,4 +1,4 @@
-import { getResultIsArray } from './get-result-is-array.js'
+import { getResultIsArray } from './get-result-is-array.util.js'
 
 describe('getResultIsArray', () => {
   it('falsy result', () => {

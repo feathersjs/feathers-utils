@@ -1,5 +1,5 @@
 import { assert } from 'vitest'
-import { isProvider } from './is-provider.js'
+import { isProvider } from './is-provider.predicate.js'
 import { iff } from '../../hooks/index.js'
 import { clone, isPromise } from '../../common/index.js'
 

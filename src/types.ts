@@ -44,7 +44,7 @@ export type PredicateItemWithContext<T = any> = (
 
 export type TransformerFn<T = any, H extends HookContext = HookContext> = (
   item: T,
-  context: H,
+  options: { context: H; i: number },
 ) => Promisable<Record<string, any> | undefined | void>
 
 export declare type HookFunction<H extends HookContext = HookContext> = (

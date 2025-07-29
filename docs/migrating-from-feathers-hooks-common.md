@@ -6,7 +6,7 @@ This document provides a guide for migrating from `feathers-hooks-common` to `fe
 
 The migration from 'feathers-hooks-common' to 'feathers-utils' is not a 1:1 mapping. Some hooks have been removed, some have been replaced with new hooks, and some utilities have been added or modified. This document will help you understand the changes and how to adapt your code accordingly. We recommend to migrate gradually hook by hook and utility by utility.
 
-In the following sections, we will cover the changes in detail. You can browse this migration guide and search for the hooks and utilities you are using in your codebase. If you have any questions or need help with the migration, please reach out to us in this [github issue](https://github.com/feathersjs/feathers-utils/issues/1).
+In the following sections, we will cover the changes in detail. You can browse this migration guide and search for the hooks and utilities from 'feathers-hooks-common' you are using in your codebase. If you have any questions or need help with the migration, please reach out in this [github issue](https://github.com/feathersjs/feathers-utils/issues/1).
 
 ## `actOn`, `actOnDefault`, and `actOnDispatch`
 
@@ -15,6 +15,28 @@ The `actOn`, `actOnDefault`, and `actOnDispatch` hooks have been removed. But we
 ## `alterItems`
 
 The hook `alterItems` was removed and replaced with the more explicit [`transformData`](/hooks/transform-data.html) and [`transformResult`](/hooks/transform-result.html) hooks. These hooks allow you to transform the data or result of a hook call, respectively.
+
+The signature of the new hooks differ a little bit. The second argument of the transformer function is now an `options` object instead of the `context`.
+
+```ts
+// old
+import { alterItems } from "feathers-hooks-common";
+
+alterItems((item, context) => {
+  // transform item
+  return item;
+});
+
+// new
+import { transformData } from "feathers-utils/hooks";
+
+transformData((item, { context }) => {
+  // transform item
+  return item;
+});
+```
+
+In [`transformResult`](/hooks/transform-result.html) you have a third argument of type `MutateResultOptions` in which you set the `{ dispatch: true }` (transform items in `context.dispatch`) or `{ dispatch: 'both' }` option (transform items in `context.result` and `context.dispatch`).
 
 ## `cache`
 
@@ -42,6 +64,26 @@ Nowadays it's recommended to use [resolvers](https://feathersjs.com/api/schema/r
 
 The `disallow` hook has been updated to use a more explicit syntax. Instead of using a spread argument, you can now pass a single string or an array of field names to specify which fields should not be allowed in the data or result of a hook call. This change improves clarity and consistency in how disallowed fields are specified.
 
+```ts
+// old
+import { disallow } from "feathers-hooks-common";
+
+app.service("my-service").hooks({
+  before: {
+    all: [disallow("field1", "field2")],
+  },
+});
+
+// new
+import { disallow } from "feathers-utils/hooks";
+
+app.service("my-service").hooks({
+  before: {
+    all: [disallow(["field1", "field2"])],
+  },
+});
+```
+
 ## `discard`
 
 The `discard` hook has been removed. Instead you can use [`transformData`](/hooks/transform-data.html) or [`transformResult`](/hooks/transform-result.html) with the [`omit transformer`](/transformers/omit.html).
@@ -62,7 +104,7 @@ app.service("my-service").hooks({
 });
 ```
 
-## `discardQuery
+## `discardQuery`
 
 The `discardQuery` hook has been removed. Instead you can use `transformQuery` with the `omit` transformer.
 
@@ -186,6 +228,16 @@ Nowadays it's recommended to use [resolvers](https://feathersjs.com/api/schema/r
 
 The arguments for `preventChanges` have been simplified. Instead of using a boolean as the first argument, you can now pass an options object as the second argument. This allows for more flexibility and clarity in how you specify the fields to prevent changes on.
 
+```ts
+// old
+import { preventChanges } from "feathers-hooks-common";
+preventChanges(true, "security.badge");
+
+// new
+import { preventChanges } from "feathers-utils/hooks";
+preventChanges("security.badge", { error: true });
+```
+
 ## `replaceItems`
 
 The `replaceItems` utility has been removed. It had too much magic. Based on `context.type` it replaced `context.data` or `context.result`. This does not play well with `around` hooks or for example when you early return `context.result` in a `before` hook and want to transform `context.result` in a `before` hook. Also it returned an object or an array, which adds unnecessary complexity.
@@ -227,10 +279,9 @@ import { setNow } from "feathers-utils/transformers";
 
 app.service("my-service").hooks({
   before: {
-    all: [transformData(setNow(["createdAt", "updatedAt"]))],
-  },
-  after: {
-    all: [transformResult(setNow(["createdAt", "updatedAt"]))],
+    createdAt: [transformData(setNow(["createdAt", "updatedAt"]))],
+    updatedAt: [transformData(setNow(["updatedAt"]))],
+    patchedAt: [transformData(setNow(["patchedAt"]))],
   },
 });
 ```
@@ -249,25 +300,33 @@ The `traverse` utility has been updated to require an explicit options object. T
 
 ## `validate`
 
-The `validate` hook has been removed. If you need it please reach out to us in this [github issue](https://github.com/feathersjs/feathers-utils/issues/1).
+The `validate` hook has been removed. We plan on bringing it back into another library like `feathers-validation` or something similar. If you need it please reach out to us in this [github issue](https://github.com/feathersjs/feathers-utils/issues/1).
 
 ## `validateSchema`
 
-The `validateSchema` hook has been removed. If you need it please reach out to us in this [github issue](https://github.com/feathersjs/feathers-utils/issues/1).
+The `validateSchema` hook has been removed. We plan on bringing it back into another library like `feathers-validation` or something similar. If you need it please reach out to us in this [github issue](https://github.com/feathersjs/feathers-utils/issues/1).
 
 ## new hooks
 
 ### [`createRelated`](/hooks/create-related.html)
 
+The new [`createRelated`](/hooks/create-related.html) hook allows you to create related items in a single operation. This can be useful for creating related items in a `create` operation without having to manually create them in a separate step.
+
 ### [`checkMulti`](/hooks/check-multi.html)
+
+Early throw an error if the request is `.patch(null)` or `.remove(null)` and the service is defined as `multi: false`. This is useful to prevent accidental multi operations on services that are not configured for it.
 
 ### [`onDelete`](/hooks/on-delete.html)
 
+The new [`onDelete`](/hooks/on-delete.html) hook allows you to perform actions when an item is deleted. This can be useful for cleaning up related data or performing other actions when an item is deleted.
+
 ### [`skippable`](/hooks/skippable.html)
 
-Also see [`shouldSkip`](/predicates/should-skip.html)
+Also see [`shouldSkip`](/predicates/should-skip.html) and [`addSkip`](/utils/add-skip.html).
 
 ### [`throwIf`](/hooks/throw-if.html)
+
+The new [`throwIf`](/hooks/throw-if.html) hook allows you to throw an error if a certain condition is met. This can be useful for validating conditions before proceeding with the hook chain.
 
 ### [`throwIfIsProvider`](/hooks/throw-if-is-provider.html)
 
@@ -275,11 +334,21 @@ Also see [`shouldSkip`](/predicates/should-skip.html)
 
 ### [`transformData`](/hooks/transform-data.html)
 
+The new [`transformData`](/hooks/transform-data.html) hook allows you to transform the data of a hook call. It's very flexible and is meant to be used with the new [transformers](/transformers/). This can be useful for modifying the data before it is processed by the service.
+
 ### [`transformQuery`](/hooks/transform-query.html)
+
+The new [`transformQuery`](/hooks/transform-query.html) hook allows you to transform the query of a hook call. It's very flexible and is meant to be used with the new [transformers](/transformers/). This can be useful for modifying the query before it is processed by the service.
 
 ### [`transformResult`](/hooks/transform-result.html)
 
+The new [`transformResult`](/hooks/transform-result.html) hook allows you to transform the result of a hook call. It's very flexible and is meant to be used with the new [transformers](/transformers/). This can be useful for modifying the result before it is returned to the client.
+
 ## new utils
+
+### [`addSkip`](/utils/add-skip.html)
+
+In conjunction with the [`skippable` hook](/hooks/skippable.html) and [`shouldSkip` predicate](/predicates/should-skip.html) the new [`addSkip` utility](/utils/add-skip.html) allows you to add a skip flag to the context. This can be useful for conditionally skipping hooks based on certain criteria.
 
 ### [`getDataIsArray`](/utils/get-data-is-array.html)
 
@@ -289,21 +358,51 @@ The new [`getDataIsArray`](/utils/get-data-is-array.html) utility returns `conte
 
 The new [`getResultIsArray`](/utils/get-result-is-array.html) utility returns `context.result` as an array, even if it is not an array. This can be useful for ensuring that you always work with an array in your hooks, regardless of the input type.
 
+### [`iterateFind`](/utils/iterate-find.html)
+
+The new [`iterateFind`](/utils/iterate-find.html) utility allows you to iterate over the results of a `find` operation. This can be useful for processing each item in the result set individually, without having to worry about the original result structure (array, object, paginated).
+
 ### [`mutateData`](/utils/mutate-data.html)
 
 The new [`mutateData`](/utils/mutate-data.html) utility mutates `context.data` item by item. This can be useful for transforming the data in your hooks without having to worry about the original data structure (array, object).
 
-## [`mutateResult`](/utils/mutate-result.html)
+### [`mutateResult`](/utils/mutate-result.html)
 
 The new [`mutateResult`](/utils/mutate-result.html) utility mutates `context.result` item by item. This can be useful for transforming the result in your hooks without having to worry about the original result structure (array, object, paginated).
 
-## [`getPaginate`](/utils/get-paginate.html)
+### [`getPaginate`](/utils/get-paginate.html)
 
 The new [`getPaginate`](/utils/get-paginate.html) utility returns the pagination information from `context.params` or `service.options.paginate` or `context.params.adapter`.
+
+### [`patchBatch`](/utils/patch-batch.html)
+
+The new [`patchBatch`](/utils/patch-batch.html) utility allows you to batch patch operations in your hooks. This can be useful for optimizing performance when you need to update multiple items with varying data.
 
 ## [`skipResult`](/utils/skip-result.html)
 
 The new [`skipResult`](/utils/skip-result.html) utility allows you to skip the result of a hook call. This can be useful for early returns in your hooks without having to modify the `context.result` directly. It knows when to set an array, a paginated result or `null`.
+
+## Transformers
+
+Transformers are functions that modify the data or result of a Feathers service call. They can be used to apply transformations such as trimming strings, converting dates, or omitting fields from the data or result.
+
+Instead of using the old `discard`, `keep`, `lowerCase`, `setNow`, and other similar hooks, you can now use the new [`transformData`](/hooks/transform-data.html) and [`transformResult`](/hooks/transform-result.html) hooks with the appropriate transformers.
+
+For example, instead of using the old `discard` hook, you can now use the new [`omit` transformer](/transformers/omit.html) with the `transformData` or `transformResult` hooks:
+
+```ts
+import { transformData, transformResult } from "feathers-utils/hooks";
+import { omit } from "feathers-utils/transformers";
+
+app.service("my-service").hooks({
+  before: {
+    all: [transformData(omit(["field1", "field2"]))],
+  },
+  after: {
+    all: [transformResult(omit(["field1", "field2"]))],
+  },
+});
+```
 
 ## new predicates
 

@@ -1,4 +1,4 @@
-import { defineHooks } from './define-hooks.js'
+import { defineHooks } from './define-hooks.util.js'
 
 describe('defineHooks', () => {
   it('should return the hooks with type safety', () => {
