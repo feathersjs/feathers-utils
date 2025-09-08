@@ -1,10 +1,10 @@
 import type { HookContext } from '@feathersjs/feathers'
 import type { PredicateFn, TransportName } from '../../types.js'
 import { throwIf } from '../throw-if/throw-if.hook.js'
-import { toArray } from 'lodash'
 import { every, isProvider } from '../../predicates/index.js'
 import type { FeathersError } from '@feathersjs/errors'
 import { MethodNotAllowed } from '@feathersjs/errors'
+import { toArray } from '../../internal.utils.js'
 
 const defaultError = (context: HookContext) =>
   new MethodNotAllowed(

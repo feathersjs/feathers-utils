@@ -23,6 +23,7 @@ const hooks = [
   'setField',
   'setResult',
   'setSlug',
+  'skippable',
   'softDelete',
   'stashBefore',
   'throwIf',
@@ -48,9 +49,8 @@ const utils = [
   'iterateFind',
   'mutateData',
   'mutateResult',
-  'shouldSkip',
+  'patchBatch',
   'skipResult',
-  'skippable',
   'transformParams',
 ] satisfies (keyof typeof exportedUtils)[]
 
@@ -62,6 +62,7 @@ const predicates = [
   'some',
   'isContext',
   'isPaginated',
+  'shouldSkip',
 ] satisfies (keyof typeof exportedPredicates)[]
 
 const transformers = [

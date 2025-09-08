@@ -25,7 +25,7 @@ describe('transformData', () => {
 
   it('context is 2nd param', () => {
     let contextParam
-    transformData((_rec: any, context: any) => {
+    transformData((_rec: any, { context }: any) => {
       contextParam = context
     })(hookBefore)
     assert.deepEqual(contextParam, hookBefore)

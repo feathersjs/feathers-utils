@@ -19,10 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 24.x
       - run: npm install
       - run: npm run build
 
@@ -31,10 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 24.x
       - run: npm install
       - run: npm run build
       - run: npx --yes @arethetypeswrong/cli --pack . --profile esm-only
