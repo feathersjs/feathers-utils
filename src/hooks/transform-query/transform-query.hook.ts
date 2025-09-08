@@ -11,7 +11,10 @@ export const transformQuery = <
   transformer: TransformerFn<Q, H>,
 ) => {
   return (context: H, next?: NextFunction) => {
-    context.params.query = transformer(context.params.query ?? {}, context)
+    context.params.query = transformer(context.params.query ?? {}, {
+      context,
+      i: 0,
+    })
 
     if (next) {
       return next().then(() => context)
