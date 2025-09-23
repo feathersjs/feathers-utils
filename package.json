@@ -80,8 +80,9 @@
     "LICENSE",
     "README.md",
     "src/**",
-    "lib/**",
-    "dist/**"
+    "dist/**",
+    "!src/**/*.md",
+    "!src/**/*.test.ts"
   ],
   "dependencies": {
     "@feathersjs/adapter-commons": "^5.0.34",
