@@ -2,15 +2,23 @@
 
 ## [Unreleased](https://github.com/feathersjs/feathers-utils/tree/HEAD)
 
-[Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-0...HEAD)
+[Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-1...HEAD)
 
 **Merged pull requests:**
 
-- chore: update deps & skip v9 [\#4](https://github.com/feathersjs/feathers-utils/pull/4) ([fratzinger](https://github.com/fratzinger))
+- feat\(utils\): new util walkQuery [\#5](https://github.com/feathersjs/feathers-utils/pull/5) ([fratzinger](https://github.com/fratzinger))
+
+## [v10.0.0-1](https://github.com/feathersjs/feathers-utils/tree/v10.0.0-1) (2025-09-23)
+
+[Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-0...v10.0.0-1)
 
 ## [v10.0.0-0](https://github.com/feathersjs/feathers-utils/tree/v10.0.0-0) (2025-09-08)
 
 [Full Changelog](https://github.com/feathersjs/feathers-utils/compare/1fae88209c16bda8b0cf58ddd8af6e24d4b5792b...v10.0.0-0)
+
+**Merged pull requests:**
+
+- chore: update deps & skip v9 [\#4](https://github.com/feathersjs/feathers-utils/pull/4) ([fratzinger](https://github.com/fratzinger))
 
 
 
