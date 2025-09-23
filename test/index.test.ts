@@ -52,6 +52,7 @@ const utils = [
   'patchBatch',
   'skipResult',
   'transformParams',
+  'walkQuery',
 ] satisfies (keyof typeof exportedUtils)[]
 
 const predicates = [
