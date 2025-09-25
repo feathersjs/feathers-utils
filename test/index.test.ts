@@ -39,6 +39,7 @@ const hooks = [
 
 const utils = [
   'addSkip',
+  'addToQuery',
   'checkContext',
   'contextToJson',
   'defineHooks',
