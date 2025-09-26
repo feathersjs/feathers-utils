@@ -2,15 +2,23 @@
 
 ## [Unreleased](https://github.com/feathersjs/feathers-utils/tree/HEAD)
 
-[Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-2...HEAD)
+[Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-3...HEAD)
 
 **Merged pull requests:**
 
-- feat\(utils\): new util addToQuery [\#6](https://github.com/feathersjs/feathers-utils/pull/6) ([fratzinger](https://github.com/fratzinger))
+- chore: tsup external packages [\#7](https://github.com/feathersjs/feathers-utils/pull/7) ([fratzinger](https://github.com/fratzinger))
+
+## [v10.0.0-3](https://github.com/feathersjs/feathers-utils/tree/v10.0.0-3) (2025-09-26)
+
+[Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-2...v10.0.0-3)
 
 ## [v10.0.0-2](https://github.com/feathersjs/feathers-utils/tree/v10.0.0-2) (2025-09-25)
 
 [Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-1...v10.0.0-2)
+
+**Merged pull requests:**
+
+- feat\(utils\): new util addToQuery [\#6](https://github.com/feathersjs/feathers-utils/pull/6) ([fratzinger](https://github.com/fratzinger))
 
 ## [v10.0.0-1](https://github.com/feathersjs/feathers-utils/tree/v10.0.0-1) (2025-09-23)
 
