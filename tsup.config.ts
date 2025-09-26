@@ -1,4 +1,5 @@
 import { defineConfig } from 'tsup'
+import pkg from './package.json'
 
 export default defineConfig({
   treeshake: true,
@@ -9,6 +10,12 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   format: ['esm'],
+  external: [
+    ...Object.keys(pkg.peerDependencies || {}),
+    ...Object.keys(pkg.dependencies || {}),
+    ...Object.keys(pkg.devDependencies || {}),
+    /^node:.+$/,
+  ],
   entry: {
     index: 'src/index.ts',
     hooks: 'src/hooks/index.ts',
