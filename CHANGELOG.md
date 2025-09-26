@@ -2,15 +2,23 @@
 
 ## [Unreleased](https://github.com/feathersjs/feathers-utils/tree/HEAD)
 
-[Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-3...HEAD)
+[Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-4...HEAD)
 
 **Merged pull requests:**
 
-- chore: tsup external packages [\#7](https://github.com/feathersjs/feathers-utils/pull/7) ([fratzinger](https://github.com/fratzinger))
+- fix: cjs fix for SERVICE from @feathersjs/feathers [\#8](https://github.com/feathersjs/feathers-utils/pull/8) ([fratzinger](https://github.com/fratzinger))
+
+## [v10.0.0-4](https://github.com/feathersjs/feathers-utils/tree/v10.0.0-4) (2025-09-26)
+
+[Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-3...v10.0.0-4)
 
 ## [v10.0.0-3](https://github.com/feathersjs/feathers-utils/tree/v10.0.0-3) (2025-09-26)
 
 [Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-2...v10.0.0-3)
+
+**Merged pull requests:**
+
+- chore: tsup external packages [\#7](https://github.com/feathersjs/feathers-utils/pull/7) ([fratzinger](https://github.com/fratzinger))
 
 ## [v10.0.0-2](https://github.com/feathersjs/feathers-utils/tree/v10.0.0-2) (2025-09-25)
 
