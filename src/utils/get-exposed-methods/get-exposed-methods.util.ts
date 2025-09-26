@@ -1,5 +1,5 @@
 import type { Service } from '@feathersjs/feathers'
-import { SERVICE } from '@feathersjs/feathers'
+import { SERVICE } from '../../feathers-cjs-fix.js'
 
 /**
  * Little helper to get methods are publicly exposed by a service.
