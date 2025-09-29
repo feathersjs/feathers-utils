@@ -53,7 +53,5 @@ export function createRelated<
         }
       }),
     )
-
-    return context
   }
 }

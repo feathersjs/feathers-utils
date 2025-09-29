@@ -33,9 +33,7 @@ export const throwIf = <H extends HookContext = HookContext>(
     }
 
     if (next) {
-      await next()
+      return await next()
     }
-
-    return context
   }
 }

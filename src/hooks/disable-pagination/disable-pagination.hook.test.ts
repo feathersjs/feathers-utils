@@ -1,44 +1,61 @@
 import { assert } from 'vitest'
 import { disablePagination } from './disable-pagination.hook.js'
+import type { HookContext } from '@feathersjs/feathers'
 
-let hookBefore: any
-
-describe('services disablePagination', () => {
-  beforeEach(() => {
-    hookBefore = {
+describe('hook - disablePagination', () => {
+  it('disables on $limit = -1', () => {
+    const result: any = disablePagination()({
       type: 'before',
       method: 'find',
       params: { query: { id: 1, $limit: -1 } },
-    }
-  })
-
-  it('disables on $limit = -1', () => {
-    hookBefore.params.query.$limit = -1
-
-    const result: any = disablePagination()(hookBefore)
+    } as HookContext)
     assert.deepEqual(result.params, { paginate: false, query: { id: 1 } })
   })
 
   it('disables on $limit = "-1"', () => {
-    hookBefore.params.query.$limit = '-1'
+    const result: any = disablePagination()({
+      type: 'before',
+      method: 'find',
+      params: { query: { id: 1, $limit: '-1' } },
+    } as HookContext)
+    assert.deepEqual(result.params, { paginate: false, query: { id: 1 } })
+  })
 
-    const result: any = disablePagination()(hookBefore)
+  it('disables on $limit = -1 in around', () => {
+    const result: any = disablePagination()({
+      type: 'around',
+      method: 'find',
+      params: { query: { id: 1, $limit: -1 } },
+    } as HookContext)
+    assert.deepEqual(result.params, { paginate: false, query: { id: 1 } })
+  })
+
+  it('disables on $limit = "-1" in around', () => {
+    const result: any = disablePagination()({
+      type: 'around',
+      method: 'find',
+      params: { query: { id: 1, $limit: '-1' } },
+    } as HookContext)
     assert.deepEqual(result.params, { paginate: false, query: { id: 1 } })
   })
 
   it('throws if after hook', () => {
-    hookBefore.type = 'after'
-
     assert.throws(() => {
-      disablePagination()(hookBefore)
+      disablePagination()({
+        type: 'after',
+        method: 'find',
+        params: { query: { id: 1, $limit: -1 } },
+      } as HookContext)
     })
   })
 
   it('throws if not find', () => {
-    hookBefore.method = 'get'
-
     assert.throws(() => {
-      disablePagination()(hookBefore)
+      disablePagination()({
+        type: 'before',
+        method: 'get',
+        params: { query: { id: 1, $limit: -1 } },
+      } as HookContext)
     })
   })
 })

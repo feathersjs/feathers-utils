@@ -2,7 +2,8 @@ import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { checkContext } from '../../utils/index.js'
 import type { TransformParamsFn } from '../../types.js'
 import { transformParams } from '../../utils/transform-params/transform-params.util.js'
-import type { Promisable } from '../../internal.utils.js'
+import { early, type Promisable } from '../../internal.utils.js'
+import { isPromise } from 'node:util/types'
 
 export type SoftDeleteOptionFunction<H extends HookContext = HookContext> = (
   context?: H,
@@ -28,6 +29,13 @@ export interface SoftDeleteOptions<H extends HookContext = HookContext> {
    * @default 'disableSoftDelete'
    */
   disableSoftDeleteKey?: string
+
+  /**
+   * `softDelete` uses `._patch()` internally to mark items as deleted.
+   *
+   * If you set this option to `true`, it will use the `.patch()` method with hooks instead.
+   */
+  usePatchWithHooks?: boolean
 }
 
 /**
@@ -50,12 +58,15 @@ export const softDelete = <H extends HookContext = HookContext>(
     const { disableSoftDeleteKey = 'disableSoftDelete' } = options
 
     if (context.params[disableSoftDeleteKey]) {
-      return context
+      return early(context, next)
     }
 
     const { deletedQuery, removeData } = options
 
-    const deleteQuery = await getValue(deletedQuery, context)
+    let deleteQuery = getValue(deletedQuery, context)
+    if (isPromise(deleteQuery)) {
+      deleteQuery = await deleteQuery
+    }
 
     const params = transformParams(
       {
@@ -71,14 +82,18 @@ export const softDelete = <H extends HookContext = HookContext>(
     context.params = params
 
     if (context.method === 'remove') {
-      const data = await getValue(removeData, context)
-      const result = await context.service.patch(context.id, data, params)
+      let data = getValue(removeData, context)
+      if (isPromise(data)) {
+        data = await data
+      }
+      const method = options.usePatchWithHooks ? 'patch' : '_patch'
+      const result = await context.service[method](context.id, data, params)
 
       context.result = result
     }
 
     if (next) {
-      await next()
+      return await next()
     }
 
     return context

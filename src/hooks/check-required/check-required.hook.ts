@@ -44,6 +44,6 @@ export function checkRequired<H extends HookContext = HookContext>(
       }
     }
 
-    if (next) return next().then(() => context)
+    if (next) return next()
   }
 }

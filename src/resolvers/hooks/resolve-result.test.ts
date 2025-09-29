@@ -18,7 +18,7 @@ describe('resolve-result', () => {
       },
     } as unknown as HookContext
 
-    const u = await resolveResult<User>({
+    await resolveResult<User>({
       password: async (): Promise<undefined> => undefined,
 
       name: async (_value, user, ctx, status) => {
@@ -30,7 +30,7 @@ describe('resolve-result', () => {
       },
     })(context)
 
-    assert.deepStrictEqual(u.result, {
+    assert.deepStrictEqual(context.result, {
       firstName: 'Dave',
       lastName: 'L.',
       name: 'Dave L.',
@@ -52,7 +52,7 @@ describe('resolve-result', () => {
       ],
     } as unknown as HookContext
 
-    const u = await resolveResult<User>({
+    await resolveResult<User>({
       password: async (): Promise<undefined> => undefined,
 
       name: async (_value, user, ctx, status) => {
@@ -64,7 +64,7 @@ describe('resolve-result', () => {
       },
     })(context)
 
-    assert.deepStrictEqual(u.result, [
+    assert.deepStrictEqual(context.result, [
       {
         firstName: 'Dave',
         lastName: 'L.',
@@ -93,7 +93,7 @@ describe('resolve-result', () => {
       ],
     } as unknown as HookContext
 
-    const u = await resolveResult<User>({
+    await resolveResult<User>({
       password: async (): Promise<undefined> => undefined,
 
       name: async (_value, user, ctx, status) => {
@@ -105,7 +105,7 @@ describe('resolve-result', () => {
       },
     })(context)
 
-    assert.deepStrictEqual(u.result, [
+    assert.deepStrictEqual(context.result, [
       {
         firstName: 'Dave',
         lastName: 'L.',
@@ -136,7 +136,7 @@ describe('resolve-result', () => {
       },
     } as unknown as HookContext
 
-    const u = await resolveResult<User>({
+    await resolveResult<User>({
       password: async (): Promise<undefined> => undefined,
 
       name: async (_value, user, ctx, status) => {
@@ -148,7 +148,7 @@ describe('resolve-result', () => {
       },
     })(context)
 
-    assert.deepStrictEqual(u.result.data, [
+    assert.deepStrictEqual(context.result.data, [
       {
         firstName: 'Dave',
         lastName: 'L.',
@@ -204,12 +204,5 @@ describe('resolve-result', () => {
         },
       },
     )
-  })
-
-  it('empty resolver returns original data', async () => {
-    const result = { message: 'Hello' }
-    const resolved = await resolveResult({})({ result } as HookContext)
-
-    assert.strictEqual(result, resolved.result)
   })
 })
