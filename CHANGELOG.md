@@ -2,15 +2,23 @@
 
 ## [Unreleased](https://github.com/feathersjs/feathers-utils/tree/HEAD)
 
-[Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-4...HEAD)
+[Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-5...HEAD)
 
 **Merged pull requests:**
 
-- fix: cjs fix for SERVICE from @feathersjs/feathers [\#8](https://github.com/feathersjs/feathers-utils/pull/8) ([fratzinger](https://github.com/fratzinger))
+- fix\(softDelete\): use \_patch for softDelete [\#9](https://github.com/feathersjs/feathers-utils/pull/9) ([fratzinger](https://github.com/fratzinger))
+
+## [v10.0.0-5](https://github.com/feathersjs/feathers-utils/tree/v10.0.0-5) (2025-09-29)
+
+[Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-4...v10.0.0-5)
 
 ## [v10.0.0-4](https://github.com/feathersjs/feathers-utils/tree/v10.0.0-4) (2025-09-26)
 
 [Full Changelog](https://github.com/feathersjs/feathers-utils/compare/v10.0.0-3...v10.0.0-4)
+
+**Merged pull requests:**
+
+- fix: cjs fix for SERVICE from @feathersjs/feathers [\#8](https://github.com/feathersjs/feathers-utils/pull/8) ([fratzinger](https://github.com/fratzinger))
 
 ## [v10.0.0-3](https://github.com/feathersjs/feathers-utils/tree/v10.0.0-3) (2025-09-26)
 
