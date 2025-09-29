@@ -1,5 +1,5 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
-import { checkContext } from '../../utils/index.js'
+import { addToQuery, checkContext } from '../../utils/index.js'
 import type { TransformParamsFn } from '../../types.js'
 import { transformParams } from '../../utils/transform-params/transform-params.util.js'
 import { early, type Promisable } from '../../internal.utils.js'
@@ -68,13 +68,12 @@ export const softDelete = <H extends HookContext = HookContext>(
       deleteQuery = await deleteQuery
     }
 
+    const query = addToQuery(context.params.query, deleteQuery)
+
     const params = transformParams(
       {
         ...context.params,
-        query: {
-          ...context.params.query,
-          ...deleteQuery,
-        },
+        query,
       },
       options.transformParams,
     )
