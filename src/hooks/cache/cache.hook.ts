@@ -47,7 +47,7 @@ export const cache = <H extends HookContext = HookContext>(
       await cacheBefore(context, cacheMap)
       await next()
       await cacheAfter(context, cacheMap)
-      return context
+      return
     }
   }
 }

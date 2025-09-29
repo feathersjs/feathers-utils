@@ -58,7 +58,7 @@ export const onDelete = <
     const { result } = getResultIsArray(context)
 
     if (!result.length) {
-      return context
+      return
     }
 
     const promises: Promise<any>[] = []
@@ -102,6 +102,6 @@ export const onDelete = <
       await Promise.all(promises)
     }
 
-    return context
+    return
   }
 }

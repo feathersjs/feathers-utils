@@ -50,6 +50,6 @@ export const resolve = <
       await resultResolver(context, next)
     }
 
-    return context
+    return
   }
 }

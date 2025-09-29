@@ -1,7 +1,7 @@
 import { assert } from 'vitest'
 import { disallow } from './disallow.hook.js'
 
-describe('services disallow', () => {
+describe('hook - disallow', () => {
   describe('disallow is compatible with .disable (without predicate)', () => {
     let hookRest: any
     let hookSocketio: any

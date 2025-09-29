@@ -17,6 +17,6 @@ export const resolveResult = <
       resolve(resolverProperties, item, context),
     )
 
-    return context
+    return
   }
 }
