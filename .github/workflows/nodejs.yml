@@ -8,31 +8,40 @@ jobs:
         node-version: [20.x, 22.x, 24.x]
     steps:
       - uses: actions/checkout@v4
+      - run: npm install -g corepack@latest
+      - run: corepack enable
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-      - run: npm install
-      - run: npm test
+          cache: "pnpm"
+      - run: pnpm i
+      - run: pnpm test
 
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: npm install -g corepack@latest
+      - run: corepack enable
       - uses: actions/setup-node@v4
         with:
           node-version: 24.x
-      - run: npm install
-      - run: npm run build
+          cache: "pnpm"
+      - run: pnpm i
+      - run: pnpm build
 
   are_the_types_wrong:
     name: Are The Types Wrong?
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: npm install -g corepack@latest
+      - run: corepack enable
       - uses: actions/setup-node@v4
         with:
           node-version: 24.x
-      - run: npm install
-      - run: npm run build
+          cache: "pnpm"
+      - run: pnpm i
+      - run: pnpm build
       - run: npx --yes @arethetypeswrong/cli --pack . --profile esm-only

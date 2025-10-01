@@ -28,14 +28,3 @@ export const early = <H extends HookContext>(
   }
   return
 }
-
-/**
- * Checks if a value is a Promise.
- */
-export const isPromise = (value: any): value is Promise<any> => {
-  return (
-    value !== null &&
-    typeof value === 'object' &&
-    typeof value.then === 'function'
-  )
-}

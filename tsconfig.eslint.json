@@ -7,6 +7,6 @@
     "tsup.config.ts",
     "vite.config.ts",
     "docs/**/*",
-    "docs/.vitepress/**/*",
+    "docs/.vitepress/**/*"
   ],
 }
