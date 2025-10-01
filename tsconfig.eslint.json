@@ -8,5 +8,6 @@
     "vite.config.ts",
     "docs/**/*",
     "docs/.vitepress/**/*",
+    "eslint.config.mjs"
   ],
 }
