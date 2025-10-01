@@ -7,7 +7,6 @@
     "tsup.config.ts",
     "vite.config.ts",
     "docs/**/*",
-    "docs/.vitepress/**/*",
-    "eslint.config.mjs"
+    "docs/.vitepress/**/*"
   ],
 }
