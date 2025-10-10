@@ -96,7 +96,7 @@ While revisiting we found that some hooks basically did the same thing: use `tra
 
 These hooks basically all work the same way. The decision to use explicit `data` and `result` hooks would have forced us to create two hooks for each mechanism. We planned to add more hooks like `trimData`, `trimResult`, `parseDateData` etc. Which adds a lot of complexity and maintenance overhead. Instead we removed these explicit hooks and decided to go with the transformers. This allows us to test each transformer separately and use them in the `transformData` and `transformResult` hooks. This also allows us to add new transformers without any noise. As you can see in the examples above the DX is not worse than before `setNow()` -> `transformData(setNow())`. In fact, it is even better because code is reused and less mental overhead is required to understand the code. Built in transformers for now are:
 
-- [`lowercase`](/transformers/lower-case.html): Lowercases the given fields.
+- [`lowercase`](/transformers/lowercase.html): Lowercases the given fields.
 - [`omit`](/transformers/omit.html): Omits the given fields.
 - [`parseDate`](/transformers/parse-date.html): Parses the given fields as dates.
 - [`pick`](/transformers/pick.html): Picks the given fields.
