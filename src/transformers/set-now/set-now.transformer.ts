@@ -8,8 +8,7 @@ import type { TransformerFn } from '../../types.js'
  *
  * @example
  * ```ts
- * import { transformData, transformResult, transformQuery } from 'feathers-utils/hooks'
- * import { lowercase } from 'feathers-utils/transformers'
+ * import { transformData, transformResult, transformQuery, setNow } from 'feathers-utils/transformers'
  *
  * {
  *   before: {
