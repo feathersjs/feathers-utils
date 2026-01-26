@@ -52,6 +52,7 @@ const utils = [
   'mutateResult',
   'patchBatch',
   'skipResult',
+  'toPaginated',
   'transformParams',
   'walkQuery',
 ] satisfies (keyof typeof exportedUtils)[]
