@@ -4,7 +4,6 @@
     "src/**/*",
     "test/**/*",
     "tsdown.config.ts",
-    "tsup.config.ts",
     "vite.config.ts",
     "docs/**/*",
     "docs/.vitepress/**/*"

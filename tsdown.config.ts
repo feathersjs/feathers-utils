@@ -1,11 +1,8 @@
-import { defineConfig } from 'tsup'
+import { defineConfig } from 'tsdown'
 import pkg from './package.json'
 
 export default defineConfig({
   treeshake: true,
-  define: {
-    'import.meta.vitest': 'false',
-  },
   dts: true,
   clean: true,
   sourcemap: true,
@@ -23,5 +20,10 @@ export default defineConfig({
     predicates: 'src/predicates/index.ts',
     resolvers: 'src/resolvers/index.ts',
     transformers: 'src/transformers/index.ts',
+  },
+  transform: {
+    define: {
+      'import.meta.vitest': 'undefined',
+    },
   },
 })
