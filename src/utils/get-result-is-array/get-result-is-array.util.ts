@@ -1,5 +1,5 @@
 import type { HookContext } from '@feathersjs/feathers'
-import copy from 'fast-copy'
+import { copy } from 'fast-copy'
 
 type GetResultIsArrayOptions = {
   dispatch?: boolean

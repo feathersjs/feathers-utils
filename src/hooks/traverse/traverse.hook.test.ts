@@ -1,6 +1,6 @@
 import { assert } from 'vitest'
 import { traverse } from './traverse.hook.js'
-import copy from 'fast-copy'
+import { copy } from 'fast-copy'
 
 describe('traverse', () => {
   let hookBefore: any

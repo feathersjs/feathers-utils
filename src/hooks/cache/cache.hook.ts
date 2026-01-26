@@ -1,6 +1,6 @@
 import type { HookContext, NextFunction, Params } from '@feathersjs/feathers'
 import { stableStringify } from './cache-utils.js'
-import copy from 'fast-copy'
+import { copy } from 'fast-copy'
 import type { Promisable } from '../../internal.utils.js'
 
 type Cache = {

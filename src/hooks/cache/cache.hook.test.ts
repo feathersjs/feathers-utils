@@ -5,7 +5,7 @@ import { cache } from './cache.hook.js'
 import { LRUCache } from 'lru-cache'
 import { MemoryService } from '@feathersjs/memory'
 import { expect } from 'vitest'
-import copy from 'fast-copy'
+import { copy } from 'fast-copy'
 
 const setup = (options: CacheOptions) => {
   const app = feathers<{

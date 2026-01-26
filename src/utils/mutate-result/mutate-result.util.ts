@@ -1,7 +1,7 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { getResultIsArray } from '../get-result-is-array/get-result-is-array.util.js'
 import { isPromise } from '../../common/index.js'
-import copy from 'fast-copy'
+import { copy } from 'fast-copy'
 import type { DispatchOption, TransformerFn } from '../../types.js'
 
 export type MutateResultOptions = {
