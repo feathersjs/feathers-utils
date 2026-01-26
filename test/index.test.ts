@@ -75,6 +75,9 @@ const transformers = [
   'parseDate',
   'pick',
   'omit',
+  'transformData',
+  'transformQuery',
+  'transformResult',
 ] satisfies (keyof typeof exportedTransformers)[]
 
 describe('expose', () => {
