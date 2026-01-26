@@ -1,5 +1,5 @@
 import type { Id, Params } from '@feathersjs/feathers'
-import { deepEqual } from 'fast-equals'
+import { dequal as deepEqual } from 'dequal'
 import type { KeyOf } from '../../internal.utils.js'
 
 export type PatchBatchOptions<IdKey extends string> = {

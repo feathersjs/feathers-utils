@@ -1,5 +1,5 @@
 import type { Query } from '@feathersjs/feathers'
-import { deepEqual } from 'fast-equals'
+import { dequal as deepEqual } from 'dequal'
 
 /**
  * Safely adds a property to a query object. If the property already exists, it adds it to the `$and` array.

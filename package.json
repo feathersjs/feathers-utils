@@ -80,8 +80,8 @@
   "dependencies": {
     "@feathersjs/adapter-commons": "^5.0.37",
     "@feathersjs/errors": "^5.0.37",
+    "dequal": "^2.0.3",
     "fast-copy": "^4.0.2",
-    "fast-equals": "^6.0.0",
     "lodash": "^4.17.23",
     "neotraverse": "^0.6.18"
   },
