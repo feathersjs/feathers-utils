@@ -10,6 +10,11 @@ export type MutateResultOptions = {
   dispatch?: DispatchOption
 }
 
+/**
+ * Mutates `context.result` and/or `context.dispatch` using the provided transformer function.
+ *
+ * @see https://utils.feathersjs.com/utils/mutate-result.html
+ */
 export async function mutateResult<H extends HookContext = HookContext>(
   context: H,
   transformer: TransformerFn<any, H>,

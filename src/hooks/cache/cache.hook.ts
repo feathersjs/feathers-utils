@@ -31,6 +31,11 @@ export type CacheOptions = {
   transformParams: (params: Params) => Params
 }
 
+/**
+ * A hook to cache `get` and `find` method results based on `params`.
+ *
+ * @see https://utils.feathersjs.com/hooks/cache.html
+ */
 export const cache = <H extends HookContext = HookContext>(
   options: CacheOptions,
 ) => {

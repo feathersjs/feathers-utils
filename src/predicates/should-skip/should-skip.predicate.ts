@@ -7,6 +7,8 @@ import type { SkipHookName } from '../../utils/index.js'
  * Util to detect if a hook should be skipped
  *
  * Checks the `params.skipHooks` array for the hook name, type, or 'all'.
+ *
+ * @see https://utils.feathersjs.com/predicates/should-skip.html
  */
 export const shouldSkip = <H extends HookContext = HookContext>(
   hookName: SkipHookName,

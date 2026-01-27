@@ -10,4 +10,8 @@ export * from '../hooks/transform-data/transform-data.hook.js'
 export * from '../hooks/transform-query/transform-query.hook.js'
 export * from '../hooks/transform-result/transform-result.hook.js'
 
+// re-export utils
+export * from '../utils/mutate-data/mutate-data.util.js'
+export * from '../utils/mutate-result/mutate-result.util.js'
+
 export type { TransformerFn } from '../types.js'

@@ -35,6 +35,8 @@ export type PatchBatchResultItem<T = Record<string, unknown>, P = Params> = [
  *
  * await Promise.all(batched.map(args => service.patch(...args)));
  * ```
+ *
+ * @see https://utils.feathersjs.com/utils/patch-batch.html
  */
 export function patchBatch<
   T extends Record<string, any>,

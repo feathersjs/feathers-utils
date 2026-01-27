@@ -3,6 +3,8 @@ import type { TransformerFn } from '../../types.js'
 
 /**
  * Transforms the query object.
+ *
+ * @see https://utils.feathersjs.com/hooks/transform-query.html
  */
 export const transformQuery = <
   Q extends Query,

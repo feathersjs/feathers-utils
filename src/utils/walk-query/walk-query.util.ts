@@ -125,6 +125,8 @@ const _walkQueryUtil = <Q extends Query>(
  * Walks the given Feathers query and calls the `walker` function for each property. The
  * `walker` function can return a new value which will replace the original value in the
  * returned query. If no changes were made the original query will be returned.
+ *
+ * @see https://utils.feathersjs.com/utils/walk-query.html
  */
 export const walkQuery = <Q extends Query>(
   query: Q,

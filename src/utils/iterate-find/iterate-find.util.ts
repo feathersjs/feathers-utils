@@ -14,6 +14,8 @@ type IterateFindOptions<P extends Params = Params> = {
  *
  * This function is useful for iterating over large datasets without loading everything into memory at once.
  * It uses pagination to fetch results in chunks, allowing you to process each item as it is retrieved.
+ *
+ * @see https://utils.feathersjs.com/utils/iterate-find.html
  */
 export async function* iterateFind<
   Services,

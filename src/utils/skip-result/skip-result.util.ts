@@ -3,6 +3,8 @@ import { isMulti, isPaginated } from '../../predicates/index.js'
 
 /**
  * Set `context.result` to an empty array or object, depending on the hook type
+ *
+ * @see https://utils.feathersjs.com/utils/skip-result.html
  */
 export const skipResult = <H extends HookContext = HookContext>(context: H) => {
   if (context.result) {

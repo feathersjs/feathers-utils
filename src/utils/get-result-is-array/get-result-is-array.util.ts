@@ -5,6 +5,11 @@ type GetResultIsArrayOptions = {
   dispatch?: boolean
 }
 
+/**
+ * Always returns the `context.result` or `context.dispatch` as an array.
+ *
+ * @see https://utils.feathersjs.com/utils/get-result-is-array.html
+ */
 export function getResultIsArray<H extends HookContext = HookContext>(
   context: H,
   options?: GetResultIsArrayOptions,
