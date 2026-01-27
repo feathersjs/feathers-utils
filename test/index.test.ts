@@ -66,6 +66,13 @@ const predicates = [
   'isContext',
   'isPaginated',
   'shouldSkip',
+  // re-export hooks
+  'iff',
+  'iffElse',
+  'unless',
+  'skippable',
+  'throwIf',
+  'when',
 ] satisfies (keyof typeof exportedPredicates)[]
 
 const transformers = [
@@ -75,9 +82,13 @@ const transformers = [
   'parseDate',
   'pick',
   'omit',
+  // re-export hooks
   'transformData',
   'transformQuery',
   'transformResult',
+  // re-export utils
+  'mutateData',
+  'mutateResult',
 ] satisfies (keyof typeof exportedTransformers)[]
 
 describe('expose', () => {

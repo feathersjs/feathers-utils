@@ -1,5 +1,5 @@
 import { shouldSkip } from '../../predicates/should-skip/should-skip.predicate.js'
-import { skippable } from './skippable.js'
+import { skippable } from './skippable.hook.js'
 
 describe('skippable', () => {
   it('runs hook when not skipped', async () => {

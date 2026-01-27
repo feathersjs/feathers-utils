@@ -6,3 +6,10 @@ export * from './is-provider/is-provider.predicate.js'
 export * from './not/not.predicate.js'
 export * from './should-skip/should-skip.predicate.js'
 export * from './some/some.predicate.js'
+
+// re-export hooks
+export * from '../hooks/iff/iff.hook.js'
+export * from '../hooks/iff-else/iff-else.hook.js'
+export * from '../hooks/unless/unless.hook.js'
+export * from '../hooks/skippable/skippable.hook.js'
+export * from '../hooks/throw-if/throw-if.hook.js'
