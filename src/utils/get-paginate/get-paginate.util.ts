@@ -7,6 +7,8 @@ import { hasOwnProperty } from '../../internal.utils.js'
  * 1. it uses `context.params.paginate` if it exists
  * 2. it uses `service.options.paginate` if it exists
  * 3. it uses `context.params.adapter` if it exists
+ *
+ * @see https://utils.feathersjs.com/utils/get-paginate.html
  */
 export const getPaginate = <H extends HookContext = HookContext>(
   context: H,

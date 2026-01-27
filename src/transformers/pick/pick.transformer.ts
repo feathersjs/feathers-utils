@@ -16,6 +16,8 @@ import type { TransformerFn } from '../../types.js'
  *   }
  * }
  * ```
+ *
+ * @see https://utils.feathersjs.com/transformers/pick.html
  */
 export const pick = (fieldNames: MaybeArray<string>): TransformerFn => {
   const fieldNamesArr = toArray(fieldNames)

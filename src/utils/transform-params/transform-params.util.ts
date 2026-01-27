@@ -3,6 +3,8 @@ import type { TransformParamsFn } from '../../types.js'
 
 /**
  * Safely use a transformParams function to modify params.
+ *
+ * @see https://utils.feathersjs.com/utils/transform-params.html
  */
 export const transformParams = <P extends Params = Params>(
   params: P,

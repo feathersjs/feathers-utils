@@ -4,6 +4,8 @@ import { dequal as deepEqual } from 'dequal'
 /**
  * Safely adds a property to a query object. If the property already exists, it adds it to the `$and` array.
  * If the exact same property-value pair already exists, it does nothing.
+ *
+ * @see https://utils.feathersjs.com/utils/add-to-query.html
  */
 export function addToQuery<Q extends Query>(targetQuery: Q, query: Q): Q {
   targetQuery ??= {} as Q

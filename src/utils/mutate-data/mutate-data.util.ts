@@ -4,6 +4,11 @@ import { isPromise } from '../../common/index.js'
 import type { Promisable } from '../../internal.utils.js'
 import type { TransformerFn } from '../../types.js'
 
+/**
+ * Mutates `context.data` using the provided transformer function.
+ *
+ * @see https://utils.feathersjs.com/utils/mutate-data.html
+ */
 export function mutateData<H extends HookContext = HookContext>(
   context: H,
   transformer: TransformerFn<any, H>,

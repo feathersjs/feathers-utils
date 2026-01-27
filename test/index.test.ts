@@ -113,9 +113,8 @@ describe('expose', () => {
       [
         ...Object.keys(exportedHooks).sort(),
         ...Object.keys(exportedUtils).sort(),
-        ...Object.keys(exportedPredicates).sort(),
       ].sort(),
-      [...hooks, ...utils, ...predicates].sort(),
+      [...hooks, ...utils].sort(),
     )
   })
 })

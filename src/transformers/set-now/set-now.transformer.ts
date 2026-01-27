@@ -18,6 +18,8 @@ import type { TransformerFn } from '../../types.js'
  *   }
  * }
  * ```
+ *
+ * @see https://utils.feathersjs.com/transformers/set-now.html
  */
 export const setNow = (fieldNames: MaybeArray<string>): TransformerFn => {
   const fieldNamesArr = toArray(fieldNames)

@@ -3,6 +3,8 @@ import type { HookFunction, PredicateFn } from '../../types.js'
 
 /**
  * Wrap a hook to make it skippable
+ *
+ * @see https://utils.feathersjs.com/hooks/skippable.html
  */
 export const skippable =
   <H extends HookContext = HookContext>(

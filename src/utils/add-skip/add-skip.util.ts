@@ -9,6 +9,8 @@ export type SkipHookName =
 
 /**
  * Add names to `context.params.skipHooks` for `skippable` hooks.
+ *
+ * @see https://utils.feathersjs.com/utils/add-skip.html
  */
 export const addSkip = <H extends HookContext>(
   context: H,
