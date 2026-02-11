@@ -5,8 +5,12 @@ import type { Theme } from 'vitepress'
 import HookTable from './components/HookTable.vue'
 import ArgsTable from './components/ArgsTable.vue'
 
-import PredicatesList from './components/PredicatesList.vue'
-import TransformersList from './components/TransformersList.vue'
+import PredicatesTable from './components/PredicatesTable.vue'
+import TransformersTable from './components/TransformersTable.vue'
+import GuardsTable from './components/GuardsTable.vue'
+import HooksTable from './components/HooksTable.vue'
+import UtilsTable from './components/UtilsTable.vue'
+import Chip from './components/Chip.vue'
 
 import '../style/main.css'
 import '@shikijs/vitepress-twoslash/style.css'
@@ -18,7 +22,12 @@ export default {
     app.component('HookTable', HookTable)
     app.component('ArgsTable', ArgsTable)
 
-    app.component('PredicatesList', PredicatesList)
-    app.component('TransformersList', TransformersList)
+    app.component('PredicatesTable', PredicatesTable)
+    app.component('TransformersTable', TransformersTable)
+    app.component('GuardsTable', GuardsTable)
+    app.component("HooksTable", HooksTable)
+    app.component("UtilsTable", UtilsTable)
+
+    app.component("Chip", Chip)
   },
 } satisfies Theme

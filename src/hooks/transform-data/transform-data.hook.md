@@ -6,6 +6,7 @@ hook:
   method: ["create", "update", "patch", "remove"]
   multi: true
   source:
+transformers: true
 see: ["transformers", "utils/mutateData"]
 ---
 
@@ -43,4 +44,4 @@ const myHook = () => async (context) => {
 
 'feathers-utils' provides a set of transformers that can be used with this hook. These transformers can be used to trim strings, convert dates, or omit fields from the data.
 
-<TransformersList />
+<TransformersTable />

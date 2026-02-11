@@ -81,14 +81,51 @@ export default defineConfig({
       {
         text: 'Predicates',
         link: '/predicates',
+        collapsed: false,
+        items: utilities
+          .filter((x) => x.category === 'predicates')
+          .map((x) => ({
+            text: x.title,
+            link: x.path,
+          })),
       },
       {
         text: 'Transformers',
         link: '/transformers',
+        collapsed: false,
+        items: utilities
+          .filter((x) => x.category === 'transformers')
+          .map((x) => ({
+            text: x.title,
+            link: x.path,
+          })),
+      },
+      {
+        text: 'Type Guards',
+        link: '/guards',
+        collapsed: false,
+        items: utilities
+          .filter((x) => x.category === 'guards')
+          .map((x) => ({
+            text: x.title,
+            link: x.path,
+          }))
       },
       { text: 'Utility Types', link: '/utility-types' },
+
     ],
     nav: [
+      {
+        text: 'Categories',
+        items: [
+          { text: 'Hooks', link: '/hooks' },
+          { text: 'Utilities', link: '/utils' },
+          { text: 'Predicates', link: '/predicates' },
+          { text: 'Transformers', link: '/transformers' },
+          { text: 'Type Guards', link: '/guards' },
+          { text: 'Utility Types', link: '/utility-types' },
+        ],
+      },
       {
         text: `v${version}`,
         items: [

@@ -1,5 +1,5 @@
 import { defineLoader } from 'vitepress'
-import { discoverUtilities } from '../.vitepress/utilities'
+import { discoverUtilities } from '../utilities'
 
 export default defineLoader({
   async load() {

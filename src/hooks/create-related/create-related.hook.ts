@@ -4,7 +4,18 @@ import type { MaybeArray, Promisable } from '../../internal.utils.js'
 
 export interface CreateRelatedOptions<S = Record<string, any>> {
   service: keyof S
+  /**
+   * Is relevant when the current context result is an array.
+   *
+   * If true, will create multiple related records in a single call to the related service's create method.
+   * If false or not provided, will create related records one by one.
+   *
+   * @default false
+   */
   multi?: boolean
+  /**
+   * A function that returns the data to be created in the related service.
+   */
   data: (item: any, context: HookContext) => Promisable<Record<string, any>>
 }
 

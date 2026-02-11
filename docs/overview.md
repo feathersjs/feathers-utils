@@ -4,6 +4,9 @@
 
 This documentation has several parts:
 
-- [Hooks API](/hooks/) - The API for the available hooks
-- [Utilities API](/utils/) - The API for the available utility methods
-- [Predicates API](/predicates/) - The API for the available predicates
+- [Hooks](./hooks/index.html) - Reusable hooks for Feathers services.
+- [Utils](./utils/index.html) - Utility functions for various purposes.
+- [Predicates](./predicates/index.html) - Functions that return boolean values based on certain conditions.
+- [Transformers](./transformers/index.html) - Functions that transform data in some way.
+- [Type Guards](./guards/index.html) - Type guards for runtime type checking.
+- [Utility Types](./utility-types/index.html) - Type definitions for TypeScript users.
