@@ -39,7 +39,6 @@ const filteredHooks = computed(() => {
   }
 
   const result = hooks.filter(props.filter);
-  console.log(result);
   return result;
 });
 

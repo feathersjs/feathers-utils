@@ -10,7 +10,7 @@ import {
 import { version } from '../../package.json'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { discoverUtilities } from './utilities'
+import { discoverUtilities, utilityCategories } from './utilities'
 import { MarkdownTransform } from './plugins/markdownTransform'
 import { transformerTwoslash } from '@shikijs/vitepress-twoslash'
 import tailwindcss from '@tailwindcss/vite'
@@ -155,21 +155,14 @@ export default defineConfig({
           compilerOptions: {
             paths: {
               'feathers-utils': [resolve(__dirname, '../../src/index.ts')],
-              'feathers-utils/hooks': [
-                resolve(__dirname, '../../src/hooks/index.ts'),
-              ],
-              'feathers-utils/utils': [
-                resolve(__dirname, '../../src/utils/index.ts'),
-              ],
-              'feathers-utils/predicates': [
-                resolve(__dirname, '../../src/predicates/index.ts'),
-              ],
-              'feathers-utils/resolvers': [
-                resolve(__dirname, '../../src/resolvers/index.ts'),
-              ],
-              'feathers-utils/transformers': [
-                resolve(__dirname, '../../src/transformers/index.ts'),
-              ],
+              ...utilityCategories.reduce(
+                (acc, category) => {
+                  acc[`feathers-utils/${category}`] = [
+                    resolve(__dirname, `../../src/${category}/index.ts`),
+                  ]
+                  return acc
+                }, {} as Record<string, string[]>
+              ),
             },
           },
         },

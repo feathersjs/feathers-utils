@@ -9,17 +9,22 @@ import ts from 'typescript'
 import prettier from 'prettier'
 import path from 'node:path'
 
+export const utilityCategories = [
+  'hooks',
+  'utils',
+  'resolvers',
+  'predicates',
+  'transformers',
+  'guards',
+] as const
+
+export type UtilityCategory = (typeof utilityCategories)[number]
+
 export type Utility = {
   name: string
   title: string
   description: string
-  category:
-    | 'hooks'
-    | 'utils'
-    | 'resolvers'
-    | 'predicates'
-    | 'transformers'
-    | 'guards'
+  category: UtilityCategory
   slug: string
   path: string
   pathMd: string

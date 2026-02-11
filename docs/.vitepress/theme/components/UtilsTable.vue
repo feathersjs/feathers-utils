@@ -39,7 +39,6 @@ const filteredUtils = computed(() => {
   }
 
   const result = utils.filter(props.filter);
-  console.log(result);
   return result;
 });
 
