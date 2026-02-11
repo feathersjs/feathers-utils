@@ -5,6 +5,7 @@ hook:
   type: ["before", "after", "around"]
   method: ["all"]
   multi: true
+transformers: true
 see: ["transformers"]
 ---
 
@@ -14,4 +15,4 @@ see: ["transformers"]
 
 'feathers-utils' provides a set of transformers that can be used with this hook. These transformers can be used to trim strings, convert dates, or omit fields from the query.
 
-<TransformersList />
+<TransformersTable />

@@ -9,11 +9,22 @@ import ts from 'typescript'
 import prettier from 'prettier'
 import path from 'node:path'
 
+export const utilityCategories = [
+  'hooks',
+  'utils',
+  'resolvers',
+  'predicates',
+  'transformers',
+  'guards',
+] as const
+
+export type UtilityCategory = (typeof utilityCategories)[number]
+
 export type Utility = {
   name: string
   title: string
   description: string
-  category: 'hooks' | 'utils' | 'resolvers' | 'predicates' | 'transformers'
+  category: UtilityCategory
   slug: string
   path: string
   pathMd: string
@@ -23,6 +34,8 @@ export type Utility = {
   sourceUrl: string
   docsUrl: string
   hook?: Record<string, any>
+  transformers?: boolean
+  predicates?: boolean
   dts: string
   examples?: string[]
   args?: {
@@ -188,9 +201,14 @@ export async function discoverUtilities() {
 
       if (
         !title ||
-        ['hooks', 'utils', 'resolvers', 'predicates', 'transformers'].indexOf(
-          category,
-        ) === -1
+        [
+          'hooks',
+          'utils',
+          'resolvers',
+          'predicates',
+          'transformers',
+          'guards',
+        ].indexOf(category) === -1
       ) {
         continue
       }
@@ -240,6 +258,8 @@ export async function discoverUtilities() {
         frontmatter,
         content: body,
         hook,
+        transformers: !!frontmatter.transformers,
+        predicates: !!frontmatter.predicates,
         dts: dtsByMdFile[filePath] ?? undefined,
         lastModified: (await fs.stat(filePath)).mtime,
         examples: examples.length > 0 ? examples : undefined,

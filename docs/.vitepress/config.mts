@@ -10,7 +10,7 @@ import {
 import { version } from '../../package.json'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { discoverUtilities } from './utilities'
+import { discoverUtilities, utilityCategories } from './utilities'
 import { MarkdownTransform } from './plugins/markdownTransform'
 import { transformerTwoslash } from '@shikijs/vitepress-twoslash'
 import tailwindcss from '@tailwindcss/vite'
@@ -81,14 +81,51 @@ export default defineConfig({
       {
         text: 'Predicates',
         link: '/predicates',
+        collapsed: false,
+        items: utilities
+          .filter((x) => x.category === 'predicates')
+          .map((x) => ({
+            text: x.title,
+            link: x.path,
+          })),
       },
       {
         text: 'Transformers',
         link: '/transformers',
+        collapsed: false,
+        items: utilities
+          .filter((x) => x.category === 'transformers')
+          .map((x) => ({
+            text: x.title,
+            link: x.path,
+          })),
+      },
+      {
+        text: 'Type Guards',
+        link: '/guards',
+        collapsed: false,
+        items: utilities
+          .filter((x) => x.category === 'guards')
+          .map((x) => ({
+            text: x.title,
+            link: x.path,
+          }))
       },
       { text: 'Utility Types', link: '/utility-types' },
+
     ],
     nav: [
+      {
+        text: 'Categories',
+        items: [
+          { text: 'Hooks', link: '/hooks' },
+          { text: 'Utilities', link: '/utils' },
+          { text: 'Predicates', link: '/predicates' },
+          { text: 'Transformers', link: '/transformers' },
+          { text: 'Type Guards', link: '/guards' },
+          { text: 'Utility Types', link: '/utility-types' },
+        ],
+      },
       {
         text: `v${version}`,
         items: [
@@ -118,21 +155,14 @@ export default defineConfig({
           compilerOptions: {
             paths: {
               'feathers-utils': [resolve(__dirname, '../../src/index.ts')],
-              'feathers-utils/hooks': [
-                resolve(__dirname, '../../src/hooks/index.ts'),
-              ],
-              'feathers-utils/utils': [
-                resolve(__dirname, '../../src/utils/index.ts'),
-              ],
-              'feathers-utils/predicates': [
-                resolve(__dirname, '../../src/predicates/index.ts'),
-              ],
-              'feathers-utils/resolvers': [
-                resolve(__dirname, '../../src/resolvers/index.ts'),
-              ],
-              'feathers-utils/transformers': [
-                resolve(__dirname, '../../src/transformers/index.ts'),
-              ],
+              ...utilityCategories.reduce(
+                (acc, category) => {
+                  acc[`feathers-utils/${category}`] = [
+                    resolve(__dirname, `../../src/${category}/index.ts`),
+                  ]
+                  return acc
+                }, {} as Record<string, string[]>
+              ),
             },
           },
         },

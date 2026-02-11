@@ -2,7 +2,8 @@
 title: throwIf
 category: hooks
 hook:
-  type: ['before', 'after', 'around']
-  method: ['create', 'update', 'patch']
+  type: ["before", "after", "around"]
+  method: ["create", "update", "patch"]
   multi: true
+predicates: true
 ---

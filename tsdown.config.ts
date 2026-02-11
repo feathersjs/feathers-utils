@@ -20,6 +20,7 @@ export default defineConfig({
     predicates: 'src/predicates/index.ts',
     resolvers: 'src/resolvers/index.ts',
     transformers: 'src/transformers/index.ts',
+    guards: 'src/guards/index.ts',
   },
   transform: {
     define: {

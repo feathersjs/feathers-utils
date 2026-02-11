@@ -1,6 +1,11 @@
 ---
 title: skippable
 category: hooks
+hook:
+  type: ["before", "after", "around"]
+  method: ["all"]
+  multi: true
+predicates: true
 see: ["predicates", "utils/addSkip"]
 ---
 
@@ -10,4 +15,4 @@ see: ["predicates", "utils/addSkip"]
 
 'feathers-utils' provides a set of predicates that can be used with this utility.
 
-<PredicatesList />
+<PredicatesTable />

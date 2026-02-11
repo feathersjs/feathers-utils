@@ -4,7 +4,7 @@
  * Colors
  * -------------------------------------------------------------------------- */
 
- :root {
+:root {
   --vp-c-brand: #ae0bb1;
   --vp-c-brand-light: #bc0cbf;
   --vp-c-brand-lighter: #c80dcb;
@@ -18,10 +18,10 @@
 
 :root {
   --vp-button-brand-border: var(--vp-c-brand-light);
-  --vp-button-brand-text: var(--vp-c-text-dark-1);
+  --vp-button-brand-text: var(--vp-c-white);
   --vp-button-brand-bg: var(--vp-c-brand);
   --vp-button-brand-hover-border: var(--vp-c-brand-light);
-  --vp-button-brand-hover-text: var(--vp-c-text-dark-1);
+  --vp-button-brand-hover-text: var(--vp-c-white);
   --vp-button-brand-hover-bg: var(--vp-c-brand-light);
   --vp-button-brand-active-border: var(--vp-c-brand-light);
   --vp-button-brand-active-text: var(--vp-c-text-dark-1);
@@ -32,7 +32,7 @@
  * Component: Home
  * -------------------------------------------------------------------------- */
 
- :root {
+:root {
   --vp-home-hero-name-color: transparent;
   --vp-home-hero-name-background: -webkit-linear-gradient(
     120deg,
@@ -52,7 +52,6 @@
     --vp-home-hero-image-filter: blur(72px);
   }
 }
-
 
 /**
  * Component: Algolia
