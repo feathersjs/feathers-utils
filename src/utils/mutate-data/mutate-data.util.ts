@@ -5,7 +5,16 @@ import type { Promisable } from '../../internal.utils.js'
 import type { TransformerFn } from '../../types.js'
 
 /**
- * Mutates `context.data` using the provided transformer function.
+ * Applies a transformer function to each item in `context.data`, updating it in place.
+ * If the transformer returns a new object, it replaces the original item.
+ * Correctly handles both single-item and array data, preserving the original shape.
+ *
+ * @example
+ * ```ts
+ * import { mutateData } from 'feathers-utils/utils'
+ *
+ * await mutateData(context, (item) => { item.name = item.name.trim() })
+ * ```
  *
  * @see https://utils.feathersjs.com/utils/mutate-data.html
  */

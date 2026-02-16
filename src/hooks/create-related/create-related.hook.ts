@@ -20,7 +20,20 @@ export interface CreateRelatedOptions<S = Record<string, any>> {
 }
 
 /**
- * Create related records in other services.
+ * Creates related records in other services after a successful `create` call.
+ * For each result item, a `data` function produces the record to create in the target service.
+ * Supports creating records one-by-one or in a single multi-create when `multi: true`.
+ *
+ * @example
+ * ```ts
+ * import { createRelated } from 'feathers-utils/hooks'
+ *
+ * app.service('users').hooks({
+ *   after: {
+ *     create: [createRelated({ service: 'profiles', data: (user) => ({ userId: user.id }) })]
+ *   }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/create-related.html
  */

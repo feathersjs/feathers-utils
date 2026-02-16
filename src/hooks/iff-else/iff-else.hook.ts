@@ -4,7 +4,20 @@ import { combine } from '../../utils/combine/combine.util.js'
 import type { HookFunction, PredicateFn } from '../../types.js'
 
 /**
- * Execute one array of hooks or another based on a sync or async predicate.
+ * Executes one array of hooks when the predicate is truthy, or another array when it is falsy.
+ * The predicate can be a boolean or a sync/async function.
+ * Unlike `iff`, both branches are provided upfront without chaining.
+ *
+ * @example
+ * ```ts
+ * import { iffElse, isProvider } from 'feathers-utils/predicates'
+ *
+ * app.service('users').hooks({
+ *   before: {
+ *     find: [iffElse(isProvider('external'), [hook1()], [hook2()])]
+ *   }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/iff-else.html
  */

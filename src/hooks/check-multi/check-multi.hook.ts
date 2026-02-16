@@ -13,7 +13,18 @@ export type CheckMultiOptions = {
 }
 
 /**
- * Check if the 'multi' option is set for a method. You can use this to early throw an error if 'multi' is not set.
+ * Checks if the `multi` option is enabled for the current method and throws a
+ * `MethodNotAllowed` error if multi operations are not permitted.
+ * Useful to guard against accidental bulk `create`, `patch`, or `remove` calls.
+ *
+ * @example
+ * ```ts
+ * import { checkMulti } from 'feathers-utils/hooks'
+ *
+ * app.service('users').hooks({
+ *   before: { create: [checkMulti()] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/check-multi.html
  */

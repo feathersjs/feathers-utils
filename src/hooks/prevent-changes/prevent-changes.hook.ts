@@ -16,7 +16,18 @@ export type PreventChangesOptions = {
 }
 
 /**
- * Prevent patch service calls from changing certain fields.
+ * Prevents `patch` calls from modifying certain fields. By default, the protected
+ * fields are silently removed from `context.data`. When `error` is set, a `BadRequest`
+ * is thrown if any protected field is present.
+ *
+ * @example
+ * ```ts
+ * import { preventChanges } from 'feathers-utils/hooks'
+ *
+ * app.service('users').hooks({
+ *   before: { patch: [preventChanges(['email', 'role'], { error: true })] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/prevent-changes.html
  */

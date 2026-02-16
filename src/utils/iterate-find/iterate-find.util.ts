@@ -17,7 +17,7 @@ type IterateFindOptions<P extends Params = Params> = {
  *
  * @example
  * ```ts
- * import { iterateFind } from '@feathersjs/utils'
+ * import { iterateFind } from 'feathers-utils/utils'
  *
  * const app = feathers()
  *

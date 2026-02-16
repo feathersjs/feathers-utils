@@ -2,8 +2,18 @@ import type { Query } from '@feathersjs/feathers'
 import { dequal as deepEqual } from 'dequal'
 
 /**
- * Safely adds a property to a query object. If the property already exists, it adds it to the `$and` array.
- * If the exact same property-value pair already exists, it does nothing.
+ * Safely merges properties into a Feathers query object. If a property already exists
+ * with a different value, it wraps both in a `$and` array to preserve both conditions.
+ * If the exact same key-value pair already exists, no changes are made.
+ *
+ * @example
+ * ```ts
+ * import { addToQuery } from 'feathers-utils/utils'
+ *
+ * const query = { status: 'active' }
+ * addToQuery(query, { role: 'admin' })
+ * // => { status: 'active', role: 'admin' }
+ * ```
  *
  * @see https://utils.feathersjs.com/utils/add-to-query.html
  */

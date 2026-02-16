@@ -9,8 +9,20 @@ export type TraverseOptions = {
 }
 
 /**
- * Transform fields & objects in place in the record(s) using a recursive walk. Powerful.
- * Check docs at https://github.com/substack/js-traverse for info on transformContext!
+ * Recursively walks and transforms fields in record(s) using `neotraverse`.
+ * The `getObject` function extracts the target from the context, and `transformer`
+ * is called for every node during traversal --- ideal for deep, structural transformations.
+ *
+ * @example
+ * ```ts
+ * import { traverse } from 'feathers-utils/hooks'
+ *
+ * app.service('users').hooks({
+ *   after: {
+ *     all: [traverse({ getObject: (ctx) => ctx.result, transformer: function () { if (this.key === 'password') this.remove() } })]
+ *   }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/traverse.html
  */

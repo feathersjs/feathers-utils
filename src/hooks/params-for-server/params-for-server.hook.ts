@@ -11,10 +11,19 @@ export type ParamsForServerOptions = {
 }
 
 /**
- * a hook to move params to query._$client
- * the server only receives 'query' from params. All other params are ignored.
- * So, to use `$populateParams` on the server, we need to move the params to query._$client
- * the server will move them back to params
+ * Client-side hook that moves whitelisted `params` properties into `query._$client`
+ * so they survive the client-to-server transport. The server only receives `query`
+ * from params — use `paramsFromClient` on the server to restore them.
+ *
+ * @example
+ * ```ts
+ * import { paramsForServer } from 'feathers-utils/hooks'
+ *
+ * // Client-side
+ * app.service('users').hooks({
+ *   before: { all: [paramsForServer('populateParams')] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/params-for-server.html
  */

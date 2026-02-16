@@ -7,7 +7,18 @@ export type TransformResultOptions = {
 }
 
 /**
- * Make changes to items in `context.result`. Very flexible.
+ * Transforms each item in `context.result` using the provided transformer function.
+ * The transformer receives each item and can mutate it in place or return a new object.
+ * Optionally operates on `context.dispatch` via the `dispatch` option.
+ *
+ * @example
+ * ```ts
+ * import { transformResult, omit } from 'feathers-utils/transformers'
+ *
+ * app.service('users').hooks({
+ *   after: { all: [transformResult(omit('password'))] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/transform-result.html
  */

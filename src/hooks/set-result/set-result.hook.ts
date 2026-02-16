@@ -31,7 +31,18 @@ export interface SetResultOptions {
 }
 
 /**
- * hook to set properties on `context.result`
+ * Sets a property on each item in `context.result` from another property on the hook context.
+ * Supports dot-notation paths for both source and target, and can optionally
+ * operate on `context.dispatch` as well.
+ *
+ * @example
+ * ```ts
+ * import { setResult } from 'feathers-utils/hooks'
+ *
+ * app.service('posts').hooks({
+ *   after: { all: [setResult('params.user.id', 'currentUserId')] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/set-result.html
  */

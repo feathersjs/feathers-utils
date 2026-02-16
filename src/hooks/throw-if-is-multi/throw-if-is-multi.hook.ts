@@ -21,7 +21,18 @@ const defaultError = (context: HookContext) =>
   new BadRequest(`Cannot perform multi operation on method '${context.method}'`)
 
 /**
- * Throw an error if the context is multi. You can use this to early return if a user provides an array on create or id:null on patch or remove.
+ * Throws a `BadRequest` error when the current operation is a multi operation
+ * (array data on `create`, or `id === null` on `patch`/`remove`).
+ * Useful to prevent bulk operations on services that should only handle single items.
+ *
+ * @example
+ * ```ts
+ * import { throwIfIsMulti } from 'feathers-utils/hooks'
+ *
+ * app.service('users').hooks({
+ *   before: { all: [throwIfIsMulti()] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/throw-if-is-multi.html
  */

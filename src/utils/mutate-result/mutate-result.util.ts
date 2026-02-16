@@ -11,7 +11,16 @@ export type MutateResultOptions = {
 }
 
 /**
- * Mutates `context.result` and/or `context.dispatch` using the provided transformer function.
+ * Applies a transformer function to each item in `context.result` (and optionally `context.dispatch`).
+ * Handles paginated results, single items, and arrays transparently.
+ * Use the `dispatch` option to control whether result, dispatch, or both are transformed.
+ *
+ * @example
+ * ```ts
+ * import { mutateResult } from 'feathers-utils/utils'
+ *
+ * await mutateResult(context, (item) => { delete item.password })
+ * ```
  *
  * @see https://utils.feathersjs.com/utils/mutate-result.html
  */

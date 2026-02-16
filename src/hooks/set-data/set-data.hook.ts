@@ -30,7 +30,18 @@ export interface HookSetDataOptions {
 }
 
 /**
- * hook to set properties on `context.data`
+ * Sets a property on each item in `context.data` from another property on the hook context.
+ * Supports dot-notation paths for both source and target. Throws a `Forbidden` error
+ * if the source field is missing (unless `allowUndefined` is `true`).
+ *
+ * @example
+ * ```ts
+ * import { setData } from 'feathers-utils/hooks'
+ *
+ * app.service('posts').hooks({
+ *   before: { create: [setData('params.user.id', 'userId')] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/set-data.html
  */

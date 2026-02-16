@@ -1,12 +1,17 @@
 import type { HookContext } from '@feathersjs/feathers'
 
 /**
- * Converts a FeathersJS HookContext to JSON.
- * If the context has a `toJSON` method, it will call that method.
- * Otherwise, it will return the context as is.
+ * Converts a FeathersJS HookContext to a plain JSON object by calling `toJSON()` if available.
+ * This is important when using lodash `get`/`has` on the context, since the HookContext
+ * class uses getters that may not be enumerable.
  *
- * This is useful for serializing the context for logging or debugging purposes.
- * E.g. when you use 'has'/'get' from lodash to access properties of the context.
+ * @example
+ * ```ts
+ * import { contextToJson } from 'feathers-utils/utils'
+ *
+ * const json = contextToJson(context)
+ * console.log(json)
+ * ```
  *
  * @see https://utils.feathersjs.com/utils/context-to-json.html
  */
