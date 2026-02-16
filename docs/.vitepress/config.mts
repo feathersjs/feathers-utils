@@ -109,10 +109,9 @@ export default defineConfig({
           .map((x) => ({
             text: x.title,
             link: x.path,
-          }))
+          })),
       },
       { text: 'Utility Types', link: '/utility-types' },
-
     ],
     nav: [
       {
@@ -161,7 +160,8 @@ export default defineConfig({
                     resolve(__dirname, `../../src/${category}/index.ts`),
                   ]
                   return acc
-                }, {} as Record<string, string[]>
+                },
+                {} as Record<string, string[]>,
               ),
             },
           },

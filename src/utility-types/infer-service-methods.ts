@@ -1,10 +1,9 @@
 import type { Application, Id, Paginated, Params } from '@feathersjs/feathers'
+import type { UnwrapArray } from '../internal.utils.js'
 
-type Single<T> = T extends Array<infer U> ? U : T
 type AsArray<T> = T extends any[] ? T : [T]
 
 // MARK: get
-
 export type InferGetResult<S> = S extends {
   get: (id: any, params: any) => infer R
 }
@@ -32,7 +31,12 @@ export type InferFindResultFromPath<
 export type InferFindResultSingle<
   S,
   R extends InferFindResult<S> = InferFindResult<S>,
-> = R extends Paginated<infer D> ? Single<D> : R extends any[] ? Single<R> : R
+> =
+  R extends Paginated<infer D>
+    ? UnwrapArray<D>
+    : R extends any[]
+      ? UnwrapArray<R>
+      : R
 
 export type InferFindParams<S> = S extends {
   find: (params: infer P) => any
@@ -50,7 +54,7 @@ export type InferCreateData<S> = S extends {
   ? D
   : never
 
-export type InferCreateDataSingle<S> = Single<InferCreateData<S>>
+export type InferCreateDataSingle<S> = UnwrapArray<InferCreateData<S>>
 
 export type InferCreateResult<S, D = unknown> = S extends {
   create: (data: any, params: any) => infer R
@@ -58,11 +62,11 @@ export type InferCreateResult<S, D = unknown> = S extends {
   ? D extends any[]
     ? AsArray<Awaited<R>>
     : D extends InferCreateDataSingle<S>
-      ? Single<Awaited<R>>
+      ? UnwrapArray<Awaited<R>>
       : Awaited<R>
   : never
 
-export type InferCreateResultSingle<S> = Single<InferCreateResult<S>>
+export type InferCreateResultSingle<S> = UnwrapArray<InferCreateResult<S>>
 
 export type InferCreateDataFromPath<
   App extends Application,
@@ -119,7 +123,7 @@ export type InferPatchResult<S, IdOrNullable = any> = S extends {
   patch: (id: Id, data: any, params: any) => infer R
 }
   ? IdOrNullable extends Id
-    ? Single<Awaited<R>>
+    ? UnwrapArray<Awaited<R>>
     : IdOrNullable extends null
       ? AsArray<Awaited<R>>
       : Awaited<R>
@@ -142,7 +146,7 @@ export type InferRemoveResult<S, IdOrNullable = any> = S extends {
   remove: (id: IdOrNullable, params: any) => infer R
 }
   ? IdOrNullable extends Id
-    ? Single<Awaited<R>>
+    ? UnwrapArray<Awaited<R>>
     : IdOrNullable extends null
       ? AsArray<Awaited<R>>
       : Awaited<R>

@@ -2,13 +2,27 @@ import type { HookContext } from '@feathersjs/feathers'
 import { iffElse } from '../iff-else/iff-else.hook.js'
 import type { HookFunction, PredicateFn } from '../../types.js'
 
-export interface IffHook<H extends HookContext = HookContext>
-  extends HookFunction<H> {
+export interface IffHook<
+  H extends HookContext = HookContext,
+> extends HookFunction<H> {
   else(...hooks: HookFunction<H>[]): HookFunction<H>
 }
 
 /**
- * Execute one or another series of hooks depending on a sync or async predicate.
+ * Conditionally executes a series of hooks when the predicate is truthy.
+ * The predicate can be a boolean value or a sync/async function.
+ * Supports an `.else(...)` chain for the falsy branch. Also exported as `when`.
+ *
+ * @example
+ * ```ts
+ * import { iff, isProvider } from 'feathers-utils/predicates'
+ *
+ * app.service('users').hooks({
+ *   before: {
+ *     find: [iff(isProvider('external'), authenticate('jwt'))]
+ *   }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/iff.html
  */

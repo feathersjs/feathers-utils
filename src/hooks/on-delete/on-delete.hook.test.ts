@@ -1,7 +1,50 @@
-import assert from 'node:assert'
+import { expect, expectTypeOf } from 'vitest'
 import { feathers } from '@feathersjs/feathers'
+import type {
+  Application,
+  HookContext,
+  Params,
+  Query,
+} from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { onDelete } from './on-delete.hook.js'
+import type { OnDeleteOptions } from './on-delete.hook.js'
+
+type User = {
+  id: number
+  name: string
+}
+
+type Todo = {
+  id: number
+  title: string
+  userId: number
+}
+
+type Task = {
+  id: number
+  title: string
+  userId: number
+}
+
+const mockAppStronglyTyped = () => {
+  const app = feathers<{
+    users: MemoryService<User>
+    todos: MemoryService<Todo>
+    tasks: MemoryService<Task>
+  }>()
+
+  app.use('users', new MemoryService<User>({ startId: 1, multi: true }))
+  app.use('todos', new MemoryService<Todo>({ startId: 1, multi: true }))
+  app.use('tasks', new MemoryService<Task>({ startId: 1, multi: true }))
+
+  return {
+    app,
+    usersService: app.service('users'),
+    todosService: app.service('todos'),
+    tasksService: app.service('tasks'),
+  }
+}
 
 const mockApp = () => {
   const app = feathers()
@@ -21,6 +64,121 @@ const mockApp = () => {
     tasksService,
   }
 }
+
+describe('onDelete (type tests)', function () {
+  it('errors on wrong service name', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      after: {
+        remove: [
+          // @ts-expect-error - 'nonexistent' is not a valid service name
+          onDelete({
+            service: 'nonexistent',
+            keyThere: 'userId',
+            keyHere: 'id',
+            onDelete: 'cascade',
+          }),
+        ],
+      },
+    })
+  })
+
+  it('errors on wrong keyThere', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      after: {
+        remove: [
+          // @ts-expect-error - 'nonExistentProp' does not exist on Todo
+          onDelete({
+            service: 'todos',
+            keyThere: 'nonExistentProp',
+            keyHere: 'id',
+            onDelete: 'cascade',
+          }),
+        ],
+      },
+    })
+  })
+
+  it('errors on wrong keyHere', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      after: {
+        remove: [
+          // @ts-expect-error - 'nonExistentProp' does not exist on User
+          onDelete({
+            service: 'todos',
+            keyThere: 'userId',
+            keyHere: 'nonExistentProp',
+            onDelete: 'cascade',
+          }),
+        ],
+      },
+    })
+  })
+
+  it('accepts valid keyThere and keyHere', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      after: {
+        remove: [
+          onDelete({
+            service: 'todos',
+            keyThere: 'userId',
+            keyHere: 'id',
+            onDelete: 'cascade',
+          }),
+        ],
+      },
+    })
+  })
+
+  it('accepts valid set null options', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      after: {
+        remove: [
+          onDelete({
+            service: 'todos',
+            keyThere: 'userId',
+            keyHere: 'id',
+            onDelete: 'set null',
+          }),
+        ],
+      },
+    })
+  })
+
+  it('accepts an array with multiple services', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      after: {
+        remove: [
+          onDelete([
+            {
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'cascade',
+            },
+            {
+              service: 'tasks',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'set null',
+            },
+          ]),
+        ],
+      },
+    })
+  })
+})
 
 describe('onDelete', function () {
   describe('cascade', function () {
@@ -59,7 +217,7 @@ describe('onDelete', function () {
 
       const todos = await todosService.find({ query: {} })
 
-      assert.deepStrictEqual(todos, [{ id: 2, title: 'Buy eggs', userId: 2 }])
+      expect(todos).toStrictEqual([{ id: 2, title: 'Buy eggs', userId: 2 }])
     })
 
     it('removes multiple items for single item', async function () {
@@ -102,7 +260,7 @@ describe('onDelete', function () {
 
       const todos = await todosService.find({ query: {} })
 
-      assert.deepStrictEqual(todos, [{ id: 3, title: 'Buy bread', userId: 3 }])
+      expect(todos).toStrictEqual([{ id: 3, title: 'Buy bread', userId: 3 }])
     })
 
     it('removes single item for multiple items', async function () {
@@ -147,14 +305,14 @@ describe('onDelete', function () {
 
       const users = await usersService.find({ query: {} })
 
-      assert.deepStrictEqual(users, [
+      expect(users).toStrictEqual([
         { id: 2, name: 'Jane Doe' },
         { id: 3, name: 'Jack Doe' },
       ])
 
       const todos = await todosService.find({ query: {} })
 
-      assert.deepStrictEqual(todos, [
+      expect(todos).toStrictEqual([
         { id: 2, title: 'Buy eggs', userId: 2 },
         { id: 3, title: 'Buy bread', userId: 3 },
       ])
@@ -202,11 +360,11 @@ describe('onDelete', function () {
 
       const users = await usersService.find({ query: {} })
 
-      assert.deepStrictEqual(users, [{ id: 3, name: 'Jack Doe' }])
+      expect(users).toStrictEqual([{ id: 3, name: 'Jack Doe' }])
 
       const todos = await todosService.find({ query: {} })
 
-      assert.deepStrictEqual(todos, [{ id: 3, title: 'Buy bread', userId: 3 }])
+      expect(todos).toStrictEqual([{ id: 3, title: 'Buy bread', userId: 3 }])
     })
 
     it('does not remove items if not found', async function () {
@@ -251,14 +409,14 @@ describe('onDelete', function () {
 
       const users = await usersService.find({ query: {} })
 
-      assert.deepStrictEqual(users, [
+      expect(users).toStrictEqual([
         { id: 2, name: 'Jane Doe' },
         { id: 3, name: 'Jack Doe' },
       ])
 
       const todos = await todosService.find({ query: {} })
 
-      assert.deepStrictEqual(todos, [
+      expect(todos).toStrictEqual([
         { id: 1, title: 'Buy milk', userId: 2 },
         { id: 2, title: 'Buy eggs', userId: 2 },
         { id: 3, title: 'Buy bread', userId: 3 },
@@ -318,10 +476,10 @@ describe('onDelete', function () {
       await usersService.remove(user.id)
 
       const todos = await todosService.find({ query: {} })
-      assert.deepStrictEqual(todos, [{ id: 2, title: 'Buy eggs', userId: 2 }])
+      expect(todos).toStrictEqual([{ id: 2, title: 'Buy eggs', userId: 2 }])
 
       const tasks = await tasksService.find({ query: {} })
-      assert.deepStrictEqual(tasks, [
+      expect(tasks).toStrictEqual([
         { id: 2, title: 'Buy eggs task', userId: 2 },
       ])
     })
@@ -363,7 +521,7 @@ describe('onDelete', function () {
 
       const todos = await todosService.find({ query: {} })
 
-      assert.deepStrictEqual(todos, [
+      expect(todos).toStrictEqual([
         { id: 1, title: 'Buy milk', userId: null },
         { id: 2, title: 'Buy eggs', userId: 2 },
       ])
@@ -409,7 +567,7 @@ describe('onDelete', function () {
 
       const todos = await todosService.find({ query: {} })
 
-      assert.deepStrictEqual(todos, [
+      expect(todos).toStrictEqual([
         { id: 1, title: 'Buy milk', userId: null },
         { id: 2, title: 'Buy eggs', userId: null },
         { id: 3, title: 'Buy bread', userId: 3 },
@@ -458,14 +616,14 @@ describe('onDelete', function () {
 
       const users = await usersService.find({ query: {} })
 
-      assert.deepStrictEqual(users, [
+      expect(users).toStrictEqual([
         { id: 2, name: 'Jane Doe' },
         { id: 3, name: 'Jack Doe' },
       ])
 
       const todos = await todosService.find({ query: {} })
 
-      assert.deepStrictEqual(todos, [
+      expect(todos).toStrictEqual([
         { id: 1, title: 'Buy milk', userId: null },
         { id: 2, title: 'Buy eggs', userId: 2 },
         { id: 3, title: 'Buy bread', userId: 3 },
@@ -514,11 +672,11 @@ describe('onDelete', function () {
 
       const users = await usersService.find({ query: {} })
 
-      assert.deepStrictEqual(users, [{ id: 3, name: 'Jack Doe' }])
+      expect(users).toStrictEqual([{ id: 3, name: 'Jack Doe' }])
 
       const todos = await todosService.find({ query: {} })
 
-      assert.deepStrictEqual(todos, [
+      expect(todos).toStrictEqual([
         { id: 1, title: 'Buy milk', userId: null },
         { id: 2, title: 'Buy eggs', userId: null },
         { id: 3, title: 'Buy bread', userId: 3 },
@@ -567,18 +725,193 @@ describe('onDelete', function () {
 
       const users = await usersService.find({ query: {} })
 
-      assert.deepStrictEqual(users, [
+      expect(users).toStrictEqual([
         { id: 2, name: 'Jane Doe' },
         { id: 3, name: 'Jack Doe' },
       ])
 
       const todos = await todosService.find({ query: {} })
 
-      assert.deepStrictEqual(todos, [
+      expect(todos).toStrictEqual([
         { id: 1, title: 'Buy milk', userId: 2 },
         { id: 2, title: 'Buy eggs', userId: 2 },
         { id: 3, title: 'Buy bread', userId: 3 },
       ])
+    })
+  })
+
+  describe('query', function () {
+    it('cascade with query only removes matching items', async function () {
+      const { usersService, todosService } = mockApp()
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'cascade',
+              blocking: true,
+              query: { completed: true },
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe' })
+
+      await todosService.create({
+        title: 'Buy milk',
+        userId: user.id,
+        completed: true,
+      })
+      await todosService.create({
+        title: 'Buy eggs',
+        userId: user.id,
+        completed: false,
+      })
+      await todosService.create({
+        title: 'Buy bread',
+        userId: 2,
+        completed: true,
+      })
+
+      await usersService.remove(user.id)
+
+      const todos = await todosService.find({ query: {} })
+
+      expect(todos).toStrictEqual([
+        { id: 2, title: 'Buy eggs', userId: 1, completed: false },
+        { id: 3, title: 'Buy bread', userId: 2, completed: true },
+      ])
+    })
+
+    it('set null with query only patches matching items', async function () {
+      const { usersService, todosService } = mockApp()
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'set null',
+              blocking: true,
+              query: { completed: true },
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe' })
+
+      await todosService.create({
+        title: 'Buy milk',
+        userId: user.id,
+        completed: true,
+      })
+      await todosService.create({
+        title: 'Buy eggs',
+        userId: user.id,
+        completed: false,
+      })
+
+      await usersService.remove(user.id)
+
+      const todos = await todosService.find({ query: {} })
+
+      expect(todos).toStrictEqual([
+        { id: 1, title: 'Buy milk', userId: null, completed: true },
+        { id: 2, title: 'Buy eggs', userId: 1, completed: false },
+      ])
+    })
+  })
+
+  describe('types', function () {
+    interface TodoResult {
+      id: number
+      title: string
+      userId: number
+      completed: boolean
+    }
+
+    interface TodoQuery {
+      completed?: boolean
+      userId?: number
+    }
+
+    type TodoService = MemoryService<
+      TodoResult,
+      Partial<TodoResult>,
+      Params<TodoQuery>
+    >
+    type UserService = MemoryService
+
+    interface AppServices {
+      todos: TodoService
+      users: UserService
+    }
+
+    type App = Application<AppServices>
+
+    it('service is typed to keyof services', function () {
+      expectTypeOf<OnDeleteOptions<App>['service']>().toEqualTypeOf<
+        keyof AppServices & string
+      >()
+    })
+
+    it('query is typed based on service path', function () {
+      type TodoOptions = OnDeleteOptions<App, 'todos'>
+      // MemoryService has overloaded find, so query resolves to
+      // TodoQuery | Query | undefined (union of both overloads)
+      expectTypeOf<TodoOptions['query']>().toEqualTypeOf<
+        TodoQuery | Query | undefined
+      >()
+    })
+
+    it('query accepts the custom query type', function () {
+      type TodoOptions = OnDeleteOptions<App, 'todos'>
+      expectTypeOf<{ completed: true }>().toMatchTypeOf<
+        NonNullable<TodoOptions['query']>
+      >()
+    })
+
+    it('onDelete accepts typed HookContext', function () {
+      type AppHookContext = HookContext<App>
+
+      const hook = onDelete<AppHookContext>({
+        service: 'todos',
+        keyThere: 'userId',
+        keyHere: 'id',
+        onDelete: 'cascade',
+        query: { completed: true },
+      })
+
+      expectTypeOf(hook).toBeFunction()
+    })
+
+    it('onDelete accepts array with different services', function () {
+      type AppHookContext = HookContext<App>
+
+      const hook = onDelete<AppHookContext>([
+        {
+          service: 'todos',
+          keyThere: 'userId',
+          keyHere: 'id',
+          onDelete: 'cascade',
+          query: { completed: true },
+        },
+        {
+          service: 'users',
+          keyThere: 'createdBy',
+          keyHere: 'id',
+          onDelete: 'set null',
+        },
+      ])
+
+      expectTypeOf(hook).toBeFunction()
     })
   })
 })

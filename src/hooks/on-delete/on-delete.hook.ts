@@ -1,22 +1,30 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { checkContext, getResultIsArray } from '../../utils/index.js'
-import type { KeyOf, MaybeArray } from '../../internal.utils.js'
+import type { MaybeArray, NeverFallback } from '../../internal.utils.js'
+import type {
+  InferFindParams,
+  InferGetResult,
+} from '../../utility-types/infer-service-methods.js'
+import type { ResultSingleHookContext } from '../../utility-types/hook-context.js'
 
 export type OnDeleteAction = 'cascade' | 'set null'
 
-export interface OnDeleteOptions<Path extends string = string> {
+export interface OnDeleteOptions<
+  H extends HookContext = HookContext,
+  S extends keyof H['app']['services'] = keyof H['app']['services'],
+> {
   /**
    * The related service where related items should be manipulated
    */
-  service: Path
+  service: S
   /**
    * The propertyKey in the related service
    */
-  keyThere: string
+  keyThere: NeverFallback<keyof InferGetResult<H['app']['services'][S]>, string>
   /**
    * The propertyKey in the current service.
    */
-  keyHere: string
+  keyHere: keyof ResultSingleHookContext<H>
   /**
    * The action to perform on the related items.
    *
@@ -24,6 +32,11 @@ export interface OnDeleteOptions<Path extends string = string> {
    * - `set null`: set the related property to null
    */
   onDelete: OnDeleteAction
+  /**
+   * Additional query to merge into the service call.
+   * Typed based on the related service's query type.
+   */
+  query?: InferFindParams<H['app']['services'][S]>['query']
   /**
    * If true, the hook will wait for the service to finish before continuing
    *
@@ -33,18 +46,29 @@ export interface OnDeleteOptions<Path extends string = string> {
 }
 
 /**
- * hook to manipulate related items on delete.
+ * Manipulates related items when a record is deleted, similar to SQL foreign key actions.
+ * Supports `'cascade'` (remove related records) and `'set null'` (nullify the foreign key).
+ * Unlike database-level cascades, this hook triggers service events and hooks for related items.
  *
- * This can be handled by your database, but this hook allows you to do it in your application logic.
- * Then you get service events and hooks for the related items.
+ * @example
+ * ```ts
+ * import { onDelete } from 'feathers-utils/hooks'
+ *
+ * app.service('users').hooks({
+ *   after: {
+ *     remove: [onDelete({ service: 'posts', keyHere: 'id', keyThere: 'userId', onDelete: 'cascade' })]
+ *   }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/on-delete.html
  */
-export const onDelete = <
-  S = Record<string, any>,
-  H extends HookContext = HookContext,
->(
-  options: MaybeArray<OnDeleteOptions<KeyOf<S>>>,
+type OnDeleteOptionsDistributed<H extends HookContext> = {
+  [S in keyof H['app']['services'] & string]: OnDeleteOptions<H, S>
+}[keyof H['app']['services'] & string]
+
+export const onDelete = <H extends HookContext = HookContext>(
+  options: MaybeArray<OnDeleteOptionsDistributed<H>>,
 ) => {
   const optionsMulti = Array.isArray(options) ? options : [options]
 
@@ -64,7 +88,7 @@ export const onDelete = <
     const promises: Promise<any>[] = []
 
     optionsMulti.forEach(
-      async ({ keyHere, keyThere, onDelete, service, blocking }) => {
+      async ({ keyHere, keyThere, onDelete, service, blocking, query }) => {
         let ids = result.map((x) => x[keyHere]).filter((x) => !!x)
         ids = [...new Set(ids)]
 
@@ -74,6 +98,7 @@ export const onDelete = <
 
         const params = {
           query: {
+            ...query,
             ...(ids.length === 1
               ? { [keyThere]: ids[0] }
               : { [keyThere]: { $in: ids } }),

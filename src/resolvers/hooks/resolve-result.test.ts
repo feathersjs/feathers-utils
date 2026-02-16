@@ -1,4 +1,4 @@
-import assert from 'node:assert'
+import { expect } from 'vitest'
 import { BadRequest } from '@feathersjs/errors'
 import { resolveResult } from './resolve-result.js'
 import type { HookContext } from '@feathersjs/feathers'
@@ -22,15 +22,15 @@ describe('resolve-result', () => {
       password: async (): Promise<undefined> => undefined,
 
       name: async (_value, user, ctx, status) => {
-        assert.deepStrictEqual(ctx, context)
-        assert.deepStrictEqual(status.path, ['name'])
-        assert.strictEqual(typeof status.stack[0], 'function')
+        expect(ctx).toStrictEqual(context)
+        expect(status.path).toStrictEqual(['name'])
+        expect(typeof status.stack[0]).toBe('function')
 
         return `${user.firstName} ${user.lastName}`
       },
     })(context)
 
-    assert.deepStrictEqual(context.result, {
+    expect(context.result).toStrictEqual({
       firstName: 'Dave',
       lastName: 'L.',
       name: 'Dave L.',
@@ -56,15 +56,15 @@ describe('resolve-result', () => {
       password: async (): Promise<undefined> => undefined,
 
       name: async (_value, user, ctx, status) => {
-        assert.deepStrictEqual(ctx, context)
-        assert.deepStrictEqual(status.path, ['name'])
-        assert.strictEqual(typeof status.stack[0], 'function')
+        expect(ctx).toStrictEqual(context)
+        expect(status.path).toStrictEqual(['name'])
+        expect(typeof status.stack[0]).toBe('function')
 
         return `${user.firstName} ${user.lastName}`
       },
     })(context)
 
-    assert.deepStrictEqual(context.result, [
+    expect(context.result).toStrictEqual([
       {
         firstName: 'Dave',
         lastName: 'L.',
@@ -97,15 +97,15 @@ describe('resolve-result', () => {
       password: async (): Promise<undefined> => undefined,
 
       name: async (_value, user, ctx, status) => {
-        assert.deepStrictEqual(ctx, context)
-        assert.deepStrictEqual(status.path, ['name'])
-        assert.strictEqual(typeof status.stack[0], 'function')
+        expect(ctx).toStrictEqual(context)
+        expect(status.path).toStrictEqual(['name'])
+        expect(typeof status.stack[0]).toBe('function')
 
         return `${user.firstName} ${user.lastName}`
       },
     })(context)
 
-    assert.deepStrictEqual(context.result, [
+    expect(context.result).toStrictEqual([
       {
         firstName: 'Dave',
         lastName: 'L.',
@@ -140,15 +140,15 @@ describe('resolve-result', () => {
       password: async (): Promise<undefined> => undefined,
 
       name: async (_value, user, ctx, status) => {
-        assert.deepStrictEqual(ctx, context)
-        assert.deepStrictEqual(status.path, ['name'])
-        assert.strictEqual(typeof status.stack[0], 'function')
+        expect(ctx).toStrictEqual(context)
+        expect(status.path).toStrictEqual(['name'])
+        expect(typeof status.stack[0]).toBe('function')
 
         return `${user.firstName} ${user.lastName}`
       },
     })(context)
 
-    assert.deepStrictEqual(context.result.data, [
+    expect(context.result.data).toStrictEqual([
       {
         firstName: 'Dave',
         lastName: 'L.',
@@ -180,29 +180,27 @@ describe('resolve-result', () => {
       },
     })
 
-    await assert.rejects(
-      () =>
-        resolver({
-          result: {
-            name: 'Dave',
-            age: 16,
-          },
-        } as HookContext),
-      {
-        name: 'BadRequest',
-        message: 'Error resolving data',
-        code: 400,
-        className: 'bad-request',
-        data: {
-          name: { message: 'No Daves allowed' },
-          age: {
-            name: 'BadRequest',
-            message: 'Invalid age',
-            code: 400,
-            className: 'bad-request',
-          },
+    await expect(
+      resolver({
+        result: {
+          name: 'Dave',
+          age: 16,
+        },
+      } as HookContext),
+    ).rejects.toMatchObject({
+      name: 'BadRequest',
+      message: 'Error resolving data',
+      code: 400,
+      className: 'bad-request',
+      data: {
+        name: { message: 'No Daves allowed' },
+        age: {
+          name: 'BadRequest',
+          message: 'Invalid age',
+          code: 400,
+          className: 'bad-request',
         },
       },
-    )
+    })
   })
 })

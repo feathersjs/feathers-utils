@@ -25,9 +25,9 @@ export default {
     app.component('PredicatesTable', PredicatesTable)
     app.component('TransformersTable', TransformersTable)
     app.component('GuardsTable', GuardsTable)
-    app.component("HooksTable", HooksTable)
-    app.component("UtilsTable", UtilsTable)
+    app.component('HooksTable', HooksTable)
+    app.component('UtilsTable', UtilsTable)
 
-    app.component("Chip", Chip)
+    app.component('Chip', Chip)
   },
 } satisfies Theme
