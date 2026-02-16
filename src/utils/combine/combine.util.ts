@@ -2,7 +2,17 @@ import type { HookContext } from '@feathersjs/feathers'
 import type { HookFunction } from '../../types.js'
 
 /**
- * Sequentially execute multiple hooks.
+ * Sequentially executes multiple hooks, passing the updated context from one to the next.
+ * Returns a single hook function that runs the entire chain. If any hook throws,
+ * the error is annotated with the current hook context.
+ *
+ * @example
+ * ```ts
+ * import { combine } from 'feathers-utils/hooks'
+ *
+ * const combinedHook = combine(hookA(), hookB(), hookC())
+ * app.service('users').hooks({ before: { create: [combinedHook] } })
+ * ```
  *
  * @see https://utils.feathersjs.com/utils/combine.html
  */

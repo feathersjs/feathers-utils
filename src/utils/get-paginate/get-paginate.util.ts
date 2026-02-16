@@ -3,10 +3,19 @@ import type { HookContext } from '@feathersjs/feathers'
 import { hasOwnProperty } from '../../internal.utils.js'
 
 /**
- * util to get paginate options from context
- * 1. it uses `context.params.paginate` if it exists
- * 2. it uses `service.options.paginate` if it exists
- * 3. it uses `context.params.adapter` if it exists
+ * Resolves the active pagination options for the current hook context.
+ * Checks (in order): `context.params.paginate`, `service.options.paginate`,
+ * and `context.params.adapter.paginate`. Returns `undefined` if pagination is disabled.
+ *
+ * @example
+ * ```ts
+ * import { getPaginate } from 'feathers-utils/utils'
+ *
+ * const paginate = getPaginate(context)
+ * if (paginate) {
+ *   console.log('Max items:', paginate.max)
+ * }
+ * ```
  *
  * @see https://utils.feathersjs.com/utils/get-paginate.html
  */

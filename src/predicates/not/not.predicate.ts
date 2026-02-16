@@ -3,7 +3,17 @@ import { isPromise } from '../../common/index.js'
 import type { PredicateFn } from '../../types.js'
 
 /**
- * Negate a predicate function.
+ * Negates a sync or async predicate function, inverting its boolean result.
+ * Useful for composing conditions like "not external" or "not multi".
+ *
+ * @example
+ * ```ts
+ * import { iff, not, isProvider } from 'feathers-utils/predicates'
+ *
+ * app.service('users').hooks({
+ *   before: { all: [iff(not(isProvider('server')), authenticate('jwt'))] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/predicates/not.html
  */

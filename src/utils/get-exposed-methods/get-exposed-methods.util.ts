@@ -2,7 +2,17 @@ import type { Service } from '@feathersjs/feathers'
 import { SERVICE } from '../../feathers-cjs-fix.js'
 
 /**
- * Little helper to get methods are publicly exposed by a service.
+ * Returns the list of method names that are publicly exposed by a Feathers service.
+ * Reads the internal `[SERVICE].methods` property set during service registration.
+ * Throws if the service does not have any exposed methods configured.
+ *
+ * @example
+ * ```ts
+ * import { getExposedMethods } from 'feathers-utils/utils'
+ *
+ * const methods = getExposedMethods(app.service('users'))
+ * // => ['find', 'get', 'create', 'patch', 'remove']
+ * ```
  *
  * @see https://utils.feathersjs.com/utils/get-exposed-methods.html
  */

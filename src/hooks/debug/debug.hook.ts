@@ -1,7 +1,18 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 
 /**
- * Display the current hook context for debugging.
+ * Logs the current hook context to the console for debugging purposes.
+ * Displays timestamp, service path, method, type, id, data, query, result, and
+ * any additional param fields you specify.
+ *
+ * @example
+ * ```ts
+ * import { debug } from 'feathers-utils/hooks'
+ *
+ * app.service('users').hooks({
+ *   before: { find: [debug('before find', 'user')] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/debug.html
  */

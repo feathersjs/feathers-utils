@@ -2,7 +2,16 @@ import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import type { HookFunction, PredicateFn } from '../../types.js'
 
 /**
- * Wrap a hook to make it skippable
+ * Wraps a hook so it can be conditionally skipped based on a predicate.
+ * When the predicate returns `true`, the wrapped hook is skipped entirely.
+ * Commonly used with `shouldSkip` and `addSkip` for runtime hook control.
+ *
+ * @example
+ * ```ts
+ * import { skippable, shouldSkip } from 'feathers-utils/predicates'
+ *
+ * const myHook = skippable(someHook(), shouldSkip('someHook'))
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/skippable.html
  */

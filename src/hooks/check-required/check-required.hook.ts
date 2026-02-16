@@ -8,7 +8,18 @@ import type { MaybeArray } from '../../internal.utils.js'
 import { toArray } from '../../internal.utils.js'
 
 /**
- * Check selected fields exist and are not falsey. Numeric 0 is acceptable.
+ * Validates that the specified fields exist on `context.data` and are not falsy.
+ * Numeric `0` and boolean `false` are treated as valid values.
+ * Throws a `BadRequest` error if any required field is missing or null.
+ *
+ * @example
+ * ```ts
+ * import { checkRequired } from 'feathers-utils/hooks'
+ *
+ * app.service('users').hooks({
+ *   before: { create: [checkRequired(['email', 'password'])] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/check-required.html
  */

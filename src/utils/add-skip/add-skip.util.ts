@@ -8,7 +8,18 @@ export type SkipHookName =
   | (string & {})
 
 /**
- * Add names to `context.params.skipHooks` for `skippable` hooks.
+ * Adds hook names to `context.params.skipHooks` so that `skippable`-wrapped hooks
+ * will be bypassed for the current service call. Accepts a single name or an array.
+ * Duplicates are automatically removed.
+ *
+ * @example
+ * ```ts
+ * import { addSkip } from 'feathers-utils/utils'
+ *
+ * // Inside a hook or custom code:
+ * addSkip(context, 'myHook')
+ * addSkip(context, ['hookA', 'hookB'])
+ * ```
  *
  * @see https://utils.feathersjs.com/utils/add-skip.html
  */

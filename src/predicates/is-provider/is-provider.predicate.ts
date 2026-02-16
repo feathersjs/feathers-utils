@@ -3,7 +3,18 @@ import type { HookContext } from '@feathersjs/feathers'
 import type { TransportName } from '../../types.js'
 
 /**
- * Check which transport provided the service call.
+ * Returns a predicate that checks the transport provider of the service call.
+ * Matches against `'rest'`, `'socketio'`, `'external'` (any external provider),
+ * or `'server'` (internal call without a provider).
+ *
+ * @example
+ * ```ts
+ * import { iff, isProvider } from 'feathers-utils/predicates'
+ *
+ * app.service('users').hooks({
+ *   before: { all: [iff(isProvider('external'), authenticate('jwt'))] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/predicates/is-provider.html
  */

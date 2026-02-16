@@ -11,7 +11,19 @@ export type paramsFromClientOptions = {
 }
 
 /**
- * Pass `context.params` from client to server. Server hook.
+ * Server-side hook that extracts whitelisted properties from `query._$client` back
+ * into `context.params`. This is the counterpart to `paramsForServer`, which encodes
+ * params on the client side for transport.
+ *
+ * @example
+ * ```ts
+ * import { paramsFromClient } from 'feathers-utils/hooks'
+ *
+ * // Server-side
+ * app.service('users').hooks({
+ *   before: { all: [paramsFromClient('populateParams')] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/params-from-client.html
  */
