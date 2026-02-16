@@ -1,4 +1,4 @@
-import assert from 'node:assert'
+import { expect } from 'vitest'
 import { BadRequest } from '@feathersjs/errors'
 import { resolveData } from './resolve-data.js'
 import type { HookContext } from '@feathersjs/feathers'
@@ -22,15 +22,15 @@ describe('resolve-data', () => {
       password: async (): Promise<undefined> => undefined,
 
       name: async (_value, user, ctx, status) => {
-        assert.deepStrictEqual(ctx, context)
-        assert.deepStrictEqual(status.path, ['name'])
-        assert.strictEqual(typeof status.stack[0], 'function')
+        expect(ctx).toStrictEqual(context)
+        expect(status.path).toStrictEqual(['name'])
+        expect(typeof status.stack[0]).toBe('function')
 
         return `${user.firstName} ${user.lastName}`
       },
     })(context)
 
-    assert.deepStrictEqual(u.data, {
+    expect(u.data).toStrictEqual({
       firstName: 'Dave',
       lastName: 'L.',
       name: 'Dave L.',
@@ -55,15 +55,15 @@ describe('resolve-data', () => {
       password: async (): Promise<undefined> => undefined,
 
       name: async (_value, user, ctx, status) => {
-        assert.deepStrictEqual(ctx, context)
-        assert.deepStrictEqual(status.path, ['name'])
-        assert.strictEqual(typeof status.stack[0], 'function')
+        expect(ctx).toStrictEqual(context)
+        expect(status.path).toStrictEqual(['name'])
+        expect(typeof status.stack[0]).toBe('function')
 
         return `${user.firstName} ${user.lastName}`
       },
     })(context)
 
-    assert.deepStrictEqual(u.data, [
+    expect(u.data).toStrictEqual([
       {
         firstName: 'Dave',
         lastName: 'L.',
@@ -95,30 +95,28 @@ describe('resolve-data', () => {
       },
     })
 
-    await assert.rejects(
-      () =>
-        resolver({
-          data: {
-            name: 'Dave',
-            age: 16,
-          },
-        } as HookContext),
-      {
-        name: 'BadRequest',
-        message: 'Error resolving data',
-        code: 400,
-        className: 'bad-request',
+    await expect(
+      resolver({
         data: {
-          name: { message: 'No Daves allowed' },
-          age: {
-            name: 'BadRequest',
-            message: 'Invalid age',
-            code: 400,
-            className: 'bad-request',
-          },
+          name: 'Dave',
+          age: 16,
+        },
+      } as HookContext),
+    ).rejects.toMatchObject({
+      name: 'BadRequest',
+      message: 'Error resolving data',
+      code: 400,
+      className: 'bad-request',
+      data: {
+        name: { message: 'No Daves allowed' },
+        age: {
+          name: 'BadRequest',
+          message: 'Invalid age',
+          code: 400,
+          className: 'bad-request',
         },
       },
-    )
+    })
   })
 
   it('empty resolver returns original data', async () => {
@@ -126,6 +124,6 @@ describe('resolve-data', () => {
     const data = { message: 'Hello' }
     const resolved = await resolver({ data } as HookContext)
 
-    assert.strictEqual(data, resolved.data)
+    expect(data).toBe(resolved.data)
   })
 })
