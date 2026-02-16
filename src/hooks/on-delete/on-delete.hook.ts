@@ -1,33 +1,30 @@
-import type {
-  HookContext,
-  NextFunction,
-  Application,
-} from '@feathersjs/feathers'
+import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { checkContext, getResultIsArray } from '../../utils/index.js'
-import type { MaybeArray } from '../../internal.utils.js'
+import type { MaybeArray, NeverFallback } from '../../internal.utils.js'
 import type {
-  GetService,
   InferFindParams,
+  InferGetResult,
 } from '../../utility-types/infer-service-methods.js'
+import type { ResultSingleHookContext } from '../../utility-types/hook-context.js'
 
 export type OnDeleteAction = 'cascade' | 'set null'
 
 export interface OnDeleteOptions<
-  App extends Application,
-  Path extends keyof App['services'] & string = keyof App['services'] & string,
+  H extends HookContext = HookContext,
+  S extends keyof H['app']['services'] = keyof H['app']['services'],
 > {
   /**
    * The related service where related items should be manipulated
    */
-  service: Path
+  service: S
   /**
    * The propertyKey in the related service
    */
-  keyThere: string
+  keyThere: NeverFallback<keyof InferGetResult<H['app']['services'][S]>, string>
   /**
    * The propertyKey in the current service.
    */
-  keyHere: string
+  keyHere: keyof ResultSingleHookContext<H>
   /**
    * The action to perform on the related items.
    *
@@ -39,7 +36,7 @@ export interface OnDeleteOptions<
    * Additional query to merge into the service call.
    * Typed based on the related service's query type.
    */
-  query?: InferFindParams<GetService<App, Path>>['query']
+  query?: InferFindParams<H['app']['services'][S]>['query']
   /**
    * If true, the hook will wait for the service to finish before continuing
    *
@@ -66,15 +63,12 @@ export interface OnDeleteOptions<
  *
  * @see https://utils.feathersjs.com/hooks/on-delete.html
  */
+type OnDeleteOptionsDistributed<H extends HookContext> = {
+  [S in keyof H['app']['services'] & string]: OnDeleteOptions<H, S>
+}[keyof H['app']['services'] & string]
+
 export const onDelete = <H extends HookContext = HookContext>(
-  options: MaybeArray<
-    {
-      [Path in keyof H['app']['services'] & string]: OnDeleteOptions<
-        H['app'],
-        Path
-      >
-    }[keyof H['app']['services'] & string]
-  >,
+  options: MaybeArray<OnDeleteOptionsDistributed<H>>,
 ) => {
   const optionsMulti = Array.isArray(options) ? options : [options]
 

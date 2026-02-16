@@ -10,6 +10,42 @@ import { MemoryService } from '@feathersjs/memory'
 import { onDelete } from './on-delete.hook.js'
 import type { OnDeleteOptions } from './on-delete.hook.js'
 
+type User = {
+  id: number
+  name: string
+}
+
+type Todo = {
+  id: number
+  title: string
+  userId: number
+}
+
+type Task = {
+  id: number
+  title: string
+  userId: number
+}
+
+const mockAppStronglyTyped = () => {
+  const app = feathers<{
+    users: MemoryService<User>
+    todos: MemoryService<Todo>
+    tasks: MemoryService<Task>
+  }>()
+
+  app.use('users', new MemoryService<User>({ startId: 1, multi: true }))
+  app.use('todos', new MemoryService<Todo>({ startId: 1, multi: true }))
+  app.use('tasks', new MemoryService<Task>({ startId: 1, multi: true }))
+
+  return {
+    app,
+    usersService: app.service('users'),
+    todosService: app.service('todos'),
+    tasksService: app.service('tasks'),
+  }
+}
+
 const mockApp = () => {
   const app = feathers()
 
@@ -28,6 +64,121 @@ const mockApp = () => {
     tasksService,
   }
 }
+
+describe('onDelete (type tests)', function () {
+  it('errors on wrong service name', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      after: {
+        remove: [
+          // @ts-expect-error - 'nonexistent' is not a valid service name
+          onDelete({
+            service: 'nonexistent',
+            keyThere: 'userId',
+            keyHere: 'id',
+            onDelete: 'cascade',
+          }),
+        ],
+      },
+    })
+  })
+
+  it('errors on wrong keyThere', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      after: {
+        remove: [
+          // @ts-expect-error - 'nonExistentProp' does not exist on Todo
+          onDelete({
+            service: 'todos',
+            keyThere: 'nonExistentProp',
+            keyHere: 'id',
+            onDelete: 'cascade',
+          }),
+        ],
+      },
+    })
+  })
+
+  it('errors on wrong keyHere', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      after: {
+        remove: [
+          // @ts-expect-error - 'nonExistentProp' does not exist on User
+          onDelete({
+            service: 'todos',
+            keyThere: 'userId',
+            keyHere: 'nonExistentProp',
+            onDelete: 'cascade',
+          }),
+        ],
+      },
+    })
+  })
+
+  it('accepts valid keyThere and keyHere', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      after: {
+        remove: [
+          onDelete({
+            service: 'todos',
+            keyThere: 'userId',
+            keyHere: 'id',
+            onDelete: 'cascade',
+          }),
+        ],
+      },
+    })
+  })
+
+  it('accepts valid set null options', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      after: {
+        remove: [
+          onDelete({
+            service: 'todos',
+            keyThere: 'userId',
+            keyHere: 'id',
+            onDelete: 'set null',
+          }),
+        ],
+      },
+    })
+  })
+
+  it('accepts an array with multiple services', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      after: {
+        remove: [
+          onDelete([
+            {
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'cascade',
+            },
+            {
+              service: 'tasks',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'set null',
+            },
+          ]),
+        ],
+      },
+    })
+  })
+})
 
 describe('onDelete', function () {
   describe('cascade', function () {
@@ -706,9 +857,9 @@ describe('onDelete', function () {
     type App = Application<AppServices>
 
     it('service is typed to keyof services', function () {
-      expectTypeOf<
-        OnDeleteOptions<App>['service']
-      >().toEqualTypeOf<keyof AppServices & string>()
+      expectTypeOf<OnDeleteOptions<App>['service']>().toEqualTypeOf<
+        keyof AppServices & string
+      >()
     })
 
     it('query is typed based on service path', function () {

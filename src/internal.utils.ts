@@ -16,6 +16,10 @@ export type KeyOf<T> = Extract<keyof T, string>
 
 export type UnwrapArray<T> = T extends Array<infer U> ? U : T
 
+export type NeverFallback<Never, Fallback> = [Never] extends [never]
+  ? Fallback
+  : Never
+
 /**+
  * Can be used to early return a hook.
  *
