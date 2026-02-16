@@ -32,7 +32,22 @@ export type CacheOptions = {
 }
 
 /**
- * A hook to cache `get` and `find` method results based on `params`.
+ * Caches `get` and `find` results based on `params`. On mutating methods (`create`, `update`,
+ * `patch`, `remove`), affected cache entries are automatically invalidated.
+ * Works as a `before`, `after`, or `around` hook.
+ *
+ * @example
+ * ```ts
+ * import { cache } from 'feathers-utils/hooks'
+ *
+ * const myCache = new Map()
+ *
+ * app.service('users').hooks({
+ *   around: {
+ *     all: [cache({ map: myCache, transformParams: (params) => ({ query: params.query }) })]
+ *   }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/cache.html
  */

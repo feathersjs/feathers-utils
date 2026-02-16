@@ -39,7 +39,20 @@ export interface SoftDeleteOptions<H extends HookContext = HookContext> {
 }
 
 /**
- * Allow to mark items as deleted instead of removing them.
+ * Marks items as deleted instead of physically removing them. On `remove`, the hook
+ * patches the record with `removeData` (e.g. `{ deletedAt: new Date() }`). On all other
+ * methods, it appends `deletedQuery` (e.g. `{ deletedAt: null }`) to filter out soft-deleted items.
+ *
+ * @example
+ * ```ts
+ * import { softDelete } from 'feathers-utils/hooks'
+ *
+ * app.service('users').hooks({
+ *   around: {
+ *     all: [softDelete({ deletedQuery: { deletedAt: null }, removeData: { deletedAt: new Date() } })]
+ *   }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/soft-delete.html
  */

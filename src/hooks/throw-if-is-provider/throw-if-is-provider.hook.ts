@@ -21,7 +21,18 @@ export type ThrowIfIsIsProviderOptions = {
 }
 
 /**
- * Throw an error for certain transports.
+ * Throws a `MethodNotAllowed` error when the request comes from one of the specified transports.
+ * Combines `throwIf` with the `isProvider` predicate for a convenient one-liner.
+ * Use this to restrict methods to server-only or specific transport types.
+ *
+ * @example
+ * ```ts
+ * import { throwIfIsProvider } from 'feathers-utils/hooks'
+ *
+ * app.service('internal').hooks({
+ *   before: { all: [throwIfIsProvider('external')] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/throw-if-is-provider.html
  */

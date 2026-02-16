@@ -10,7 +10,18 @@ export type IsContextOptions = {
 }
 
 /**
- * Check if the context matches the given options.
+ * Returns a predicate that checks whether the hook context matches the given criteria.
+ * You can filter by `path` (service name), `type` (before/after/around/error),
+ * and/or `method` (find/get/create/update/patch/remove).
+ *
+ * @example
+ * ```ts
+ * import { iff, isContext } from 'feathers-utils/predicates'
+ *
+ * app.service('users').hooks({
+ *   before: { all: [iff(isContext({ method: 'create', type: 'before' }), validateHook())] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/predicates/is-context.html
  */

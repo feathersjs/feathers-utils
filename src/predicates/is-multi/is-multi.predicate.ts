@@ -1,13 +1,18 @@
 import type { HookContext } from '@feathersjs/feathers'
 
 /**
- * util to check if a hook is a multi hook:
- * - find: true
- * - get: false
- * - create: `context.data` is an array
- * - update: false
- * - patch: `context.id == null`
- * - remove: `context.id == null`
+ * Checks if the current hook context represents a multi operation.
+ * Returns `true` for `find`, for `create` with array data, and for `patch`/`remove`
+ * with `id === null`. Returns `false` for `get` and `update`.
+ *
+ * @example
+ * ```ts
+ * import { iff, isMulti } from 'feathers-utils/predicates'
+ *
+ * app.service('users').hooks({
+ *   before: { all: [iff(isMulti, rateLimitHook())] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/predicates/is-multi.html
  */

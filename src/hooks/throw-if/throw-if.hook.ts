@@ -13,9 +13,18 @@ export type ThrowIfOptions = {
 }
 
 /**
- * Throw an error if the predicate function returns true.
+ * Throws a `BadRequest` error when the given predicate function returns `true`.
+ * The predicate receives the hook context and can be async.
+ * Useful for validating conditions before proceeding with a request.
  *
- * This hook is useful for validating conditions before proceeding with the request.
+ * @example
+ * ```ts
+ * import { throwIf } from 'feathers-utils/hooks'
+ *
+ * app.service('users').hooks({
+ *   before: { remove: [throwIf((context) => context.id === context.params.user?.id)] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/throw-if.html
  */

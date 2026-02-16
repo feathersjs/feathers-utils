@@ -4,9 +4,16 @@ import type { HookContext } from '@feathersjs/feathers'
 import type { SkipHookName } from '../../utils/index.js'
 
 /**
- * Util to detect if a hook should be skipped
+ * Returns a predicate that checks `params.skipHooks` to determine if a hook should be skipped.
+ * Matches by hook name, hook type (e.g. `'before'`), prefixed name (e.g. `'before:myHook'`),
+ * or `'all'` to skip everything. Designed to be used with `skippable` and `addSkip`.
  *
- * Checks the `params.skipHooks` array for the hook name, type, or 'all'.
+ * @example
+ * ```ts
+ * import { skippable, shouldSkip } from 'feathers-utils/predicates'
+ *
+ * const myHook = skippable(actualHook(), shouldSkip('myHook'))
+ * ```
  *
  * @see https://utils.feathersjs.com/predicates/should-skip.html
  */

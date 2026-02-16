@@ -1,8 +1,17 @@
 import type { HookContext } from '@feathersjs/feathers'
 
 /**
- * Always returns the `context.data` as an array.
- * If `context.data` is not an array, it will be wrapped in an array.
+ * Normalizes `context.data` into an array for uniform processing.
+ * Returns `{ data, isArray }` where `data` is always an array and `isArray` indicates
+ * whether the original value was already an array.
+ *
+ * @example
+ * ```ts
+ * import { getDataIsArray } from 'feathers-utils/utils'
+ *
+ * const { data, isArray } = getDataIsArray(context)
+ * data.forEach(item => { /* process each item *\/ })
+ * ```
  *
  * @see https://utils.feathersjs.com/utils/get-data-is-array.html
  */

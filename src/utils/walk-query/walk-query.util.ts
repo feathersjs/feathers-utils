@@ -122,9 +122,19 @@ const _walkQueryUtil = <Q extends Query>(
 }
 
 /**
- * Walks the given Feathers query and calls the `walker` function for each property. The
- * `walker` function can return a new value which will replace the original value in the
- * returned query. If no changes were made the original query will be returned.
+ * Walks every property of a Feathers query (including nested `$and`/`$or`/`$nor`/`$not` arrays)
+ * and calls the `walker` function for each one. The walker receives the property name, operator,
+ * value, and path, and can return a replacement value. Returns a new query only if changes were made.
+ *
+ * @example
+ * ```ts
+ * import { walkQuery } from 'feathers-utils/utils'
+ *
+ * const query = walkQuery({ age: { $gt: '18' } }, ({ value, operator }) => {
+ *   if (operator === '$gt') return Number(value)
+ * })
+ * // => { age: { $gt: 18 } }
+ * ```
  *
  * @see https://utils.feathersjs.com/utils/walk-query.html
  */

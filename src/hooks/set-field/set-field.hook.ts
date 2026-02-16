@@ -27,7 +27,18 @@ export interface SetFieldOptions {
 }
 
 /**
- * The `setField` hook allows to set a field on the hook context based on the value of another field on the hook context.
+ * Sets a field on the hook context (e.g. `params.query`) based on the value of another
+ * context field (e.g. `params.user.id`). Useful for scoping queries to the authenticated user.
+ * Throws a `Forbidden` error if the source field is missing (unless `allowUndefined` is `true`).
+ *
+ * @example
+ * ```ts
+ * import { setField } from 'feathers-utils/hooks'
+ *
+ * app.service('posts').hooks({
+ *   before: { all: [setField({ from: 'params.user.id', as: 'params.query.userId' })] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/set-field.html
  */

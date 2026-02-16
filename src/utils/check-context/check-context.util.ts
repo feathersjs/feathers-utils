@@ -3,7 +3,19 @@ import type { HookType, MethodName } from '../../types.js'
 import { isContext } from '../../predicates/is-context/is-context.predicate.js'
 
 /**
- * Restrict a hook to run for certain methods and method types.
+ * Validates that the hook context matches the expected type(s) and method(s).
+ * Throws an error if the context is invalid, preventing hooks from running in
+ * unsupported configurations. Typically used internally by other hooks.
+ *
+ * @example
+ * ```ts
+ * import { checkContext } from 'feathers-utils/utils'
+ *
+ * const myHook = (context) => {
+ *   checkContext(context, ['before', 'around'], ['create', 'patch'], 'myHook')
+ *   // ... hook logic
+ * }
+ * ```
  *
  * @see https://utils.feathersjs.com/utils/check-context.html
  */

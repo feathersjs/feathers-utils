@@ -3,7 +3,18 @@ import type { PredicateFn } from '../../types.js'
 import { isPromise } from '../../common/index.js'
 
 /**
- * Return the or of a series of sync or async predicate functions.
+ * Returns a predicate that is `true` when **any** of the given predicates is `true` (logical OR).
+ * Supports both sync and async predicates. Short-circuits on the first `true` result.
+ * Undefined predicates in the list are skipped.
+ *
+ * @example
+ * ```ts
+ * import { iff, some, isProvider } from 'feathers-utils/predicates'
+ *
+ * app.service('users').hooks({
+ *   before: { all: [iff(some(isProvider('rest'), isProvider('socketio')), rateLimitHook())] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/predicates/some.html
  */

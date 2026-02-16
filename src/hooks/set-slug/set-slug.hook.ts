@@ -2,7 +2,18 @@ import _set from 'lodash/set.js'
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 
 /**
- * Fix slugs in URL, e.g. /stores/:storeId.
+ * Extracts URL route parameters (slugs) and sets them on `params.query`.
+ * For example, given a route `/stores/:storeId`, this hook copies the resolved
+ * `storeId` value from `params.route` into the query. Only applies to the `rest` provider.
+ *
+ * @example
+ * ```ts
+ * import { setSlug } from 'feathers-utils/hooks'
+ *
+ * app.service('stores/:storeId/products').hooks({
+ *   before: { all: [setSlug('storeId')] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/set-slug.html
  */

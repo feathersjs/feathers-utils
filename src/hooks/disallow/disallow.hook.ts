@@ -7,6 +7,20 @@ import { toArray } from '../../internal.utils.js'
 
 /**
  * Prevents access to a service method completely or for specific transports.
+ * When called without arguments, the method is blocked for all callers.
+ * When called with transport names, only those transports are blocked.
+ *
+ * @example
+ * ```ts
+ * import { disallow } from 'feathers-utils/hooks'
+ *
+ * app.service('users').hooks({
+ *   before: {
+ *     remove: [disallow('external')], // block external access
+ *     update: [disallow()],           // block completely
+ *   }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/hooks/disallow.html
  */

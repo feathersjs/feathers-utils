@@ -3,6 +3,24 @@ import type { ResolverObject } from './resolvers.internal.js'
 import { resolveData } from './resolve-data.js'
 import { resolveQuery } from './resolve-query.js'
 
+/**
+ * Combines `data`, `query`, and `result` resolvers into a single around hook.
+ * Data and query resolvers run before `next()`, while the result resolver runs after.
+ * At least one resolver must be provided.
+ *
+ * @example
+ * ```ts
+ * import { resolve } from 'feathers-utils/resolvers'
+ *
+ * app.service('users').hooks({
+ *   around: {
+ *     all: [resolve({ data: { email: async (val) => val?.toLowerCase() }, result: { password: async () => undefined } })]
+ *   }
+ * })
+ * ```
+ *
+ * @see https://utils.feathersjs.com/resolvers/resolve.html
+ */
 export const resolve = <
   T extends Record<string, any>,
   H extends HookContext = HookContext,

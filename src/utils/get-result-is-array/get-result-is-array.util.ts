@@ -6,7 +6,17 @@ type GetResultIsArrayOptions = {
 }
 
 /**
- * Always returns the `context.result` or `context.dispatch` as an array.
+ * Normalizes `context.result` (or `context.dispatch`) into an array for uniform processing.
+ * Handles paginated results by extracting the `data` array. Returns `{ result, isArray, key }`
+ * where `key` indicates whether `'result'` or `'dispatch'` was used.
+ *
+ * @example
+ * ```ts
+ * import { getResultIsArray } from 'feathers-utils/utils'
+ *
+ * const { result, isArray } = getResultIsArray(context)
+ * result.forEach(item => { /* process each item *\/ })
+ * ```
  *
  * @see https://utils.feathersjs.com/utils/get-result-is-array.html
  */

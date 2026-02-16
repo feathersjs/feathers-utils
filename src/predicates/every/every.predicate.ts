@@ -3,7 +3,18 @@ import type { PredicateFn } from '../../types.js'
 import { isPromise } from '../../common/index.js'
 
 /**
- * Return the and of a series of sync or async predicate functions.
+ * Returns a predicate that is `true` only when **all** given predicates are `true` (logical AND).
+ * Supports both sync and async predicates. Short-circuits on the first `false` result.
+ * Undefined predicates in the list are skipped.
+ *
+ * @example
+ * ```ts
+ * import { iff, every, isProvider, isMulti } from 'feathers-utils/predicates'
+ *
+ * app.service('users').hooks({
+ *   before: { all: [iff(every(isProvider('external'), isMulti), checkMulti())] }
+ * })
+ * ```
  *
  * @see https://utils.feathersjs.com/predicates/every.html
  */

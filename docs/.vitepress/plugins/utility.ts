@@ -72,9 +72,15 @@ ${utility.examples.join('\n\n')}
 
   if (utility.dts) {
     code.push(`## Type declaration
+<details>
+<summary class="opacity-50 italic cursor-pointer select-none">Show Type Declarations</summary>
+
 \`\`\`ts
 ${utility.dts}
-\`\`\` `)
+\`\`\`
+
+</details>
+`)
   }
 
   if (utility.args?.length) {
