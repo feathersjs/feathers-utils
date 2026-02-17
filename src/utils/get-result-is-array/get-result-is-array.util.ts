@@ -1,8 +1,15 @@
 import type { HookContext } from '@feathersjs/feathers'
 import { copy } from 'fast-copy'
+import type { ResultSingleHookContext } from '../../utility-types/hook-context.js'
 
-type GetResultIsArrayOptions = {
+export type GetResultIsArrayOptions = {
   dispatch?: boolean
+}
+
+export type GetResultIsArrayReturn<H extends HookContext = HookContext> = {
+  isArray: boolean
+  result: ResultSingleHookContext<H>[]
+  key: 'dispatch' | 'result'
 }
 
 /**
@@ -23,7 +30,7 @@ type GetResultIsArrayOptions = {
 export function getResultIsArray<H extends HookContext = HookContext>(
   context: H,
   options?: GetResultIsArrayOptions,
-): { isArray: boolean; result: any[]; key: 'dispatch' | 'result' } {
+): GetResultIsArrayReturn<H> {
   const { dispatch = false } = options || {}
 
   const isDispatch: boolean = dispatch && context.dispatch !== undefined

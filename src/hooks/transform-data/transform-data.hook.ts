@@ -1,6 +1,7 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { mutateData } from '../../utils/mutate-data/mutate-data.util.js'
 import type { TransformerFn } from '../../types.js'
+import type { DataSingleHookContext } from '../../utility-types/hook-context.js'
 
 /**
  * Transforms each item in `context.data` using the provided transformer function.
@@ -19,8 +20,11 @@ import type { TransformerFn } from '../../types.js'
  * @see https://utils.feathersjs.com/hooks/transform-data.html
  */
 export const transformData =
-  <T = Record<string, any>, H extends HookContext = HookContext>(
-    transformer: TransformerFn<T, H>,
+  <
+    H extends HookContext = HookContext,
+    D extends DataSingleHookContext<H> = DataSingleHookContext<H>,
+  >(
+    transformer: TransformerFn<D, H>,
   ) =>
   async (context: H, next?: NextFunction) => {
     await mutateData(context, transformer)
