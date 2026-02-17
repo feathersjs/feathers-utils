@@ -1,4 +1,37 @@
+import { expectTypeOf } from 'vitest'
+import type { Application, HookContext } from '@feathersjs/feathers'
 import { getResultIsArray } from './get-result-is-array.util.js'
+import type { MemoryService } from '@feathersjs/memory'
+
+describe('getResultIsArray (type tests)', () => {
+  type Todo = {
+    id: number
+    title: string
+    userId: number
+  }
+
+  type App = Application<{
+    todos: MemoryService<Todo>
+  }>
+
+  type TodoContext = HookContext<App, MemoryService<Todo>>
+
+  it('result is typed as an array of the unwrapped result type', () => {
+    const context = {} as TodoContext
+    const { result, isArray, key } = getResultIsArray(context)
+
+    expectTypeOf(result).toEqualTypeOf<Todo[]>()
+    expectTypeOf(isArray).toEqualTypeOf<boolean>()
+    expectTypeOf(key).toEqualTypeOf<'dispatch' | 'result'>()
+  })
+
+  it('works with a plain HookContext', () => {
+    const context = {} as HookContext
+    const { result } = getResultIsArray(context)
+
+    expectTypeOf(result).toEqualTypeOf<any[]>()
+  })
+})
 
 describe('getResultIsArray', () => {
   it('falsy result', () => {

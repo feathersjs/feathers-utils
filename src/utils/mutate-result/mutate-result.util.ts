@@ -3,6 +3,7 @@ import { getResultIsArray } from '../get-result-is-array/get-result-is-array.uti
 import { isPromise } from '../../common/index.js'
 import { copy } from 'fast-copy'
 import type { DispatchOption, TransformerFn } from '../../types.js'
+import type { ResultSingleHookContext } from '../../utility-types/index.js'
 
 export type MutateResultOptions = {
   next?: NextFunction
@@ -24,9 +25,12 @@ export type MutateResultOptions = {
  *
  * @see https://utils.feathersjs.com/utils/mutate-result.html
  */
-export async function mutateResult<H extends HookContext = HookContext>(
+export async function mutateResult<
+  H extends HookContext = HookContext,
+  R extends ResultSingleHookContext<H> = ResultSingleHookContext<H>,
+>(
   context: H,
-  transformer: TransformerFn<any, H>,
+  transformer: TransformerFn<R, H>,
   options?: MutateResultOptions,
 ): Promise<H> {
   if (options?.next) {

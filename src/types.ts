@@ -42,10 +42,13 @@ export type PredicateItemWithContext<T = any> = (
   context: HookContext,
 ) => boolean
 
-export type TransformerFn<T = any, H extends HookContext = HookContext> = (
+export type TransformerFn<
+  T = Record<string, any>,
+  H extends HookContext = HookContext,
+> = (
   item: T,
   options: { context: H; i: number },
-) => Promisable<Record<string, any> | undefined | void>
+) => Promisable<T | undefined | void>
 
 export declare type HookFunction<H extends HookContext = HookContext> = (
   context: H,

@@ -1,4 +1,10 @@
 import type { HookContext } from '@feathersjs/feathers'
+import type { DataSingleHookContext } from '../../utility-types/hook-context.js'
+
+export type GetDataIsArrayReturn<H extends HookContext = HookContext> = {
+  isArray: boolean
+  data: DataSingleHookContext<H>[]
+}
 
 /**
  * Normalizes `context.data` into an array for uniform processing.
@@ -17,7 +23,7 @@ import type { HookContext } from '@feathersjs/feathers'
  */
 export function getDataIsArray<H extends HookContext = HookContext>(
   context: H,
-): { data: any[]; isArray: boolean } {
+): GetDataIsArrayReturn<H> {
   if (!context.data) {
     return {
       isArray: false,
