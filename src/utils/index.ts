@@ -1,4 +1,5 @@
 export * from './add-skip/add-skip.util.js'
+export * from './chunk-find/chunk-find.util.js'
 export * from './add-to-query/add-to-query.util.js'
 export * from './check-context/check-context.util.js'
 export * from './context-to-json/context-to-json.util.js'

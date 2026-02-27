@@ -5,33 +5,33 @@ import type {
   InferFindResultSingle,
 } from '../../utility-types/infer-service-methods.js'
 
-type IterateFindOptions<P extends Params = Params> = {
+type ChunkFindOptions<P extends Params = Params> = {
   params?: P
 }
 
 /**
- * Use `for await` to iterate over the results of a `find` method.
+ * Use `for await` to iterate over chunks (pages) of results from a `find` method.
  *
- * This function is useful for iterating over large datasets without loading everything into memory at once.
- * It uses pagination to fetch results in chunks, allowing you to process each item as it is retrieved.
+ * This function is useful for processing large datasets in batches without loading everything into memory at once.
+ * It uses pagination to fetch results in chunks, yielding each page's data array.
  *
  * @example
  * ```ts
- * import { iterateFind } from 'feathers-utils/utils'
+ * import { chunkFind } from 'feathers-utils/utils'
  *
  * const app = feathers()
  *
  * // Assuming 'users' service has many records
- * for await (const user of iterateFind(app, 'users', {
+ * for await (const users of chunkFind(app, 'users', {
  *  params: { query: { active: true }, // Custom query parameters
  * } })) {
- *  console.log(user) // Process each user record
+ *  console.log(users) // Process each chunk of user records
  * }
  * ```
  *
- * @see https://utils.feathersjs.com/utils/iterate-find.html
+ * @see https://utils.feathersjs.com/utils/chunk-find.html
  */
-export async function* iterateFind<
+export async function* chunkFind<
   Services,
   Path extends KeyOf<Services>,
   Service extends Services[Path] = Services[Path],
@@ -40,8 +40,8 @@ export async function* iterateFind<
 >(
   app: Application<Services>,
   servicePath: Path,
-  options?: IterateFindOptions<P>,
-): AsyncGenerator<Item, void, unknown> {
+  options?: ChunkFindOptions<P>,
+): AsyncGenerator<Item[], void, unknown> {
   const service = app.service(servicePath)
 
   if (!service || !('find' in service)) {
@@ -52,11 +52,12 @@ export async function* iterateFind<
     ...options?.params,
     query: {
       ...(options?.params?.query ?? {}),
-      $limit: options?.params?.query?.$limit,
+      $limit: options?.params?.query?.$limit ?? 10,
       $skip: options?.params?.query?.$skip ?? 0,
     },
     paginate: {
       default: options?.params?.paginate?.default ?? 10,
+      max: options?.params?.paginate?.max ?? 100,
     },
   }
 
@@ -65,9 +66,7 @@ export async function* iterateFind<
   do {
     result = await (service as any).find(params)
 
-    for (const item of result.data) {
-      yield item
-    }
+    yield result.data
 
     params.query.$skip = (params.query.$skip ?? 0) + result.data.length
   } while (result.total > params.query.$skip)
