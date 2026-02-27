@@ -41,6 +41,7 @@ const utils = [
   'addSkip',
   'addToQuery',
   'checkContext',
+  'chunkFind',
   'contextToJson',
   'defineHooks',
   'getDataIsArray',
