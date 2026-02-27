@@ -1,0 +1,4 @@
+---
+title: zipDataResult
+category: utils
+---

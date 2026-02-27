@@ -55,6 +55,7 @@ const utils = [
   'toPaginated',
   'transformParams',
   'walkQuery',
+  "zipDataResult",
 ] satisfies (keyof typeof exportedUtils)[]
 
 const predicates = [
