@@ -1,7 +1,7 @@
 /* eslint-disable import-x/no-named-as-default-member */
 import fs from 'node:fs/promises'
 import matter from 'gray-matter'
-import { glob } from 'glob'
+import { glob } from 'tinyglobby'
 import kebabCase from 'lodash/kebabCase.js'
 import { mainBranch, repository } from './meta'
 import type { Node } from 'typescript'

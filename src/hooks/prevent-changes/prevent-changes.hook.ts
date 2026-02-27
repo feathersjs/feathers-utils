@@ -3,22 +3,26 @@ import _omit from 'lodash/omit.js'
 import type { FeathersError } from '@feathersjs/errors'
 import { BadRequest } from '@feathersjs/errors'
 import { transformData } from '../transform-data/transform-data.hook.js'
-import type { MaybeArray } from '../../internal.utils.js'
+import type { KeyOfOrDotNotation, MaybeArray } from '../../internal.utils.js'
 import { toArray } from '../../internal.utils.js'
+import type { HookContext } from '@feathersjs/feathers'
+import type { DataSingleHookContext } from '../../utility-types/hook-context.js'
 
-export type PreventChangesOptions = {
+export type PreventChangesOptions<D, Keys extends KeyOfOrDotNotation<D>> = {
   /**
    * Customize the error that is thrown if the service tries to patch a field that is not allowed.
    *
    * If not provided, throws a `BadRequest` error with a message indicating the field that is not allowed.
    */
-  error?: boolean | ((item: any, name: string) => FeathersError)
+  error?: boolean | ((item: D, name: Keys) => FeathersError)
 }
 
 /**
  * Prevents `patch` calls from modifying certain fields. By default, the protected
  * fields are silently removed from `context.data`. When `error` is set, a `BadRequest`
  * is thrown if any protected field is present.
+ *
+ * Supports dot.notation for nested fields.
  *
  * @example
  * ```ts
@@ -31,13 +35,17 @@ export type PreventChangesOptions = {
  *
  * @see https://utils.feathersjs.com/hooks/prevent-changes.html
  */
-export const preventChanges = (
-  fieldNames: MaybeArray<string>,
-  options?: PreventChangesOptions,
+export const preventChanges = <
+  H extends HookContext = HookContext,
+  D extends DataSingleHookContext<H> = DataSingleHookContext<H>,
+  Keys extends KeyOfOrDotNotation<D> = KeyOfOrDotNotation<D>,
+>(
+  fieldNames: MaybeArray<Keys>,
+  options?: PreventChangesOptions<D, Keys>,
 ) => {
   const fieldNamesArr = toArray(fieldNames)
 
-  return transformData((item) => {
+  return transformData<H, D>((item) => {
     if (options?.error) {
       for (let i = 0; i < fieldNamesArr.length; i++) {
         const name = fieldNamesArr[i]
@@ -47,7 +55,7 @@ export const preventChanges = (
             typeof options.error === 'function'
               ? options.error(item, name)
               : new BadRequest(
-                  `Field ${name} may not be patched. (preventChanges)`,
+                  `Field ${String(name)} may not be patched. (preventChanges)`,
                 )
 
           throw error

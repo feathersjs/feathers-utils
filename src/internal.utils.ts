@@ -20,6 +20,8 @@ export type NeverFallback<Never, Fallback> = [Never] extends [never]
   ? Fallback
   : Never
 
+export type KeyOfOrDotNotation<D> = KeyOf<D> | `${KeyOf<D>}.${string}`
+
 /**+
  * Can be used to early return a hook.
  *

@@ -1,6 +1,7 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { mutateResult } from '../../utils/mutate-result/mutate-result.util.js'
 import type { DispatchOption, TransformerFn } from '../../types.js'
+import type { ResultSingleHookContext } from '../../utility-types/hook-context.js'
 
 export type TransformResultOptions = {
   dispatch?: DispatchOption
@@ -23,8 +24,11 @@ export type TransformResultOptions = {
  * @see https://utils.feathersjs.com/hooks/transform-result.html
  */
 export const transformResult =
-  <T = Record<string, any>, H extends HookContext = HookContext>(
-    transformer: TransformerFn<T, H>,
+  <
+    H extends HookContext = HookContext,
+    R extends ResultSingleHookContext<H> = ResultSingleHookContext<H>,
+  >(
+    transformer: TransformerFn<R, H>,
     options?: TransformResultOptions,
   ) =>
   (context: H, next?: NextFunction) =>
