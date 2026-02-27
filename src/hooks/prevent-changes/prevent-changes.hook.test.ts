@@ -1,6 +1,87 @@
 import { assert, expect } from 'vitest'
+import { feathers } from '@feathersjs/feathers'
+import { MemoryService } from '@feathersjs/memory'
+import { BadRequest } from '@feathersjs/errors'
 import { preventChanges } from './prevent-changes.hook.js'
 import { clone } from '../../common/index.js'
+
+type User = {
+  id: number
+  name: string
+  email: string
+  role: {
+    type: string
+  }
+}
+
+const mockAppStronglyTyped = () => {
+  const app = feathers<{
+    users: MemoryService<User>
+  }>()
+
+  app.use('users', new MemoryService<User>({ startId: 1, multi: true }))
+
+  const usersService = app.service('users')
+
+  return {
+    app,
+    usersService,
+  }
+}
+
+describe('preventChanges (type tests)', () => {
+  it('accepts valid field names', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      before: {
+        patch: [preventChanges(['name', 'email', 'role.type'])],
+      },
+    })
+  })
+
+  it('errors on invalid field names', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      before: {
+        patch: [
+          // @ts-expect-error - 'nonExistent' is not a valid field name
+          preventChanges(['nonExistent']),
+        ],
+      },
+    })
+  })
+
+  it('accepts a single field name', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      before: {
+        patch: [preventChanges('name')],
+      },
+    })
+  })
+
+  it('error callback item is properly typed', function () {
+    const { app } = mockAppStronglyTyped()
+
+    app.service('users').hooks({
+      before: {
+        patch: [
+          preventChanges(['name'], {
+            error: (item, name) => {
+              const n: string = item.name
+              // @ts-expect-error - 'nonExistentProp' does not exist on User
+              const bad = item.nonExistentProp
+              return new BadRequest('test')
+            },
+          }),
+        ],
+      },
+    })
+  })
+})
 
 let hookBefore: any
 
