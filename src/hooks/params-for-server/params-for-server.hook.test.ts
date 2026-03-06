@@ -23,6 +23,28 @@ describe('paramsForServer', () => {
     })
   })
 
+  it('should accept a readonly array', () => {
+    const whitelist = ['a', 'b'] as const
+    expect(
+      paramsForServer(whitelist)({
+        params: {
+          a: 1,
+          b: 2,
+          query: {},
+        },
+      } as HookContext),
+    ).toEqual({
+      params: {
+        query: {
+          _$client: {
+            a: 1,
+            b: 2,
+          },
+        },
+      },
+    })
+  })
+
   it('should move params to query._$client and leave remaining', () => {
     expect(
       paramsForServer('a')({

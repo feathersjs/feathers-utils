@@ -7,9 +7,9 @@ export const hasOwnProperty = (
   return keys.some((x) => Object.prototype.hasOwnProperty.call(obj, x))
 }
 
-export type MaybeArray<T> = T | T[]
-export const toArray = <T>(value: T | T[]): T[] =>
-  Array.isArray(value) ? value : [value]
+export type MaybeArray<T> = T | readonly T[]
+export const toArray = <T>(value: T | readonly T[]): T[] =>
+  Array.isArray(value) ? [...value] : [value as T]
 
 export type Promisable<T> = T | Promise<T>
 export type KeyOf<T> = Extract<keyof T, string>
