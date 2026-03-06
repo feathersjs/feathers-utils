@@ -87,15 +87,16 @@ For a more complete list check the [migration guide](/migrating-from-feathers-ho
 
 While revisiting we found that some hooks basically did the same thing: use `transformData` or `transformResult` and pass in an anonymous function. We decided to introduce a few new transformers that can be used with `transformData` and `transformResult`. We don't need to add a bunch of new hooks for every use case. Instead we can use these transformers to transform the data or result in a more generic way. Some examples are:
 
-- `keep('field1', 'field2')`: now is `transformData(pick(['field1', 'field2']))` or `transformResult(pick(['field1', 'field2']))`
-- `keepQuery('field1', 'field2')`: now is `transformQuery(pick(['field1', 'field2']))`
-- `discard('field1', 'field2')`: now is `transformData(omit(['field1', 'field2']))` or `transformResult(omit(['field1', 'field2']))`
-- `discardQuery('field1', 'field2')`: now is `transformQuery(omit(['field1', 'field2']))`
-- `lowerCase('field1', 'field2')`: now is `transformData(lowerCase(['field1', 'field2']))` or `transformResult(lowerCase(['field1', 'field2']))`
-- `setNow('field1', 'field2')`: now is `transformData(setNow(['field1', 'field2']))` or `transformResult(setNow(['field1', 'field2']))`
+- `keep('field1', 'field2')`: now is `transformData(item => pick(item, ['field1', 'field2']))` or `transformResult(item => pick(item, ['field1', 'field2']))`
+- `keepQuery('field1', 'field2')`: now is `transformQuery(item => pick(item, ['field1', 'field2']))`
+- `discard('field1', 'field2')`: now is `transformData(item => omit(item, ['field1', 'field2']))` or `transformResult(item => omit(item, ['field1', 'field2']))`
+- `discardQuery('field1', 'field2')`: now is `transformQuery(item => omit(item, ['field1', 'field2']))`
+- `lowerCase('field1', 'field2')`: now is `transformData(item => lowercase(item, ['field1', 'field2']))` or `transformResult(item => lowercase(item, ['field1', 'field2']))`
+- `setNow('field1', 'field2')`: now is `transformData(item => setNow(item, ['field1', 'field2']))` or `transformResult(item => setNow(item, ['field1', 'field2']))`
 
-These hooks basically all work the same way. The decision to use explicit `data` and `result` hooks would have forced us to create two hooks for each mechanism. We planned to add more hooks like `trimData`, `trimResult`, `parseDateData` etc. Which adds a lot of complexity and maintenance overhead. Instead we removed these explicit hooks and decided to go with the transformers. This allows us to test each transformer separately and use them in the `transformData` and `transformResult` hooks. This also allows us to add new transformers without any noise. As you can see in the examples above the DX is not worse than before `setNow()` -> `transformData(setNow())`. In fact, it is even better because code is reused and less mental overhead is required to understand the code. Built in transformers for now are:
+These hooks basically all work the same way. The decision to use explicit `data` and `result` hooks would have forced us to create two hooks for each mechanism. We planned to add more hooks like `trimData`, `trimResult`, `parseDateData` etc. Which adds a lot of complexity and maintenance overhead. Instead we removed these explicit hooks and decided to go with the transformers. This allows us to test each transformer separately and use them in the `transformData` and `transformResult` hooks. This also allows us to add new transformers without any noise. As you can see in the examples above the DX is not worse than before `setNow()` -> `transformData(item => setNow(item, ...))`. In fact, it is even better because code is reused, less mental overhead is required to understand the code, and you get full type-safe autocomplete for field names inside the callback. Built in transformers for now are:
 
+- [`defaults`](/transformers/defaults.html): Sets default values on fields that are `undefined`.
 - [`lowercase`](/transformers/lowercase.html): Lowercases the given fields.
 - [`omit`](/transformers/omit.html): Omits the given fields.
 - [`parseDate`](/transformers/parse-date.html): Parses the given fields as dates.

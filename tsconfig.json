@@ -4,7 +4,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "esModuleInterop": true,
-    "types": ["vitest/globals", "vitest/importMeta"],
+    "types": ["node", "vitest/globals", "vitest/importMeta"],
     "declaration": true,
     "paths": {
       "feathers-utils": ["./src/index.ts"]

@@ -50,6 +50,29 @@ export type TransformerFn<
   options: { context: H; i: number },
 ) => Promisable<T | undefined | void>
 
+export type TransformerInputFn<
+  T = Record<string, any>,
+  H extends HookContext = HookContext,
+> = (item: T, options: { context: H; i: number }) => Promisable<any>
+
+export type FieldKey<T> =
+  | (keyof T & string)
+  | `${Extract<keyof T, string>}.${string}`
+
+export type StringFieldKey<T> =
+  | {
+      [K in keyof T & string]: T[K] extends string | null | undefined
+        ? K
+        : never
+    }[keyof T & string]
+  | `${Extract<keyof T, string>}.${string}`
+
+export type DefaultsInput<T extends Record<string, any>> = {
+  [K in keyof T & string]?: T[K] | (() => T[K])
+} & {
+  [K in `${Extract<keyof T, string>}.${string}`]?: unknown
+}
+
 export declare type HookFunction<H extends HookContext = HookContext> = (
   context: H,
   next?: NextFunction,
