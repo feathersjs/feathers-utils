@@ -96,10 +96,10 @@ import { omit } from "feathers-utils/transformers";
 
 app.service("my-service").hooks({
   before: {
-    all: [transformData(omit(["field1", "field2"]))],
+    all: [transformData((item) => omit(item, ["field1", "field2"]))],
   },
   after: {
-    all: [transformResult(omit(["field1", "field2"]))],
+    all: [transformResult((item) => omit(item, ["field1", "field2"]))],
   },
 });
 ```
@@ -116,7 +116,7 @@ import { omit } from "feathers-utils/transformers";
 
 app.service("my-service").hooks({
   before: {
-    all: [transformQuery(omit(["field1", "field2"]))],
+    all: [transformQuery((item) => omit(item, ["field1", "field2"]))],
   },
 });
 ```
@@ -155,10 +155,10 @@ import { pick } from "feathers-utils/transformers";
 
 app.service("my-service").hooks({
   before: {
-    all: [transformData(pick(["field1", "field2"]))],
+    all: [transformData((item) => pick(item, ["field1", "field2"]))],
   },
   after: {
-    all: [transformResult(pick(["field1", "field2"]))],
+    all: [transformResult((item) => pick(item, ["field1", "field2"]))],
   },
 });
 ```
@@ -179,7 +179,7 @@ import { pick } from "feathers-utils/transformers";
 
 app.service("my-service").hooks({
   before: {
-    all: [transformQuery(pick(["field1", "field2"]))],
+    all: [transformQuery((item) => pick(item, ["field1", "field2"]))],
   },
 });
 ```
@@ -200,10 +200,10 @@ import { lowercase } from "feathers-utils/transformers";
 
 app.service("users").hooks({
   before: {
-    all: [transformData(lowercase(["email"]))],
+    all: [transformData((item) => lowercase(item, ["email"]))],
   },
   after: {
-    all: [transformResult(lowercase(["email"]))],
+    all: [transformResult((item) => lowercase(item, ["email"]))],
   },
 });
 ```
@@ -279,9 +279,9 @@ import { setNow } from "feathers-utils/transformers";
 
 app.service("my-service").hooks({
   before: {
-    createdAt: [transformData(setNow(["createdAt", "updatedAt"]))],
-    updatedAt: [transformData(setNow(["updatedAt"]))],
-    patchedAt: [transformData(setNow(["patchedAt"]))],
+    createdAt: [transformData((item) => setNow(item, ["createdAt", "updatedAt"]))],
+    updatedAt: [transformData((item) => setNow(item, ["updatedAt"]))],
+    patchedAt: [transformData((item) => setNow(item, ["patchedAt"]))],
   },
 });
 ```
@@ -396,10 +396,10 @@ import { omit } from "feathers-utils/transformers";
 
 app.service("my-service").hooks({
   before: {
-    all: [transformData(omit(["field1", "field2"]))],
+    all: [transformData((item) => omit(item, ["field1", "field2"]))],
   },
   after: {
-    all: [transformResult(omit(["field1", "field2"]))],
+    all: [transformResult((item) => omit(item, ["field1", "field2"]))],
   },
 });
 ```

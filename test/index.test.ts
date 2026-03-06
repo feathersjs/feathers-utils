@@ -78,6 +78,7 @@ const predicates = [
 ] satisfies (keyof typeof exportedPredicates)[]
 
 const transformers = [
+  'defaults',
   'setNow',
   'lowercase',
   'trim',

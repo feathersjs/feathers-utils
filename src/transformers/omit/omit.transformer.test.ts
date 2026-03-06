@@ -1,41 +1,29 @@
 import { omit } from './omit.transformer.js'
 
-const options = { context: {} as any, i: 0 }
-
 describe('transformers/omit', () => {
   it('single field', () => {
-    const item = omit('email')(
-      { name: 'John', email: 'john@example.com' },
-      options,
-    )
+    const item = omit({ name: 'John', email: 'john@example.com' }, 'email')
     expect(item).toEqual({ name: 'John' })
   })
 
   it('multiple fields', () => {
-    const item = omit(['email', 'age'])(
-      {
-        name: 'John',
-        email: 'john@example.com',
-        age: 30,
-      },
-      options,
-    )
+    const item = omit({ name: 'John', email: 'john@example.com', age: 30 }, [
+      'email',
+      'age',
+    ])
     expect(item).toEqual({ name: 'John' })
   })
 
   it('does not throw if field is missing', () => {
-    const item = omit('missingField')({ name: 'John' }, options)
+    const item = omit({ name: 'John' } as Record<string, any>, 'missingField')
     expect(item).toEqual({ name: 'John' })
   })
 
   it('handles dot notation', () => {
-    const item = omit('user.email')(
-      {
-        user: { name: 'John', email: 'john@example.com' },
-      },
-      options,
+    const item = omit(
+      { user: { name: 'John', email: 'john@example.com' } },
+      'user.email',
     )
-
     expect(item).toEqual({ user: { name: 'John' } })
   })
 })
