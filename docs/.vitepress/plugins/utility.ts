@@ -14,7 +14,7 @@ const arr = (value: any[]) => {
   return `[${val}]`
 }
 
-export default (utility: Utility) => {
+export default (utility: Utility, utilities: Utility[]) => {
   const code = [
     `# ${utility.title}`,
     `<Chip label="${utility.category}" class="mt-2 mr-2" /> [Source Code](${utility.sourceUrl}) | [Documentation](${utility.docsUrl})`,
@@ -26,7 +26,11 @@ export default (utility: Utility) => {
 
     if (see.length > 0) {
       const seeAlso = `_See also_: ${see
-        .map((x) => {
+        .map((x: string) => {
+          const found = utilities.find((u) => u.name === x)
+          if (found) {
+            return `[\`${x}\`](${found.path})`
+          }
           const parts = x.split('/')
           return `[\`${x}\`](/${parts.map(kebabCase).join('/')}${parts.length === 1 ? '/' : '.html'})`
         })

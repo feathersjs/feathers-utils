@@ -35,10 +35,22 @@ export default defineConfig({
     ['meta', { name: 'twitter:image', content: ogImage }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
   ],
+  transformPageData(pageData) {
+    const utility = utilities.find(
+      (u) => `${u.category}/${u.slug}.md` === pageData.relativePath,
+    )
+    if (utility) {
+      pageData.lastUpdated = utility.lastModified.getTime()
+      pageData.filePath = utility.docsUrl
+        .replace(`https://github.com/${repository}/blob/${mainBranch}/`, '')
+    } else {
+      pageData.filePath = `docs/${pageData.relativePath}`
+    }
+  },
   themeConfig: {
     siteTitle: name,
     editLink: {
-      pattern: `https://github.com/${repository}/edit/${mainBranch}/docs/:path`,
+      pattern: `https://github.com/${repository}/edit/${mainBranch}/:path`,
     },
     lastUpdatedText: 'Last Updated',
     socialLinks: [
@@ -90,12 +102,31 @@ export default defineConfig({
         text: 'Resolvers',
         link: '/resolvers',
         collapsed: false,
-        items: utilities
-          .filter((x) => x.category === 'resolvers')
-          .map((x) => ({
-            text: x.title,
-            link: x.path,
-          })),
+        items: [
+          ...utilities
+            .filter(
+              (x) =>
+                x.category === 'resolvers' && x.frontmatter.kind !== 'helper',
+            )
+            .map((x) => ({
+              text: x.title,
+              link: x.path,
+            })),
+          {
+            text: 'Helpers',
+            collapsed: false,
+            items: utilities
+              .filter(
+                (x) =>
+                  x.category === 'resolvers' &&
+                  x.frontmatter.kind === 'helper',
+              )
+              .map((x) => ({
+                text: x.title,
+                link: x.path,
+              })),
+          },
+        ],
       },
       {
         text: 'Predicates',

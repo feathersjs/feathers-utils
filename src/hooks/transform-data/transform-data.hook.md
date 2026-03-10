@@ -7,7 +7,9 @@ hook:
   multi: true
   source:
 transformers: true
-see: ["transformers", "utils/mutateData"]
+see:
+  - transformers
+  - utils/mutateData
 ---
 
 `transformData` is a very flexible hook that allows you to transform the data. It can be used to modify the data before it is sent to the database. This can be useful for applying transformations to the data fields, adding default values, or modifying the data structure.

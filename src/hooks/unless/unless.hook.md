@@ -6,5 +6,8 @@ hook:
   method: ["all"]
   multi: true
 predicates: true
-see: ["hooks/iff", "hooks/iffElse", "predicates"]
+see:
+  - hooks/iff
+  - hooks/iffElse
+  - predicates
 ---

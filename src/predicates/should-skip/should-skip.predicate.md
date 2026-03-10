@@ -1,5 +1,7 @@
 ---
 title: shouldSkip
 category: predicates
-see: ["hooks/skippable", "utils/addSkip"]
+see:
+  - hooks/skippable
+  - utils/addSkip
 ---

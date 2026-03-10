@@ -6,7 +6,9 @@ hook:
   method: ["find", "get", "create", "update", "patch", "remove"]
   multi: true
 transformers: true
-see: ["transformers", "utils/mutateResult"]
+see:
+  - transformers
+  - utils/mutateResult
 ---
 
 `transformResult` is a hook that allows you to transform the result data after it has been retrieved from the database. This can be useful for modifying the structure of the result, applying transformations to the fields, or adding additional information to the result.

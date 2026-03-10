@@ -1,5 +1,6 @@
 ---
 title: addSkip
 category: utils
-see: ["hooks/skippable"]
+see:
+  - hooks/skippable
 ---
