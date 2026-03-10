@@ -25,13 +25,13 @@ type Result<H extends HookContext> = AnyFallback<
  * })
  * ```
  */
-export const resolveResult = <H extends HookContext = HookContext>(
-  resolvers: ResolverObject<Result<H>, H>,
+export const resolveResult = <H extends HookContext = HookContext, R = Result<H>>(
+  resolvers: ResolverObject<R, H>,
 ): {
   (context: H, next: NextFunction): Promise<void>
   (context: H): Promisable<void>
 } => {
-  const propertyNames = Object.keys(resolvers) as any as (keyof Result<H>)[]
+  const propertyNames = Object.keys(resolvers) as any as (keyof R)[]
 
   if (!propertyNames.length) {
     return ((context: H, next?: NextFunction) => {

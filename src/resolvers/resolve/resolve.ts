@@ -42,10 +42,12 @@ type Result<H extends HookContext> = AnyFallback<
  */
 export const resolve = <
   H extends HookContext = HookContext,
+  D = Data<H>,
+  R = Result<H>,
 >(resolverProperties: {
-  data?: ResolverObject<Data<H>, H>
+  data?: ResolverObject<D, H>
   query?: ResolverObject<any, H>
-  result?: ResolverObject<Result<H>, H>
+  result?: ResolverObject<R, H>
 }) => {
   const dataResolver = resolverProperties.data
     ? resolveData(resolverProperties.data)

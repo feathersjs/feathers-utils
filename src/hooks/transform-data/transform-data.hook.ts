@@ -26,8 +26,8 @@ type Data<H extends HookContext> = AnyFallback<
  * @see https://utils.feathersjs.com/hooks/transform-data.html
  */
 export const transformData =
-  <H extends HookContext = HookContext>(
-    transformer: TransformerInputFn<Data<H>, H>,
+  <H extends HookContext = HookContext, D = Data<H>>(
+    transformer: TransformerInputFn<D, H>,
   ) =>
   async (context: H, next?: NextFunction) => {
     await mutateData(context, transformer)
