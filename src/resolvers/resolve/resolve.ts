@@ -1,7 +1,23 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
-import type { ResolverObject } from './resolvers.internal.js'
-import { resolveData } from './resolve-data.js'
-import { resolveQuery } from './resolve-query.js'
+import type { ResolverObject } from '../resolvers.internal.js'
+import { resolveData } from '../resolve-data/resolve-data.js'
+import { resolveQuery } from '../resolve-query/resolve-query.js'
+import { resolveResult } from '../resolve-result/resolve-result.js'
+import type {
+  DataSingleHookContext,
+  ResultSingleHookContext,
+} from '../../utility-types/hook-context.js'
+import type { AnyFallback } from '../../internal.utils.js'
+
+type Data<H extends HookContext> = AnyFallback<
+  DataSingleHookContext<H>,
+  Record<string, any>
+>
+
+type Result<H extends HookContext> = AnyFallback<
+  ResultSingleHookContext<H>,
+  Record<string, any>
+>
 
 /**
  * Combines `data`, `query`, and `result` resolvers into a single around hook.
@@ -10,11 +26,14 @@ import { resolveQuery } from './resolve-query.js'
  *
  * @example
  * ```ts
- * import { resolve } from 'feathers-utils/resolvers'
+ * import { resolve, lowercase, omit } from 'feathers-utils/resolvers'
  *
  * app.service('users').hooks({
  *   around: {
- *     all: [resolve({ data: { email: async (val) => val?.toLowerCase() }, result: { password: async () => undefined } })]
+ *     all: [resolve({
+ *       data: { email: lowercase() },
+ *       result: { password: omit() },
+ *     })]
  *   }
  * })
  * ```
@@ -22,12 +41,11 @@ import { resolveQuery } from './resolve-query.js'
  * @see https://utils.feathersjs.com/resolvers/resolve.html
  */
 export const resolve = <
-  T extends Record<string, any>,
   H extends HookContext = HookContext,
 >(resolverProperties: {
-  data?: ResolverObject<T, H>
-  query?: ResolverObject<T, H>
-  result?: ResolverObject<T, H>
+  data?: ResolverObject<Data<H>, H>
+  query?: ResolverObject<any, H>
+  result?: ResolverObject<Result<H>, H>
 }) => {
   const dataResolver = resolverProperties.data
     ? resolveData(resolverProperties.data)
@@ -36,7 +54,7 @@ export const resolve = <
     ? resolveQuery(resolverProperties.query)
     : undefined
   const resultResolver = resolverProperties.result
-    ? resolveData(resolverProperties.result)
+    ? resolveResult(resolverProperties.result)
     : undefined
 
   if (!dataResolver && !queryResolver && !resultResolver) {
@@ -50,11 +68,11 @@ export const resolve = <
       const promisesBefore: Promise<any>[] = []
 
       if (queryResolver) {
-        promisesBefore.push(queryResolver(context, next))
+        promisesBefore.push(Promise.resolve(queryResolver(context)))
       }
 
       if (dataResolver) {
-        promisesBefore.push(dataResolver(context, next))
+        promisesBefore.push(Promise.resolve(dataResolver(context)))
       }
 
       await Promise.all(promisesBefore)
@@ -65,7 +83,7 @@ export const resolve = <
     }
 
     if (resultResolver) {
-      await resultResolver(context, next)
+      await resultResolver(context)
     }
 
     return

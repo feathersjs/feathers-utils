@@ -10,6 +10,8 @@ import TransformersTable from './components/TransformersTable.vue'
 import GuardsTable from './components/GuardsTable.vue'
 import HooksTable from './components/HooksTable.vue'
 import UtilsTable from './components/UtilsTable.vue'
+import ResolversTable from './components/ResolversTable.vue'
+import ConditionsTable from './components/ConditionsTable.vue'
 import Chip from './components/Chip.vue'
 
 import '../style/main.css'
@@ -27,6 +29,8 @@ export default {
     app.component('GuardsTable', GuardsTable)
     app.component('HooksTable', HooksTable)
     app.component('UtilsTable', UtilsTable)
+    app.component('ResolversTable', ResolversTable)
+    app.component('ConditionsTable', ConditionsTable)
 
     app.component('Chip', Chip)
   },

@@ -19,5 +19,5 @@ export function pick<T extends Record<string, any>>(
   item: T,
   fieldNames: MaybeArray<FieldKey<NoInfer<T>>>,
 ): Partial<T> {
-  return _pick(item, toArray(fieldNames))
+  return _pick(item, toArray(fieldNames)) as Partial<T>
 }

@@ -32,8 +32,8 @@ describe('transformData', () => {
   })
 
   it('updates hook before::create', () => {
-    transformData((rec: any) => {
-      rec.state = 'UT'
+    transformData((item: any) => {
+      item.state = 'UT'
     })(hookBefore)
     assert.deepEqual(hookBefore.data, {
       first: 'John',
@@ -43,8 +43,8 @@ describe('transformData', () => {
   })
 
   it('updates hook before::create::multi', () => {
-    transformData((rec: any) => {
-      rec.state = 'UT'
+    transformData((item: any) => {
+      item.state = 'UT'
     })(hookCreateMulti)
     assert.deepEqual(hookCreateMulti.data, [
       { first: 'John', last: 'Doe', state: 'UT' },
@@ -53,9 +53,7 @@ describe('transformData', () => {
   })
 
   it('updates hook before::create with new item returned', () => {
-    transformData((rec: any) => Object.assign({}, rec, { state: 'UT' }))(
-      hookBefore,
-    )
+    transformData((item: any) => ({ ...item, state: 'UT' }))(hookBefore)
     assert.deepEqual(hookBefore.data, {
       first: 'John',
       last: 'Doe',
@@ -64,9 +62,8 @@ describe('transformData', () => {
   })
 
   it('returns a promise that contains context', async () => {
-    const promise = transformData((rec: any) => {
-      rec.state = 'UT'
-      return Promise.resolve()
+    const promise = transformData(async (item: any) => {
+      item.state = 'UT'
     })(hookBefore)
 
     assert.ok(promise instanceof Promise)
@@ -77,9 +74,10 @@ describe('transformData', () => {
   })
 
   it('updates hook before::create with new item returned', async () => {
-    await transformData((rec: any) =>
-      Promise.resolve(Object.assign({}, rec, { state: 'UT' })),
-    )(hookBefore)
+    transformData((item: any) => ({
+      ...item,
+      state: 'UT',
+    }))(hookBefore)
 
     assert.deepEqual(hookBefore.data, {
       first: 'John',
@@ -89,11 +87,9 @@ describe('transformData', () => {
   })
 
   it('updates hook before::create async', async () => {
-    const alterFunc = (rec: any) => {
-      rec.state = 'UT'
-      return Promise.resolve()
-    }
-    await transformData(alterFunc)(hookBefore)
+    await transformData((item) => {
+      item.state = 'UT'
+    })(hookBefore)
 
     assert.deepEqual(hookBefore.data, {
       first: 'John',
@@ -103,10 +99,12 @@ describe('transformData', () => {
   })
 
   it('updates hook before::create async with new item returned', async () => {
-    const alterFunc = (rec: any) =>
-      Promise.resolve(Object.assign({}, rec, { state: 'UT' }))
-
-    await transformData(alterFunc)(hookBefore)
+    await transformData((item: any) =>
+      Promise.resolve({
+        ...item,
+        state: 'UT',
+      }),
+    )(hookBefore)
 
     assert.deepEqual(hookBefore.data, {
       first: 'John',

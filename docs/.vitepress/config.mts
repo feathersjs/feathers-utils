@@ -55,13 +55,21 @@ export default defineConfig({
     sidebar: [
       { text: 'Overview', link: '/overview' },
       { text: 'Why moving from feathers-hooks-common', link: '/why' },
-      { text: 'Migrating', link: '/migrating-from-feathers-hooks-common' },
+      {
+        text: 'Migrating',
+        collapsed: false,
+        items: [
+          { text: 'from feathers-hooks-common', link: '/migrating-from-feathers-hooks-common' },
+          { text: 'from @feathersjs/schema', link: '/migrating-from-feathers-schema' },
+          { text: 'from feathers-fletching', link: '/migrating-from-feathers-fletching' },
+        ],
+      },
       {
         text: 'Hooks',
         link: '/hooks',
         collapsed: false,
         items: utilities
-          .filter((x) => x.category === 'hooks')
+          .filter((x) => x.category === 'hooks' || x.hook)
           .map((x) => ({
             text: x.title,
             link: x.path,
@@ -73,6 +81,17 @@ export default defineConfig({
         collapsed: false,
         items: utilities
           .filter((x) => x.category === 'utils')
+          .map((x) => ({
+            text: x.title,
+            link: x.path,
+          })),
+      },
+      {
+        text: 'Resolvers',
+        link: '/resolvers',
+        collapsed: false,
+        items: utilities
+          .filter((x) => x.category === 'resolvers')
           .map((x) => ({
             text: x.title,
             link: x.path,
@@ -119,6 +138,7 @@ export default defineConfig({
         items: [
           { text: 'Hooks', link: '/hooks' },
           { text: 'Utilities', link: '/utils' },
+          { text: 'Resolvers', link: '/resolvers' },
           { text: 'Predicates', link: '/predicates' },
           { text: 'Transformers', link: '/transformers' },
           { text: 'Type Guards', link: '/guards' },

@@ -855,15 +855,16 @@ describe('onDelete', function () {
     }
 
     type App = Application<AppServices>
+    type AppHC = HookContext<App>
 
     it('service is typed to keyof services', function () {
-      expectTypeOf<OnDeleteOptions<App>['service']>().toEqualTypeOf<
+      expectTypeOf<OnDeleteOptions<AppHC>['service']>().toEqualTypeOf<
         keyof AppServices & string
       >()
     })
 
     it('query is typed based on service path', function () {
-      type TodoOptions = OnDeleteOptions<App, 'todos'>
+      type TodoOptions = OnDeleteOptions<AppHC, 'todos'>
       // MemoryService has overloaded find, so query resolves to
       // TodoQuery | Query | undefined (union of both overloads)
       expectTypeOf<TodoOptions['query']>().toEqualTypeOf<
@@ -872,7 +873,7 @@ describe('onDelete', function () {
     })
 
     it('query accepts the custom query type', function () {
-      type TodoOptions = OnDeleteOptions<App, 'todos'>
+      type TodoOptions = OnDeleteOptions<AppHC, 'todos'>
       expectTypeOf<{ completed: true }>().toMatchTypeOf<
         NonNullable<TodoOptions['query']>
       >()

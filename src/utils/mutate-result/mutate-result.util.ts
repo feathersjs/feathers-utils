@@ -2,8 +2,8 @@ import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { getResultIsArray } from '../get-result-is-array/get-result-is-array.util.js'
 import { isPromise } from '../../common/index.js'
 import { copy } from 'fast-copy'
-import type { DispatchOption, TransformerFn } from '../../types.js'
-import type { ResultSingleHookContext } from '../../utility-types/index.js'
+import type { Promisable } from '../../internal.utils.js'
+import type { DispatchOption, TransformerInputFn } from '../../types.js'
 
 export type MutateResultOptions = {
   next?: NextFunction
@@ -25,23 +25,16 @@ export type MutateResultOptions = {
  *
  * @see https://utils.feathersjs.com/utils/mutate-result.html
  */
-export async function mutateResult<
-  H extends HookContext = HookContext,
-  R extends ResultSingleHookContext<H> = ResultSingleHookContext<H>,
->(
+export function mutateResult<H extends HookContext = HookContext>(
   context: H,
-  transformer: TransformerFn<R, H>,
+  transformer: TransformerInputFn<any, H>,
   options?: MutateResultOptions,
-): Promise<H> {
-  if (options?.next) {
-    await options.next()
-  }
-
+): Promisable<H> {
   if (!!options?.dispatch && !context.dispatch) {
     context.dispatch = copy(context.result)
   }
 
-  async function forResult(dispatch: boolean) {
+  function forResult(dispatch: boolean): Promisable<H> {
     const { result, isArray, key } = getResultIsArray(context, { dispatch })
 
     if (!result.length) {
@@ -78,16 +71,30 @@ export async function mutateResult<
     }
 
     if (hasPromises) {
-      return await Promise.all(results).then(mutate)
+      return Promise.all(results).then(mutate)
     } else {
       return mutate(results)
     }
   }
 
-  if (options?.dispatch === 'both') {
-    await Promise.all([forResult(true), forResult(false)])
-    return context
+  function run(): Promisable<H> {
+    if (options?.dispatch === 'both') {
+      const a = forResult(true)
+      const b = forResult(false)
+
+      if (isPromise(a) || isPromise(b)) {
+        return Promise.all([a, b]).then(() => context)
+      }
+
+      return context
+    }
+
+    return forResult(options?.dispatch ?? false)
   }
 
-  return await forResult(options?.dispatch ?? false)
+  if (options?.next) {
+    return options.next().then(run)
+  }
+
+  return run()
 }
