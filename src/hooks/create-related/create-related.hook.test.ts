@@ -12,7 +12,7 @@ const defaultOptions = {
 }
 
 const mockApp = (_options?: MockAppOptions) => {
-  const options = Object.assign({}, defaultOptions, _options)
+  const options = { ...defaultOptions, ..._options }
   const app = feathers()
 
   app.use('users', new MemoryService({ startId: 1, multi: true }))
@@ -40,7 +40,7 @@ type Todo = {
 }
 
 const mockAppStronglyTyped = (_options?: MockAppOptions) => {
-  const options = Object.assign({}, defaultOptions, _options)
+  const options = { ...defaultOptions, ..._options }
   const app = feathers<{
     users: MemoryService<User>
     todos: MemoryService<Todo>

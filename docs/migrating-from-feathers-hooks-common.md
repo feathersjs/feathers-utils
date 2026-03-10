@@ -96,10 +96,10 @@ import { omit } from "feathers-utils/transformers";
 
 app.service("my-service").hooks({
   before: {
-    all: [transformData(omit(["field1", "field2"]))],
+    all: [transformData((item) => omit(item, ["field1", "field2"]))],
   },
   after: {
-    all: [transformResult(omit(["field1", "field2"]))],
+    all: [transformResult((item) => omit(item, ["field1", "field2"]))],
   },
 });
 ```
@@ -116,7 +116,7 @@ import { omit } from "feathers-utils/transformers";
 
 app.service("my-service").hooks({
   before: {
-    all: [transformQuery(omit(["field1", "field2"]))],
+    all: [transformQuery((item) => omit(item, ["field1", "field2"]))],
   },
 });
 ```
@@ -155,10 +155,10 @@ import { pick } from "feathers-utils/transformers";
 
 app.service("my-service").hooks({
   before: {
-    all: [transformData(pick(["field1", "field2"]))],
+    all: [transformData((item) => pick(item, ["field1", "field2"]))],
   },
   after: {
-    all: [transformResult(pick(["field1", "field2"]))],
+    all: [transformResult((item) => pick(item, ["field1", "field2"]))],
   },
 });
 ```
@@ -179,7 +179,7 @@ import { pick } from "feathers-utils/transformers";
 
 app.service("my-service").hooks({
   before: {
-    all: [transformQuery(pick(["field1", "field2"]))],
+    all: [transformQuery((item) => pick(item, ["field1", "field2"]))],
   },
 });
 ```
@@ -200,10 +200,10 @@ import { lowercase } from "feathers-utils/transformers";
 
 app.service("users").hooks({
   before: {
-    all: [transformData(lowercase(["email"]))],
+    all: [transformData((item) => lowercase(item, ["email"]))],
   },
   after: {
-    all: [transformResult(lowercase(["email"]))],
+    all: [transformResult((item) => lowercase(item, ["email"]))],
   },
 });
 ```
@@ -279,9 +279,9 @@ import { setNow } from "feathers-utils/transformers";
 
 app.service("my-service").hooks({
   before: {
-    createdAt: [transformData(setNow(["createdAt", "updatedAt"]))],
-    updatedAt: [transformData(setNow(["updatedAt"]))],
-    patchedAt: [transformData(setNow(["patchedAt"]))],
+    createdAt: [transformData((item) => setNow(item, ["createdAt", "updatedAt"]))],
+    updatedAt: [transformData((item) => setNow(item, ["updatedAt"]))],
+    patchedAt: [transformData((item) => setNow(item, ["patchedAt"]))],
   },
 });
 ```
@@ -293,6 +293,38 @@ The `sifter` hook has been removed. If you need it please reach out to us in thi
 ## `softDelete`
 
 The `softDelete` hook has been updated to require a `deletedQuery` and `removeData` option. This change improves clarity and consistency in how soft deletion is handled in your application.
+
+## `stashBefore`
+
+The `stashBefore` hook has been renamed to [`stashable`](/hooks/stashable.html). Instead of eagerly fetching and storing the result directly on `context.params.before`, it now exposes a memoized function that returns a promise. The fetch starts immediately but multiple calls to `stashed()` only hit the database once.
+
+```ts
+// old
+import { stashBefore } from "feathers-hooks-common";
+
+app.service("users").hooks({
+  before: {
+    patch: [stashBefore()],
+  },
+});
+
+// Access via plain property:
+const before = context.params.before;
+
+// new
+import { stashable } from "feathers-utils/hooks";
+
+app.service("users").hooks({
+  before: {
+    patch: [stashable()],
+  },
+});
+
+// Access via memoized function:
+const before = await context.params.stashed();
+```
+
+The default property name changed from `before` to `stashed`. You can restore the old name with `stashable({ propName: 'before' })`.
 
 ## `traverse`
 
@@ -396,10 +428,10 @@ import { omit } from "feathers-utils/transformers";
 
 app.service("my-service").hooks({
   before: {
-    all: [transformData(omit(["field1", "field2"]))],
+    all: [transformData((item) => omit(item, ["field1", "field2"]))],
   },
   after: {
-    all: [transformResult(omit(["field1", "field2"]))],
+    all: [transformResult((item) => omit(item, ["field1", "field2"]))],
   },
 });
 ```

@@ -5,5 +5,6 @@ hook:
   type: ["before", "around"]
   method: ["all"]
   multi: true
-see: ["hooks/paramsForServer"]
+see:
+  - hooks/paramsForServer
 ---

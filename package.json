@@ -98,6 +98,7 @@
     "@feathersjs/memory": "^5.0.41",
     "@feathersjs/socketio": "^5.0.41",
     "@feathersjs/socketio-client": "^5.0.41",
+    "@isaacs/ttlcache": "^2.1.4",
     "@shikijs/vitepress-twoslash": "^4.0.0",
     "@tailwindcss/vite": "^4.2.1",
     "@tsconfig/node24": "^24.0.4",

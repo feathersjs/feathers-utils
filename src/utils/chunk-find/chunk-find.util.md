@@ -1,5 +1,6 @@
 ---
 title: chunkFind
 category: utils
-see: ["utils/iterateFind"]
+see:
+  - utils/iterateFind
 ---

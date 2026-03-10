@@ -6,7 +6,8 @@ hook:
   method: ["all"]
   multi: true
 transformers: true
-see: ["transformers"]
+see:
+  - transformers
 ---
 
 `transformQuery` is a hook that allows you to transform the query parameters before they are sent to the database. This can be useful for modifying the query structure, adding default values, or applying transformations to the query fields.

@@ -45,7 +45,7 @@ export const preventChanges = <
 ) => {
   const fieldNamesArr = toArray(fieldNames)
 
-  return transformData<H, D>((item) => {
+  return transformData<H>((item) => {
     if (options?.error) {
       for (let i = 0; i < fieldNamesArr.length; i++) {
         const name = fieldNamesArr[i]
@@ -53,7 +53,7 @@ export const preventChanges = <
         if (_has(item, name)) {
           const error =
             typeof options.error === 'function'
-              ? options.error(item, name)
+              ? options.error(item as D, name)
               : new BadRequest(
                   `Field ${String(name)} may not be patched. (preventChanges)`,
                 )
@@ -62,7 +62,7 @@ export const preventChanges = <
         }
       }
     } else {
-      item = _omit(item, fieldNamesArr)
+      return _omit(item, fieldNamesArr)
     }
 
     return item

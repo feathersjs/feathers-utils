@@ -1,8 +1,8 @@
 ---
-title: stashBefore
+title: stashable
 category: hooks
 hook:
   type: ["before", "around"]
-  method: ["get", "update", "patch", "remove"]
+  method: ["update", "patch", "remove"]
   multi: true
 ---

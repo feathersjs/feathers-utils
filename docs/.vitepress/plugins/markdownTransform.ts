@@ -29,7 +29,7 @@ export function MarkdownTransform(options: MarkdownTransformOptions): Plugin {
         return null
       }
 
-      const result = md(utility)
+      const result = md(utility, utilitiesList)
 
       return result
     },

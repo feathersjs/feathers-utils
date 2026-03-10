@@ -35,10 +35,22 @@ export default defineConfig({
     ['meta', { name: 'twitter:image', content: ogImage }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
   ],
+  transformPageData(pageData) {
+    const utility = utilities.find(
+      (u) => `${u.category}/${u.slug}.md` === pageData.relativePath,
+    )
+    if (utility) {
+      pageData.lastUpdated = utility.lastModified.getTime()
+      pageData.filePath = utility.docsUrl
+        .replace(`https://github.com/${repository}/blob/${mainBranch}/`, '')
+    } else {
+      pageData.filePath = `docs/${pageData.relativePath}`
+    }
+  },
   themeConfig: {
     siteTitle: name,
     editLink: {
-      pattern: `https://github.com/${repository}/edit/${mainBranch}/docs/:path`,
+      pattern: `https://github.com/${repository}/edit/${mainBranch}/:path`,
     },
     lastUpdatedText: 'Last Updated',
     socialLinks: [
@@ -55,13 +67,21 @@ export default defineConfig({
     sidebar: [
       { text: 'Overview', link: '/overview' },
       { text: 'Why moving from feathers-hooks-common', link: '/why' },
-      { text: 'Migrating', link: '/migrating-from-feathers-hooks-common' },
+      {
+        text: 'Migrating',
+        collapsed: false,
+        items: [
+          { text: 'from feathers-hooks-common', link: '/migrating-from-feathers-hooks-common' },
+          { text: 'from @feathersjs/schema', link: '/migrating-from-feathers-schema' },
+          { text: 'from feathers-fletching', link: '/migrating-from-feathers-fletching' },
+        ],
+      },
       {
         text: 'Hooks',
         link: '/hooks',
         collapsed: false,
         items: utilities
-          .filter((x) => x.category === 'hooks')
+          .filter((x) => x.category === 'hooks' || x.hook)
           .map((x) => ({
             text: x.title,
             link: x.path,
@@ -77,6 +97,36 @@ export default defineConfig({
             text: x.title,
             link: x.path,
           })),
+      },
+      {
+        text: 'Resolvers',
+        link: '/resolvers',
+        collapsed: false,
+        items: [
+          ...utilities
+            .filter(
+              (x) =>
+                x.category === 'resolvers' && x.frontmatter.kind !== 'helper',
+            )
+            .map((x) => ({
+              text: x.title,
+              link: x.path,
+            })),
+          {
+            text: 'Helpers',
+            collapsed: false,
+            items: utilities
+              .filter(
+                (x) =>
+                  x.category === 'resolvers' &&
+                  x.frontmatter.kind === 'helper',
+              )
+              .map((x) => ({
+                text: x.title,
+                link: x.path,
+              })),
+          },
+        ],
       },
       {
         text: 'Predicates',
@@ -119,6 +169,7 @@ export default defineConfig({
         items: [
           { text: 'Hooks', link: '/hooks' },
           { text: 'Utilities', link: '/utils' },
+          { text: 'Resolvers', link: '/resolvers' },
           { text: 'Predicates', link: '/predicates' },
           { text: 'Transformers', link: '/transformers' },
           { text: 'Type Guards', link: '/guards' },

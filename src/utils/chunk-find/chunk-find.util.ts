@@ -5,8 +5,10 @@ import type {
   InferFindResultSingle,
 } from '../../utility-types/infer-service-methods.js'
 
+type PaginateOption = { default?: number; max?: number }
+
 type ChunkFindOptions<P extends Params = Params> = {
-  params?: P
+  params?: P & { paginate?: PaginateOption }
 }
 
 /**

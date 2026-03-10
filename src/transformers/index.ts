@@ -1,3 +1,4 @@
+export * from './defaults/defaults.transformer.js'
 export * from './lowercase/lowercase.transformer.js'
 export * from './omit/omit.transformer.js'
 export * from './parse-date/parse-date.transformer.js'

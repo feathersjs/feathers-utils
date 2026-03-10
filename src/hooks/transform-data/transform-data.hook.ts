@@ -1,7 +1,13 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { mutateData } from '../../utils/mutate-data/mutate-data.util.js'
-import type { TransformerFn } from '../../types.js'
+import type { TransformerInputFn } from '../../types.js'
 import type { DataSingleHookContext } from '../../utility-types/hook-context.js'
+import type { AnyFallback } from '../../internal.utils.js'
+
+type Data<H extends HookContext> = AnyFallback<
+  DataSingleHookContext<H>,
+  Record<string, any>
+>
 
 /**
  * Transforms each item in `context.data` using the provided transformer function.
@@ -13,18 +19,15 @@ import type { DataSingleHookContext } from '../../utility-types/hook-context.js'
  * import { transformData, lowercase } from 'feathers-utils/transformers'
  *
  * app.service('users').hooks({
- *   before: { create: [transformData(lowercase('email'))] }
+ *   before: { create: [transformData(item => lowercase(item, 'email'))] }
  * })
  * ```
  *
  * @see https://utils.feathersjs.com/hooks/transform-data.html
  */
 export const transformData =
-  <
-    H extends HookContext = HookContext,
-    D extends DataSingleHookContext<H> = DataSingleHookContext<H>,
-  >(
-    transformer: TransformerFn<D, H>,
+  <H extends HookContext = HookContext>(
+    transformer: TransformerInputFn<Data<H>, H>,
   ) =>
   async (context: H, next?: NextFunction) => {
     await mutateData(context, transformer)

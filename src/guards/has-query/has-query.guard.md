@@ -1,5 +1,6 @@
 ---
 title: hasQuery
 category: guards
-see: ["utility-types/required-query"]
+see:
+  - utility-types/required-query
 ---

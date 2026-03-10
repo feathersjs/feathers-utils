@@ -6,7 +6,9 @@ hook:
   method: ["all"]
   multi: true
 predicates: true
-see: ["predicates", "utils/addSkip"]
+see:
+  - predicates
+  - utils/addSkip
 ---
 
 ## Predicates

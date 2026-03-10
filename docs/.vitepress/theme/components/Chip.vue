@@ -7,6 +7,7 @@
       'bg-emerald-600 text-white': label === 'predicates',
       'bg-amber-600 text-white': label === 'guards',
       'bg-pink-600 text-white': label === 'transformers',
+      'bg-violet-600 text-white': label === 'resolvers',
     }"
   >
     {{ label }}

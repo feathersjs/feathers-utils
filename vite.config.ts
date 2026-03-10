@@ -4,12 +4,16 @@ export default defineConfig({
   test: {
     globals: true,
     includeSource: ['src/**/*.{js,ts}'],
+    typecheck: {
+      enabled: true,
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
       include: ['src/**/*.{js,ts}'],
       exclude: [
         '**/*.test.{js,ts}',
+        '**/*.test-d.{js,ts}',
         'src/index.ts',
         'src/types.ts',
         'src/resolvers/index.ts',

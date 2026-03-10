@@ -6,7 +6,10 @@ hook:
   method: ["all"]
   multi: true
 predicates: true
-see: ["hooks/iffElse", "hooks/unless", "predicates"]
+see:
+  - hooks/iffElse
+  - hooks/unless
+  - predicates
 ---
 
 ## Predicates

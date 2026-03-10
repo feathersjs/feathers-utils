@@ -5,5 +5,6 @@ hook:
   type: ["before", "around"]
   method: ["create", "update", "patch"]
   multi: true
-see: ["hooks/paramsFromClient"]
+see:
+  - hooks/paramsFromClient
 ---

@@ -2,8 +2,7 @@ import type { HookContext } from '@feathersjs/feathers'
 import { getDataIsArray } from '../get-data-is-array/get-data-is-array.util.js'
 import { isPromise } from '../../common/index.js'
 import type { Promisable } from '../../internal.utils.js'
-import type { TransformerFn } from '../../types.js'
-import type { DataSingleHookContext } from '../../utility-types/hook-context.js'
+import type { TransformerInputFn } from '../../types.js'
 
 /**
  * Applies a transformer function to each item in `context.data`, updating it in place.
@@ -19,10 +18,10 @@ import type { DataSingleHookContext } from '../../utility-types/hook-context.js'
  *
  * @see https://utils.feathersjs.com/utils/mutate-data.html
  */
-export function mutateData<
-  H extends HookContext = HookContext,
-  Data extends DataSingleHookContext<H> = DataSingleHookContext<H>,
->(context: H, transformer: TransformerFn<Data, H>): Promisable<H> {
+export function mutateData<H extends HookContext = HookContext>(
+  context: H,
+  transformer: TransformerInputFn<any, H>,
+): Promisable<H> {
   if (!context.data) {
     return context
   }

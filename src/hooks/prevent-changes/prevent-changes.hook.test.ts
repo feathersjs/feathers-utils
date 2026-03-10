@@ -71,7 +71,7 @@ describe('preventChanges (type tests)', () => {
         patch: [
           preventChanges(['name'], {
             error: (item, name) => {
-              const n: string = item.name
+              const n: string | undefined = item.name
               // @ts-expect-error - 'nonExistentProp' does not exist on User
               const bad = item.nonExistentProp
               return new BadRequest('test')

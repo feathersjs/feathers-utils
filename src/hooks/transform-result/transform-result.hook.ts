@@ -1,7 +1,17 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { mutateResult } from '../../utils/mutate-result/mutate-result.util.js'
-import type { DispatchOption, TransformerFn } from '../../types.js'
+import type {
+  DispatchOption,
+  HookFunction,
+  TransformerInputFn,
+} from '../../types.js'
 import type { ResultSingleHookContext } from '../../utility-types/hook-context.js'
+import type { AnyFallback } from '../../internal.utils.js'
+
+type Result<H extends HookContext> = AnyFallback<
+  ResultSingleHookContext<H>,
+  Record<string, any>
+>
 
 export type TransformResultOptions = {
   dispatch?: DispatchOption
@@ -17,22 +27,19 @@ export type TransformResultOptions = {
  * import { transformResult, omit } from 'feathers-utils/transformers'
  *
  * app.service('users').hooks({
- *   after: { all: [transformResult(omit('password'))] }
+ *   after: { all: [transformResult(item => omit(item, 'password'))] }
  * })
  * ```
  *
  * @see https://utils.feathersjs.com/hooks/transform-result.html
  */
 export const transformResult =
-  <
-    H extends HookContext = HookContext,
-    R extends ResultSingleHookContext<H> = ResultSingleHookContext<H>,
-  >(
-    transformer: TransformerFn<R, H>,
+  <H extends HookContext = HookContext>(
+    transformer: TransformerInputFn<Result<H>, H>,
     options?: TransformResultOptions,
-  ) =>
+  ): HookFunction<H> =>
   (context: H, next?: NextFunction) =>
     mutateResult(context, transformer, {
       next,
       dispatch: options?.dispatch,
-    })
+    }) as Promise<H>

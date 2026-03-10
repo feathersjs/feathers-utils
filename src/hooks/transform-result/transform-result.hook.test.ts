@@ -38,8 +38,8 @@ describe('transformResult', () => {
   })
 
   it('updates hook after::find with pagination', () => {
-    transformResult((rec: any) => {
-      delete rec.last
+    transformResult((item: any) => {
+      delete item.last
     })(hookFindPaginate)
 
     assert.deepEqual(hookFindPaginate.result.data, [
@@ -49,8 +49,8 @@ describe('transformResult', () => {
   })
 
   it('updates hook after::find with no pagination', () => {
-    transformResult((rec: any) => {
-      rec.new = rec.first
+    transformResult((item: any) => {
+      item.new = item.first
     })(hookFind)
 
     assert.deepEqual(hookFind.result, [
@@ -60,8 +60,8 @@ describe('transformResult', () => {
   })
 
   it('updates hook after', () => {
-    transformResult((rec: any) => {
-      rec.new = rec.first
+    transformResult((item: any) => {
+      item.new = item.first
     })(hookAfter)
 
     assert.deepEqual(hookAfter.result, {
@@ -72,9 +72,7 @@ describe('transformResult', () => {
   })
 
   it('updates hook after::find with pagination with new item returned', () => {
-    transformResult((rec: any) => Object.assign({}, { first: rec.first }))(
-      hookFindPaginate,
-    )
+    transformResult((item: any) => ({ first: item.first }))(hookFindPaginate)
 
     assert.deepEqual(hookFindPaginate.result.data, [
       { first: 'John' },
@@ -83,9 +81,7 @@ describe('transformResult', () => {
   })
 
   it('updates hook after::find with pagination with new item returned', () => {
-    transformResult((rec: any) => Object.assign({}, rec, { new: rec.first }))(
-      hookFind,
-    )
+    transformResult((item: any) => ({ ...item, new: item.first }))(hookFind)
 
     assert.deepEqual(hookFind.result, [
       { first: 'John', last: 'Doe', new: 'John' },
@@ -94,9 +90,7 @@ describe('transformResult', () => {
   })
 
   it('updates hook after with new item returned', () => {
-    transformResult((rec: any) => Object.assign({}, rec, { new: rec.first }))(
-      hookAfter,
-    )
+    transformResult((item: any) => ({ ...item, new: item.first }))(hookAfter)
 
     assert.deepEqual(hookAfter.result, {
       first: 'Jane',
@@ -106,8 +100,8 @@ describe('transformResult', () => {
   })
 
   it('updates hook after::create', async () => {
-    await transformResult((rec: any) => {
-      rec.new = rec.first
+    await transformResult((item: any) => {
+      item.new = item.first
       return Promise.resolve()
     })(hookAfter)
 
@@ -119,8 +113,8 @@ describe('transformResult', () => {
   })
 
   it('updates hook after::create with new item returned', async () => {
-    await transformResult((rec: any) =>
-      Promise.resolve(Object.assign({}, rec, { new: rec.first })),
+    await transformResult((item: any) =>
+      Promise.resolve({ ...item, new: item.first }),
     )(hookAfter)
 
     assert.deepEqual(hookAfter.result, {
@@ -131,8 +125,8 @@ describe('transformResult', () => {
   })
 
   it('updates hook after::find with pagination', async () => {
-    await transformResult((rec: any) => {
-      delete rec.last
+    await transformResult((item: any) => {
+      delete item.last
       return Promise.resolve()
     })(hookFindPaginate)
 
@@ -143,8 +137,8 @@ describe('transformResult', () => {
   })
 
   it('updates hook after::find with no pagination', async () => {
-    await transformResult((rec: any) => {
-      rec.new = rec.first
+    await transformResult((item: any) => {
+      item.new = item.first
       return Promise.resolve()
     })(hookFind)
 
@@ -155,8 +149,8 @@ describe('transformResult', () => {
   })
 
   it('updates hook after::find with pagination with new item returned', async () => {
-    await transformResult((rec: any) =>
-      Promise.resolve(Object.assign({}, { first: rec.first })),
+    await transformResult((item: any) =>
+      Promise.resolve({ first: item.first }),
     )(hookFindPaginate)
 
     assert.deepEqual(hookFindPaginate.result.data, [
@@ -166,8 +160,8 @@ describe('transformResult', () => {
   })
 
   it('updates hook after::find with no pagination with new item returned', async () => {
-    await transformResult((rec: any) =>
-      Promise.resolve(Object.assign({}, rec, { new: rec.first })),
+    await transformResult((item: any) =>
+      Promise.resolve({ ...item, new: item.first }),
     )(hookFind)
 
     assert.deepEqual(hookFind.result, [
@@ -186,8 +180,8 @@ describe('transformResult', () => {
     } as HookContext
 
     transformResult(
-      (rec: any) => {
-        rec.new = rec.first
+      (item: any) => {
+        item.new = item.first
       },
       { dispatch: true },
     )(context)
@@ -210,8 +204,8 @@ describe('transformResult', () => {
     } as HookContext
 
     transformResult(
-      (rec: any) => {
-        rec.new = rec.first
+      (item: any) => {
+        item.new = item.first
       },
       { dispatch: true },
     )(context)
@@ -234,8 +228,8 @@ describe('transformResult', () => {
     } as HookContext
 
     transformResult(
-      (rec: any) => {
-        rec.new = rec.first
+      (item: any) => {
+        item.new = item.first
       },
       { dispatch: 'both' },
     )(context)

@@ -8,8 +8,15 @@ type Cache = {
   set: (key: string, value: any) => Promisable<any>
   delete: (key: string) => Promisable<any>
   clear: () => any
-  keys: () => Generator<string, void, unknown>
+  keys: () => IterableIterator<string>
 }
+
+export type CacheEvent =
+  | { type: 'hit'; method: string; key: string }
+  | { type: 'miss'; method: string; key: string }
+  | { type: 'set'; method: string; key: string }
+  | { type: 'invalidate'; method: string; key: string }
+  | { type: 'clear'; method: string }
 
 export type CacheOptions = {
   /**
@@ -29,6 +36,37 @@ export type CacheOptions = {
    * You can use this function to transform the params before they are stringified.
    */
   transformParams: (params: Params) => Params
+  /**
+   * Custom serialization function for converting params into a cache key string.
+   * By default, uses `stableStringify` which sorts object keys and normalizes
+   * query operator arrays (`$or`, `$and`, `$in`, etc.) for order-independent caching.
+   *
+   * Override this to use a custom serialization strategy.
+   *
+   * @example
+   * ```ts
+   * cache({
+   *   map: new Map(),
+   *   transformParams: (params) => ({ query: params.query }),
+   *   serialize: (params) => JSON.stringify(params),
+   * })
+   * ```
+   */
+  serialize?: (params: Params) => string
+  /**
+   * Optional logger callback for cache events (hit, miss, set, invalidate, clear).
+   * Useful for debugging and monitoring cache behavior.
+   *
+   * @example
+   * ```ts
+   * cache({
+   *   map: new Map(),
+   *   transformParams: (params) => ({ query: params.query }),
+   *   logger: (event) => console.log(`cache ${event.type}`, event),
+   * })
+   * ```
+   */
+  logger?: (event: CacheEvent) => void
 }
 
 /**
@@ -97,10 +135,14 @@ class ContextCacheMap {
   map: Cache
   private delimiter = ':'
   private options: CacheOptions
+  private log: ((event: CacheEvent) => void) | undefined
+  private serialize: (params: Params) => string
 
   constructor(options: CacheOptions) {
     this.map = options.map
     this.options = options
+    this.log = options.logger
+    this.serialize = options.serialize ?? stableStringify
   }
 
   private stringifyCacheKey(context: HookContext) {
@@ -110,7 +152,7 @@ class ContextCacheMap {
       )
     }
 
-    const stringifiedParams = stableStringify(
+    const stringifiedParams = this.serialize(
       this.options.transformParams(context.params ?? {}),
     )
 
@@ -142,8 +184,10 @@ class ContextCacheMap {
     const key = this.stringifyCacheKey(context)
     const result = this.map.get(key)
     if (result) {
+      this.log?.({ type: 'hit', method: context.method, key })
       return copy(result) // Use copy to avoid mutation of the original result
     }
+    this.log?.({ type: 'miss', method: context.method, key })
   }
 
   /**
@@ -153,6 +197,7 @@ class ContextCacheMap {
    */
   async set(context: HookContext) {
     const key = this.stringifyCacheKey(context)
+    this.log?.({ type: 'set', method: context.method, key })
     return this.map.set(key, copy(context.result)) // Use copy to avoid mutation of the original result
   }
 
@@ -170,6 +215,7 @@ class ContextCacheMap {
 
     // If no itemIds are found, clear the entire cache to avoid stale data
     if (!itemIds.length) {
+      this.log?.({ type: 'clear', method: context.method })
       await this.map.clear()
       return context
     }
@@ -179,6 +225,7 @@ class ContextCacheMap {
       if (cachedId === 'null') {
         // This is a cached `find` request. Any create/patch/update/del
         // could affect the results of this query so it should be deleted
+        this.log?.({ type: 'invalidate', method: context.method, key })
         promises.push(this.map.delete(key))
         continue
       }
@@ -193,6 +240,7 @@ class ContextCacheMap {
       for (const itemId of itemIds) {
         if (cachedId === itemId) {
           // If the cached id matches the item id, delete the cached get
+          this.log?.({ type: 'invalidate', method: context.method, key })
           promises.push(this.map.delete(key))
         }
       }

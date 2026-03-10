@@ -1,17 +1,15 @@
 import { setNow } from './set-now.transformer.js'
 
-const options = { context: {} as any, i: 0 }
-
 describe('transformers/setNow', () => {
   it('sets current date on single field', () => {
-    const item = {}
-    setNow('createdAt')(item, options)
+    const item = {} as Record<string, any>
+    setNow(item, 'createdAt')
     expect(item).toEqual({ createdAt: expect.any(Date) })
   })
 
   it('sets current date on multiple fields', () => {
-    const item = {}
-    setNow(['createdAt', 'updatedAt'])(item, options)
+    const item = {} as Record<string, any>
+    setNow(item, ['createdAt', 'updatedAt'])
     expect(item).toEqual({
       createdAt: expect.any(Date),
       updatedAt: expect.any(Date),
@@ -23,7 +21,7 @@ describe('transformers/setNow', () => {
       createdAt: new Date('2020-01-01'),
       updatedAt: new Date('2020-01-01'),
     }
-    setNow(['createdAt', 'updatedAt'])(item, options)
+    setNow(item, ['createdAt', 'updatedAt'])
     expect(item.createdAt.getFullYear()).toBe(new Date().getFullYear())
     expect(item.updatedAt.getFullYear()).toBe(new Date().getFullYear())
   })
