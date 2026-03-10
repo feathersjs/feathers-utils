@@ -79,7 +79,8 @@
     "src/**",
     "dist/**",
     "!src/**/*.md",
-    "!src/**/*.test.ts"
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts"
   ],
   "dependencies": {
     "@feathersjs/adapter-commons": "^5.0.41",
