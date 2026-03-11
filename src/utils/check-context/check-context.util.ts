@@ -5,9 +5,10 @@ import {
   type IsContextOptions,
 } from '../../predicates/is-context/is-context.predicate.js'
 
-export type CheckContextOptions = IsContextOptions & {
-  label?: string
-}
+export type CheckContextOptions<H extends HookContext = HookContext> =
+  IsContextOptions<H> & {
+    label?: string
+  }
 
 /**
  * Validates that the hook context matches the expected type(s) and method(s).
@@ -30,7 +31,7 @@ export type CheckContextOptions = IsContextOptions & {
  */
 export function checkContext<H extends HookContext = HookContext>(
   context: H,
-  options: CheckContextOptions,
+  options: CheckContextOptions<NoInfer<H>>,
 ): void
 export function checkContext<H extends HookContext = HookContext>(
   context: H,
@@ -40,7 +41,11 @@ export function checkContext<H extends HookContext = HookContext>(
 ): void
 export function checkContext<H extends HookContext = HookContext>(
   context: H,
-  typeOrOptions?: HookType | HookType[] | CheckContextOptions | null,
+  typeOrOptions?:
+    | HookType
+    | HookType[]
+    | CheckContextOptions<NoInfer<H>>
+    | null,
   methods?: MethodName | MethodName[] | null,
   label = 'anonymous',
 ): void {
