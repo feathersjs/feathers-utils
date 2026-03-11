@@ -34,8 +34,8 @@ export type TransformResultOptions = {
  * @see https://utils.feathersjs.com/hooks/transform-result.html
  */
 export const transformResult =
-  <H extends HookContext = HookContext>(
-    transformer: TransformerInputFn<Result<H>, H>,
+  <H extends HookContext = HookContext, R = Result<H>>(
+    transformer: TransformerInputFn<R, H>,
     options?: TransformResultOptions,
   ): HookFunction<H> =>
   (context: H, next?: NextFunction) =>

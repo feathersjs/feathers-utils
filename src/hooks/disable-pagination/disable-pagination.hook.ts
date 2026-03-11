@@ -21,7 +21,11 @@ import { checkContext } from '../../utils/index.js'
 export const disablePagination =
   <H extends HookContext = HookContext>() =>
   (context: H, next?: NextFunction) => {
-    checkContext(context, ['before', 'around'], ['find'], 'disablePagination')
+    checkContext(context, {
+      type: ['before', 'around'],
+      method: ['find'],
+      label: 'disablePagination',
+    })
     const $limit = context.params?.query?.$limit
 
     if ($limit === '-1' || $limit === -1) {

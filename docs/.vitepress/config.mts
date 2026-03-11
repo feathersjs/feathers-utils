@@ -41,8 +41,10 @@ export default defineConfig({
     )
     if (utility) {
       pageData.lastUpdated = utility.lastModified.getTime()
-      pageData.filePath = utility.docsUrl
-        .replace(`https://github.com/${repository}/blob/${mainBranch}/`, '')
+      pageData.filePath = utility.docsUrl.replace(
+        `https://github.com/${repository}/blob/${mainBranch}/`,
+        '',
+      )
     } else {
       pageData.filePath = `docs/${pageData.relativePath}`
     }
@@ -71,9 +73,18 @@ export default defineConfig({
         text: 'Migrating',
         collapsed: false,
         items: [
-          { text: 'from feathers-hooks-common', link: '/migrating-from-feathers-hooks-common' },
-          { text: 'from @feathersjs/schema', link: '/migrating-from-feathers-schema' },
-          { text: 'from feathers-fletching', link: '/migrating-from-feathers-fletching' },
+          {
+            text: 'from feathers-hooks-common',
+            link: '/migrating-from-feathers-hooks-common',
+          },
+          {
+            text: 'from @feathersjs/schema',
+            link: '/migrating-from-feathers-schema',
+          },
+          {
+            text: 'from feathers-fletching',
+            link: '/migrating-from-feathers-fletching',
+          },
         ],
       },
       {
@@ -118,8 +129,7 @@ export default defineConfig({
             items: utilities
               .filter(
                 (x) =>
-                  x.category === 'resolvers' &&
-                  x.frontmatter.kind === 'helper',
+                  x.category === 'resolvers' && x.frontmatter.kind === 'helper',
               )
               .map((x) => ({
                 text: x.title,

@@ -1,9 +1,11 @@
 ---
-title: every
+title: or
 category: predicates
+aliases:
+  - some
 see:
   - hooks/iff
   - hooks/iffElse
-  - predicates/some
+  - predicates/and
   - predicates/not
 ---

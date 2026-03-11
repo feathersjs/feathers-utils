@@ -1,12 +1,11 @@
-import type { HookType } from '@feathersjs/feathers'
-import type { MethodName } from '../../types.js'
+import type { HookContext } from '@feathersjs/feathers'
 import type { MaybeArray } from '../../internal.utils.js'
 import { toArray } from '../../internal.utils.js'
 
-export type IsContextOptions = {
-  path?: MaybeArray<string>
-  type?: MaybeArray<HookType>
-  method?: MaybeArray<MethodName>
+export type IsContextOptions<H extends HookContext = HookContext> = {
+  path?: MaybeArray<H['path']>
+  type?: MaybeArray<H['type']>
+  method?: MaybeArray<H['method']>
 }
 
 /**
@@ -25,32 +24,26 @@ export type IsContextOptions = {
  *
  * @see https://utils.feathersjs.com/predicates/is-context.html
  */
-export const isContext =
-  (options: IsContextOptions) =>
-  (context: any): boolean => {
-    if (options.path != null) {
-      const path = toArray(options.path)
+export const isContext = <H extends HookContext = HookContext>(
+  options: IsContextOptions<H>,
+) => {
+  const path = options.path != null ? toArray(options.path) : undefined
+  const type = options.type != null ? toArray(options.type) : undefined
+  const method = options.method != null ? toArray(options.method) : undefined
 
-      if (!path.some((x) => context.path.includes(x))) {
-        return false
-      }
+  return (context: any): boolean => {
+    if (path && !path.some((x) => context.path.includes(x))) {
+      return false
     }
 
-    if (options.type != null) {
-      const type = toArray(options.type)
-
-      if (!type.some((x) => context.type === x)) {
-        return false
-      }
+    if (type && !type.some((x) => context.type === x)) {
+      return false
     }
 
-    if (options.method != null) {
-      const method = toArray(options.method)
-
-      if (!method.some((x) => context.method === x)) {
-        return false
-      }
+    if (method && !method.some((x) => context.method === x)) {
+      return false
     }
 
     return true
   }
+}

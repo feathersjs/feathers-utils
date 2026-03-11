@@ -84,12 +84,18 @@ it('trim', () => {
 it('defaults', () => {
   useHook<Ctx>(transformResult((item) => defaults(item, { name: 'John' })))
   useHook<Ctx>(
-    transformResult((item) => defaults(item, { name: 'John', password: 'secret' })),
+    transformResult((item) =>
+      defaults(item, { name: 'John', password: 'secret' }),
+    ),
   )
   useHook<Ctx>(
-    transformResult((item) => defaults(item, { 'address.street': '123 Main St' })),
+    transformResult((item) =>
+      defaults(item, { 'address.street': '123 Main St' }),
+    ),
   )
-  useHook<Ctx>(transformResult((item) => defaults(item, { name: () => 'John' })))
+  useHook<Ctx>(
+    transformResult((item) => defaults(item, { name: () => 'John' })),
+  )
 
   useHook<Ctx>(
     // @ts-expect-error "nonExistent" is not a key of User

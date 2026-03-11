@@ -101,7 +101,7 @@ describe('chunkFind', function () {
     expect(chunks[0]).toEqual([expect.objectContaining({ name: 'test1' })])
   })
 
-  it("ignores paginate:false and always paginates", async function () {
+  it('ignores paginate:false and always paginates', async function () {
     const { app } = await setup()
 
     const chunks = []
@@ -114,5 +114,5 @@ describe('chunkFind', function () {
 
     expect(chunks).toHaveLength(1)
     expect(chunks[0]).toEqual([expect.objectContaining({ name: 'test1' })])
-  });
+  })
 })

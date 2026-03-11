@@ -57,12 +57,11 @@ export function stashable<H extends HookContext = HookContext>(
       return context
     }
 
-    checkContext(
-      context,
-      ['before', 'around'],
-      ['update', 'patch', 'remove'],
-      'stashable',
-    )
+    checkContext(context, {
+      type: ['before', 'around'],
+      method: ['update', 'patch', 'remove'],
+      label: 'stashable',
+    })
 
     const promise = stashFunc(context).catch(() => undefined)
 

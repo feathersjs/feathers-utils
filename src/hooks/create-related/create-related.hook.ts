@@ -55,7 +55,11 @@ export function createRelated<H extends HookContext = HookContext>(
   options: MaybeArray<CreateRelatedOptions<H>>,
 ) {
   return async (context: H, next?: NextFunction) => {
-    checkContext(context, ['after', 'around'], ['create'], 'createRelated')
+    checkContext(context, {
+      type: ['after', 'around'],
+      method: ['create'],
+      label: 'createRelated',
+    })
 
     if (next) {
       await next()

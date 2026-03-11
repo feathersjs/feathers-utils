@@ -66,7 +66,7 @@ export const softDelete = <H extends HookContext = HookContext>(
   }
 
   return async (context: H, next?: NextFunction) => {
-    checkContext(context, ['before', 'around'], null, 'softDelete')
+    checkContext(context, { type: ['before', 'around'], label: 'softDelete' })
 
     const { disableSoftDeleteKey = 'disableSoftDelete' } = options
 

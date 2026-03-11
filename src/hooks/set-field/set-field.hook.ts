@@ -52,7 +52,7 @@ export const setField =
   (context: H, next?: NextFunction) => {
     const { params } = context
 
-    checkContext(context, ['before', 'around'], null, 'setField')
+    checkContext(context, { type: ['before', 'around'], label: 'setField' })
 
     const value = _get(context, from)
 

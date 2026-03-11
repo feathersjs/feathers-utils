@@ -8,8 +8,8 @@ type User = {
   name: string
 }
 
-const length = 1000;
-const max = 100;
+const length = 1000
+const max = 100
 
 const setup = async () => {
   const app = feathers<{
@@ -35,7 +35,9 @@ const setup = async () => {
 
   const usersService = app.service('users')
 
-  const usersToCreate = Array.from({ length }).map((_, i) => ({ name: `test${i + 1}` }))
+  const usersToCreate = Array.from({ length }).map((_, i) => ({
+    name: `test${i + 1}`,
+  }))
 
   await usersService.create(usersToCreate)
 
@@ -87,7 +89,7 @@ describe('iterateFind', function () {
     expect(userNames).toEqual(['test1'])
   })
 
-  it("ignores paginate:false and always paginates", async function () {
+  it('ignores paginate:false and always paginates', async function () {
     const { app } = await setup()
 
     const userNames = []
@@ -99,9 +101,9 @@ describe('iterateFind', function () {
     }
 
     expect(userNames).toEqual(['test1'])
-  });
+  })
 
-  it("works with max", async function () {
+  it('works with max', async function () {
     const { app } = await setup()
 
     expect(max + 10).toBeLessThan(length)
@@ -117,6 +119,5 @@ describe('iterateFind', function () {
     expect(userNames).toEqual(
       Array.from({ length }).map((_, i) => `test${i + 1}`),
     )
-  });
-
+  })
 })

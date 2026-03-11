@@ -17,7 +17,8 @@ describe('resolve-result', () => {
     await resolveResult({
       password: async (): Promise<undefined> => undefined,
 
-      name: async ({ data: user, context: ctx, properties }) => {
+      name: async ({ data, context: ctx, properties }) => {
+        const user = data as any
         expect(ctx).toStrictEqual(context)
         expect(properties.path).toStrictEqual(['name'])
         expect(typeof properties.stack[0]).toBe('function')
@@ -51,7 +52,8 @@ describe('resolve-result', () => {
     await resolveResult({
       password: async (): Promise<undefined> => undefined,
 
-      name: async ({ data: user, context: ctx, properties }) => {
+      name: async ({ data, context: ctx, properties }) => {
+        const user = data as any
         expect(ctx).toStrictEqual(context)
         expect(properties.path).toStrictEqual(['name'])
         expect(typeof properties.stack[0]).toBe('function')
@@ -92,7 +94,8 @@ describe('resolve-result', () => {
     await resolveResult({
       password: async (): Promise<undefined> => undefined,
 
-      name: async ({ data: user, context: ctx, properties }) => {
+      name: async ({ data, context: ctx, properties }) => {
+        const user = data as any
         expect(ctx).toStrictEqual(context)
         expect(properties.path).toStrictEqual(['name'])
         expect(typeof properties.stack[0]).toBe('function')
@@ -135,7 +138,8 @@ describe('resolve-result', () => {
     await resolveResult({
       password: async (): Promise<undefined> => undefined,
 
-      name: async ({ data: user, context: ctx, properties }) => {
+      name: async ({ data, context: ctx, properties }) => {
+        const user = data as any
         expect(ctx).toStrictEqual(context)
         expect(properties.path).toStrictEqual(['name'])
         expect(typeof properties.stack[0]).toBe('function')
@@ -278,7 +282,8 @@ describe('resolve-result as around hook', () => {
         all: [
           resolveResult({
             password: () => undefined,
-            name: ({ data: user }) => `${user.firstName} ${user.lastName}`,
+            name: ({ data }) =>
+              `${(data as any).firstName} ${(data as any).lastName}`,
           }),
         ],
       },

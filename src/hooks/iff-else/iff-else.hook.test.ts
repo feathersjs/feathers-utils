@@ -2,8 +2,8 @@
 import type { HookContext } from '@feathersjs/feathers'
 import { assert } from 'vitest'
 import { iffElse } from './iff-else.hook.js'
-import { some } from '../../predicates/some/some.predicate.js'
-import { every } from '../../predicates/every/every.predicate.js'
+import { or } from '../../predicates/or/or.predicate.js'
+import { and } from '../../predicates/and/and.predicate.js'
 import { clone } from '../../common/index.js'
 
 let hook: any
@@ -158,10 +158,10 @@ describe('services iffElse', () => {
       })
     })
 
-    it('every passes on correct params', () => {
+    it('and passes on correct params', () => {
       return iffElse(
         // @ts-expect-error TODO
-        every(predicateTrue),
+        and(predicateTrue),
         [hookFcnSync, hookFcnAsync, hookFcn],
         [],
       )(hook).then(() => {
@@ -172,10 +172,10 @@ describe('services iffElse', () => {
       })
     })
 
-    it('some passes on correct params', () => {
+    it('or passes on correct params', () => {
       return iffElse(
         // @ts-expect-error TODO
-        some(predicateTrue),
+        or(predicateTrue),
         [hookFcnSync, hookFcnAsync, hookFcn],
         [],
       )(hook).then(() => {

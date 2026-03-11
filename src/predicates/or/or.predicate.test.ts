@@ -1,8 +1,13 @@
 import { expect } from 'vitest'
 import type { HookContext } from '@feathersjs/feathers'
-import { some } from './some.predicate.js'
+import { or as some } from './or.predicate.js'
+import { or, some as someAlias } from '../index.js'
 
-describe('predicates/some', () => {
+describe('predicates/or', () => {
+  it('is exported as "some" alias', () => {
+    expect(someAlias).toBe(or)
+  })
+
   it('returns true synchronously when empty', () => {
     expect(some()({} as HookContext)).toBe(true)
   })

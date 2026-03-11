@@ -18,7 +18,8 @@ describe('resolve-data', () => {
     const u = await resolveData({
       password: async (): Promise<undefined> => undefined,
 
-      name: async ({ data: user, context: ctx, properties }) => {
+      name: async ({ data, context: ctx, properties }) => {
+        const user = data as any
         expect(ctx).toStrictEqual(context)
         expect(properties.path).toStrictEqual(['name'])
         expect(typeof properties.stack[0]).toBe('function')
@@ -51,7 +52,8 @@ describe('resolve-data', () => {
     const u = await resolveData({
       password: async (): Promise<undefined> => undefined,
 
-      name: async ({ data: user, context: ctx, properties }) => {
+      name: async ({ data, context: ctx, properties }) => {
+        const user = data as any
         expect(ctx).toStrictEqual(context)
         expect(properties.path).toStrictEqual(['name'])
         expect(typeof properties.stack[0]).toBe('function')

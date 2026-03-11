@@ -1,11 +1,11 @@
-export * from './every/every.predicate.js'
+export * from './and/and.predicate.js'
 export * from './is-context/is-context.predicate.js'
 export * from './is-multi/is-multi.predicate.js'
 export * from './is-paginated/is-paginated.predicate.js'
 export * from './is-provider/is-provider.predicate.js'
 export * from './not/not.predicate.js'
 export * from './should-skip/should-skip.predicate.js'
-export * from './some/some.predicate.js'
+export * from './or/or.predicate.js'
 
 // re-export hooks
 export * from '../hooks/iff/iff.hook.js'

@@ -60,27 +60,19 @@ describe('zipDataResult', () => {
   })
 
   it('works with after create', () => {
-    expect(() =>
-      zipDataResult(make('after', 'create', {}, {})),
-    ).not.toThrow()
+    expect(() => zipDataResult(make('after', 'create', {}, {}))).not.toThrow()
   })
 
   it('works with after update', () => {
-    expect(() =>
-      zipDataResult(make('after', 'update', {}, {})),
-    ).not.toThrow()
+    expect(() => zipDataResult(make('after', 'update', {}, {}))).not.toThrow()
   })
 
   it('works with after patch', () => {
-    expect(() =>
-      zipDataResult(make('after', 'patch', {}, {})),
-    ).not.toThrow()
+    expect(() => zipDataResult(make('after', 'patch', {}, {}))).not.toThrow()
   })
 
   it('works with around type', () => {
-    expect(() =>
-      zipDataResult(make('around', 'create', {}, {})),
-    ).not.toThrow()
+    expect(() => zipDataResult(make('around', 'create', {}, {}))).not.toThrow()
   })
 
   it('zips single data with single result', () => {
@@ -159,15 +151,20 @@ describe('zipDataResult', () => {
   it('does not call onMismatch when data is not an array', () => {
     const onMismatch = vi.fn()
     const data = { title: 'a' }
-    const result = [{ id: 1, title: 'a' }, { id: 2, title: 'a' }]
+    const result = [
+      { id: 1, title: 'a' },
+      { id: 2, title: 'a' },
+    ]
 
-    const zipped = zipDataResult(make('after', 'patch', data, result), { onMismatch })
+    const zipped = zipDataResult(make('after', 'patch', data, result), {
+      onMismatch,
+    })
 
     expect(onMismatch).not.toHaveBeenCalled()
     expect(zipped).toEqual([
       { data, result: { id: 1, title: 'a' } },
       { data, result: { id: 2, title: 'a' } },
-    ]);
+    ])
   })
 
   it('works without options', () => {

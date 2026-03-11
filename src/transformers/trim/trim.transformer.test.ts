@@ -15,9 +15,7 @@ describe('transformers/trim', () => {
 
   it('throws error for non-string values', () => {
     const item = { name: 123 } as any
-    expect(() => trim(item, 'name')).toThrow(
-      "Expected string (trim 'name')",
-    )
+    expect(() => trim(item, 'name')).toThrow("Expected string (trim 'name')")
   })
 
   it('ignores null or undefined values', () => {
