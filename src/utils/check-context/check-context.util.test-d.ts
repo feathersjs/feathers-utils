@@ -22,51 +22,108 @@ type App = typeof app
 type AppCtx = HookContext<App>
 type UserCtx = HookContext<App, MemoryService<User>>
 
-const context = {} as UserCtx
-const appContext = {} as AppCtx
-
 it('options overload accepts valid options', () => {
-  checkContext(context, { type: 'before' })
-  checkContext(context, { method: 'create' })
-  checkContext(context, {
+  const ctx1 = {} as UserCtx
+  checkContext(ctx1, { type: 'before' })
+  const ctx2 = {} as UserCtx
+  checkContext(ctx2, { method: 'create' })
+  const ctx3 = {} as UserCtx
+  checkContext(ctx3, {
     type: ['before', 'around'],
     method: ['create', 'patch'],
   })
-  checkContext(context, { type: 'before', label: 'myHook' })
-  checkContext(context, { path: 'users' })
+  const ctx4 = {} as UserCtx
+  checkContext(ctx4, { type: 'before', label: 'myHook' })
+  const ctx5 = {} as UserCtx
+  checkContext(ctx5, { path: 'users' })
 })
 
 it('options overload rejects invalid type', () => {
+  const ctx = {} as UserCtx
   // @ts-expect-error "invalid" is not a valid HookType
-  checkContext(context, { type: 'invalid' })
+  checkContext(ctx, { type: 'invalid' })
 })
 
 it('options overload accepts valid path for app-level context', () => {
-  checkContext(appContext, { path: 'users' })
-  checkContext(appContext, { path: 'messages' })
-  checkContext(appContext, { path: ['users', 'messages'] })
+  const ctx1 = {} as AppCtx
+  checkContext(ctx1, { path: 'users' })
+  const ctx2 = {} as AppCtx
+  checkContext(ctx2, { path: 'messages' })
+  const ctx3 = {} as AppCtx
+  checkContext(ctx3, { path: ['users', 'messages'] })
 })
 
 it('options overload rejects invalid path for service-specific context', () => {
+  const ctx = {} as UserCtx
   // @ts-expect-error "messages" is not valid when context is narrowed to MemoryService<User>
-  checkContext(context, { path: 'messages' })
+  checkContext(ctx, { path: 'messages' })
 })
 
 it('options overload rejects invalid path for app-level context', () => {
+  const ctx = {} as AppCtx
   // @ts-expect-error "nonExistent" is not a valid service path
-  checkContext(appContext, { path: 'nonExistent' })
+  checkContext(ctx, { path: 'nonExistent' })
 })
 
 it('positional overload accepts valid args', () => {
-  checkContext(context, 'before')
-  checkContext(context, ['before', 'after'])
-  checkContext(context, 'before', 'create')
-  checkContext(context, ['before', 'around'], ['create', 'patch'], 'myHook')
-  checkContext(context, null, 'create')
-  checkContext(context, undefined, 'create')
+  const ctx1 = {} as UserCtx
+  checkContext(ctx1, 'before')
+  const ctx2 = {} as UserCtx
+  checkContext(ctx2, ['before', 'after'])
+  const ctx3 = {} as UserCtx
+  checkContext(ctx3, 'before', 'create')
+  const ctx4 = {} as UserCtx
+  checkContext(ctx4, ['before', 'around'], ['create', 'patch'], 'myHook')
+  const ctx5 = {} as UserCtx
+  checkContext(ctx5, null, 'create')
+  const ctx6 = {} as UserCtx
+  checkContext(ctx6, undefined, 'create')
 })
 
 it('positional overload rejects invalid type', () => {
   // @ts-expect-error "invalid" is not a valid HookType
   checkContext(context, 'invalid')
+})
+
+it('narrows path with options overload', () => {
+  const ctx = {} as AppCtx
+  checkContext(ctx, { path: ['users', 'messages'] })
+  expectTypeOf(ctx.path).toEqualTypeOf<'users' | 'messages'>()
+})
+
+it('narrows path with single value', () => {
+  const ctx = {} as AppCtx
+  checkContext(ctx, { path: 'users' })
+  expectTypeOf(ctx.path).toEqualTypeOf<'users'>()
+})
+
+it('narrows type with options overload', () => {
+  const ctx = {} as AppCtx
+  checkContext(ctx, { type: ['before', 'around'] })
+  expectTypeOf(ctx.type).toEqualTypeOf<'before' | 'around'>()
+})
+
+it('narrows method with options overload', () => {
+  const ctx = {} as AppCtx
+  checkContext(ctx, { method: ['create', 'patch'] })
+  expectTypeOf(ctx.method).toEqualTypeOf<'create' | 'patch'>()
+})
+
+it('narrows type with positional overload', () => {
+  const ctx = {} as AppCtx
+  checkContext(ctx, 'before')
+  expectTypeOf(ctx.type).toEqualTypeOf<'before'>()
+})
+
+it('narrows type and method with positional overload', () => {
+  const ctx = {} as AppCtx
+  checkContext(ctx, ['before', 'around'], ['create', 'patch'])
+  expectTypeOf(ctx.type).toEqualTypeOf<'before' | 'around'>()
+  expectTypeOf(ctx.method).toEqualTypeOf<'create' | 'patch'>()
+})
+
+it('does not narrow when null is passed in positional overload', () => {
+  const ctx = {} as AppCtx
+  checkContext(ctx, null, 'create')
+  expectTypeOf(ctx.method).toEqualTypeOf<'create'>()
 })
