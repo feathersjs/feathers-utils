@@ -92,6 +92,26 @@ export function checkContext<H extends HookContext = HookContext>(
   }
 
   if (!isContext(options)(context)) {
-    throw new Error(`The '${hookLabel}' hook has invalid context.`)
+    const details: string[] = []
+
+    if (options.type != null) {
+      details.push(
+        `type: expected '${Array.isArray(options.type) ? options.type.join("' | '") : options.type}' but got '${context.type}'`,
+      )
+    }
+    if (options.method != null) {
+      details.push(
+        `method: expected '${Array.isArray(options.method) ? options.method.join("' | '") : options.method}' but got '${context.method}'`,
+      )
+    }
+    if (options.path != null) {
+      details.push(
+        `path: expected '${Array.isArray(options.path) ? options.path.join("' | '") : options.path}' but got '${context.path}'`,
+      )
+    }
+
+    throw new Error(
+      `The '${hookLabel}' hook has invalid context (${details.join(', ')}).`,
+    )
   }
 }
