@@ -3,10 +3,15 @@ import type { HookContext } from '@feathersjs/feathers'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { iff } from '../../hooks/index.js'
-import { every } from './every.predicate.js'
+import { and as every } from './and.predicate.js'
+import { and, every as everyAlias } from '../index.js'
 import { not } from '../not/not.predicate.js'
 
-describe('predicates/every', () => {
+describe('predicates/and', () => {
+  it('is exported as "every" alias', () => {
+    expect(everyAlias).toBe(and)
+  })
+
   it('returns true synchronously when empty', () => {
     assert.equal(every()({} as HookContext), true)
   })

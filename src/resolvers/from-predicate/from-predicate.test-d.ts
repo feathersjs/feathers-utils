@@ -27,7 +27,9 @@ it('fromPredicate returns a ResolverCondition', () => {
 })
 
 it('fromPredicate works with omit in typed context', () => {
-  useHook<Ctx>(resolveResult({
-    password: omit(fromPredicate(isProvider('external'))),
-  }))
+  useHook<Ctx>(
+    resolveResult({
+      password: omit(fromPredicate(isProvider('external'))),
+    }),
+  )
 })

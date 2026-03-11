@@ -104,4 +104,73 @@ describe('util checkContext', () => {
       checkContext(make('before', 'custom'), 'before', ['create', 'custom']),
     ).not.toThrow()
   })
+
+  describe('options object overload', () => {
+    it('handles options with type and method', () => {
+      expect(() =>
+        checkContext(make('before', 'create'), {
+          type: 'before',
+          method: 'create',
+        }),
+      ).not.toThrow()
+    })
+
+    it('throws for mismatched type', () => {
+      expect(() =>
+        checkContext(make('after', 'create'), {
+          type: 'before',
+          method: 'create',
+        }),
+      ).toThrow()
+    })
+
+    it('throws for mismatched method', () => {
+      expect(() =>
+        checkContext(make('before', 'patch'), {
+          type: 'before',
+          method: 'create',
+        }),
+      ).toThrow()
+    })
+
+    it('handles type as array', () => {
+      expect(() =>
+        checkContext(make('before', 'create'), {
+          type: ['before', 'after'],
+        }),
+      ).not.toThrow()
+    })
+
+    it('handles method as array', () => {
+      expect(() =>
+        checkContext(make('before', 'create'), {
+          method: ['create', 'patch'],
+        }),
+      ).not.toThrow()
+    })
+
+    it('handles path option', () => {
+      expect(() =>
+        checkContext(
+          { type: 'before', method: 'create', path: 'users' } as any,
+          { path: 'users' },
+        ),
+      ).not.toThrow()
+    })
+
+    it('uses custom label in error message', () => {
+      expect(() =>
+        checkContext(make('after', 'create'), {
+          type: 'before',
+          label: 'myHook',
+        }),
+      ).toThrow("The 'myHook' hook has invalid context.")
+    })
+
+    it('uses default label when not provided', () => {
+      expect(() =>
+        checkContext(make('after', 'create'), { type: 'before' }),
+      ).toThrow("The 'anonymous' hook has invalid context.")
+    })
+  })
 })

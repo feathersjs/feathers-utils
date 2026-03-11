@@ -40,6 +40,12 @@ export default (utility: Utility, utilities: Utility[]) => {
     }
   })()
 
+  if (utility.aliases?.length) {
+    code.push(
+      `_Aliases_: ${utility.aliases.map((a: string) => `\`${a}\``).join(', ')}`,
+    )
+  }
+
   code.push(`${utility.description}
 
 \`\`\`ts twoslash

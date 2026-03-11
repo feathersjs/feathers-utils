@@ -27,12 +27,14 @@ it('resolver receives any-typed values (query is untyped)', () => {
 })
 
 it('resolver context parameter receives HookContext', () => {
-  useHook<Ctx>(resolveQuery({
-    name: async ({ context }) => {
-      expectTypeOf(context).toEqualTypeOf<Ctx>()
-      return 'test'
-    },
-  }))
+  useHook<Ctx>(
+    resolveQuery({
+      name: async ({ context }) => {
+        expectTypeOf(context).toEqualTypeOf<Ctx>()
+        return 'test'
+      },
+    }),
+  )
 })
 
 it('allows any property names', () => {
@@ -44,7 +46,9 @@ it('allows any property names', () => {
 })
 
 it('works as a hook with typed context', () => {
-  useHook<Ctx>(resolveQuery({
-    active: async () => true,
-  }))
+  useHook<Ctx>(
+    resolveQuery({
+      active: async () => true,
+    }),
+  )
 })

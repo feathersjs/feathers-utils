@@ -73,7 +73,11 @@ export const onDelete = <H extends HookContext = HookContext>(
   const optionsMulti = Array.isArray(options) ? options : [options]
 
   return async (context: H, next?: NextFunction) => {
-    checkContext(context, ['after', 'around'], 'remove', 'onDelete')
+    checkContext(context, {
+      type: ['after', 'around'],
+      method: 'remove',
+      label: 'onDelete',
+    })
 
     if (next) {
       await next()

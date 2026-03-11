@@ -172,9 +172,7 @@ describe('resolve-query as around hook', () => {
 
     const result = await usersService.find({ query: {} })
 
-    expect(result).toStrictEqual([
-      { id: 1, name: 'Dave', active: true },
-    ])
+    expect(result).toStrictEqual([{ id: 1, name: 'Dave', active: true }])
   })
 
   it('adds default query values when no query is provided', async () => {
@@ -197,9 +195,7 @@ describe('resolve-query as around hook', () => {
 
     const result = await usersService.find()
 
-    expect(result).toStrictEqual([
-      { id: 1, name: 'Dave', active: true },
-    ])
+    expect(result).toStrictEqual([{ id: 1, name: 'Dave', active: true }])
   })
 
   it('transforms query values before find', async () => {
@@ -223,8 +219,6 @@ describe('resolve-query as around hook', () => {
 
     const result = await usersService.find({ query: { name: 'DAVE' } })
 
-    expect(result).toStrictEqual([
-      { id: 1, name: 'dave' },
-    ])
+    expect(result).toStrictEqual([{ id: 1, name: 'dave' }])
   })
 })

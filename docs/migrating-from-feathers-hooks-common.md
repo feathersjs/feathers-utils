@@ -139,6 +139,20 @@ It is now replaced by the new utilities [`getDataIsArray`](#new-util-getdataisar
 
 Also see [#replace-items](#replace-items).
 
+## `every`
+
+The `every` predicate has been renamed to [`and`](/predicates/and.html). `every` is still available as an alias.
+
+```ts
+// old
+import { every } from "feathers-hooks-common";
+
+// new
+import { and } from "feathers-utils/predicates";
+// or use the alias
+import { every } from "feathers-utils/predicates";
+```
+
 ## `isNot`
 
 The `isNot` predicate has been renamed to [`not`](/predicates/not.html).
@@ -293,6 +307,20 @@ The `sifter` hook has been removed. If you need it please reach out to us in thi
 ## `softDelete`
 
 The `softDelete` hook has been updated to require a `deletedQuery` and `removeData` option. This change improves clarity and consistency in how soft deletion is handled in your application.
+
+## `some`
+
+The `some` predicate has been renamed to [`or`](/predicates/or.html). `some` is still available as an alias.
+
+```ts
+// old
+import { some } from "feathers-hooks-common";
+
+// new
+import { or } from "feathers-utils/predicates";
+// or use the alias
+import { some } from "feathers-utils/predicates";
+```
 
 ## `stashBefore`
 

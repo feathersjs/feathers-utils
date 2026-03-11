@@ -38,6 +38,7 @@ export type Utility = {
   predicates?: boolean
   dts: string
   examples?: string[]
+  aliases?: string[]
   args?: {
     name: string
     type: string
@@ -197,7 +198,7 @@ export async function discoverUtilities() {
       const fileName = path.basename(filePath, '.md')
       const { data: frontmatter, content: body } = matter(content)
 
-      const { title = '', category, hook } = frontmatter
+      const { title = '', category, hook, aliases } = frontmatter
 
       if (
         !title ||
@@ -260,6 +261,7 @@ export async function discoverUtilities() {
         hook,
         transformers: !!frontmatter.transformers,
         predicates: !!frontmatter.predicates,
+        aliases: aliases?.length ? aliases : undefined,
         dts: dtsByMdFile[filePath] ?? undefined,
         lastModified: (await fs.stat(filePath)).mtime,
         examples: examples.length > 0 ? examples : undefined,

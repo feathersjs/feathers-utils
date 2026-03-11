@@ -21,6 +21,8 @@ export default defineConfig({
         'src/utils/index.ts',
         'src/predicates/index.ts',
         'src/hooks/index.ts',
+        'src/guards/index.ts',
+        'src/transformers/index.ts',
         'src/utility-types/**',
       ],
       thresholds: {

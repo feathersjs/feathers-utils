@@ -28,12 +28,11 @@ export function checkRequired<H extends HookContext = HookContext>(
 ) {
   const fieldNamesArray = toArray(fieldNames)
   return (context: H, next?: NextFunction) => {
-    checkContext(
-      context,
-      ['before', 'around'],
-      ['create', 'update', 'patch'],
-      'checkRequired',
-    )
+    checkContext(context, {
+      type: ['before', 'around'],
+      method: ['create', 'update', 'patch'],
+      label: 'checkRequired',
+    })
 
     const { data } = getDataIsArray(context)
 

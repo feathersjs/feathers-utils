@@ -18,14 +18,22 @@ describe('sortQueryProperties', () => {
   })
 
   it('sorts $and array items', () => {
-    const a = sortQueryProperties({ $and: [{ age: { $gt: 18 } }, { name: 'John' }] })
-    const b = sortQueryProperties({ $and: [{ name: 'John' }, { age: { $gt: 18 } }] })
+    const a = sortQueryProperties({
+      $and: [{ age: { $gt: 18 } }, { name: 'John' }],
+    })
+    const b = sortQueryProperties({
+      $and: [{ name: 'John' }, { age: { $gt: 18 } }],
+    })
     expect(JSON.stringify(a)).toBe(JSON.stringify(b))
   })
 
   it('sorts $in array items', () => {
-    const a = sortQueryProperties({ status: { $in: ['active', 'pending', 'archived'] } })
-    const b = sortQueryProperties({ status: { $in: ['pending', 'archived', 'active'] } })
+    const a = sortQueryProperties({
+      status: { $in: ['active', 'pending', 'archived'] },
+    })
+    const b = sortQueryProperties({
+      status: { $in: ['pending', 'archived', 'active'] },
+    })
     expect(JSON.stringify(a)).toBe(JSON.stringify(b))
   })
 

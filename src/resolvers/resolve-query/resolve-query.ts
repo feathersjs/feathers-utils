@@ -35,7 +35,12 @@ export const resolveQuery = <H extends HookContext>(
 
   return ((context: H, next?: NextFunction) => {
     const queryIngoing = context?.params?.query || {}
-    const result = resolve({ resolvers, data: queryIngoing, context, propertyNames })
+    const result = resolve({
+      resolvers,
+      data: queryIngoing,
+      context,
+      propertyNames,
+    })
 
     function assign(query: any) {
       context.params = { ...context.params, query }
