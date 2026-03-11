@@ -8,6 +8,7 @@ export const hasOwnProperty = (
 }
 
 export type MaybeArray<T> = T | readonly T[]
+export type UnpackMaybeArray<T> = T extends readonly (infer E)[] ? E : T
 export const toArray = <T>(value: T | readonly T[]): T[] =>
   Array.isArray(value) ? [...value] : [value as T]
 

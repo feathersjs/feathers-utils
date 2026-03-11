@@ -164,13 +164,29 @@ describe('util checkContext', () => {
           type: 'before',
           label: 'myHook',
         }),
-      ).toThrow("The 'myHook' hook has invalid context.")
+      ).toThrow(
+        "The 'myHook' hook has invalid context (type: expected 'before' but got 'after').",
+      )
     })
 
     it('uses default label when not provided', () => {
       expect(() =>
         checkContext(make('after', 'create'), { type: 'before' }),
-      ).toThrow("The 'anonymous' hook has invalid context.")
+      ).toThrow(
+        "The 'anonymous' hook has invalid context (type: expected 'before' but got 'after').",
+      )
+    })
+
+    it('shows multiple mismatches in error message', () => {
+      expect(() =>
+        checkContext(make('after', 'patch'), {
+          type: ['before', 'around'],
+          method: 'create',
+          label: 'myHook',
+        }),
+      ).toThrow(
+        "The 'myHook' hook has invalid context (type: expected 'before' | 'around' but got 'after', method: expected 'create' but got 'patch').",
+      )
     })
   })
 })

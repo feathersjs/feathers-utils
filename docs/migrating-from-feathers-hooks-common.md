@@ -46,6 +46,46 @@ The old `cache` hook only worked for `get` requests and did not work with varyin
 
 The new `cache` hook caches `get` and `find` requests and considers the `params` object when caching. This means that if you call the same `get` or `find` request with different `params`, it will cache each unique request separately.
 
+## `checkContext`
+
+The `checkContext` utility has been updated with an options object syntax and now supports **TypeScript type narrowing**. After calling `checkContext`, the compiler automatically narrows `context.type`, `context.method`, and `context.path` based on the options you pass.
+
+The old positional arguments still work but the options object is recommended:
+
+```ts
+// old
+import { checkContext } from "feathers-hooks-common";
+
+checkContext(context, "before", ["create", "patch"], "myHook");
+
+// new (recommended: options object with type narrowing)
+import { checkContext } from "feathers-utils/utils";
+
+checkContext(context, {
+  type: "before",
+  method: ["create", "patch"],
+  label: "myHook",
+});
+
+// After checkContext, TypeScript narrows the types:
+context.type; // 'before'
+context.method; // 'create' | 'patch'
+```
+
+You can also narrow by `path`, which was not available in the old API:
+
+```ts
+checkContext(context, {
+  type: ["before", "around"],
+  method: ["create", "patch"],
+  path: "users",
+});
+
+context.type; // 'before' | 'around'
+context.method; // 'create' | 'patch'
+context.path; // 'users'
+```
+
 ## `callingParams`
 
 The `callingParams` utility was removed. If you need it please reach out to us in this [github issue](https://github.com/feathersjs/feathers-utils/issues/1).

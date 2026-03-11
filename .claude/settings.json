@@ -6,7 +6,8 @@
       "Bash(npx vitest typecheck *)",
       "Bash(npx vitepress *)",
       "Bash(npx prettier *)",
-      "Bash(pnpm test)"
+      "Bash(pnpm test)",
+      "Bash(npx eslint *)"
     ]
   }
 }

@@ -4,6 +4,24 @@ import {
   isContext,
   type IsContextOptions,
 } from '../../predicates/is-context/is-context.predicate.js'
+import type { UnpackMaybeArray } from '../../internal.utils.js'
+
+type NarrowedContext<H extends HookContext, O> = H &
+  (O extends { path: infer P }
+    ? [P] extends [undefined | null]
+      ? unknown
+      : { path: UnpackMaybeArray<P> }
+    : unknown) &
+  (O extends { type: infer T }
+    ? [T] extends [undefined | null]
+      ? unknown
+      : { type: UnpackMaybeArray<T> }
+    : unknown) &
+  (O extends { method: infer M }
+    ? [M] extends [undefined | null]
+      ? unknown
+      : { method: UnpackMaybeArray<M> }
+    : unknown)
 
 export type CheckContextOptions<H extends HookContext = HookContext> =
   IsContextOptions<H> & {
@@ -14,6 +32,7 @@ export type CheckContextOptions<H extends HookContext = HookContext> =
  * Validates that the hook context matches the expected type(s) and method(s).
  * Throws an error if the context is invalid, preventing hooks from running in
  * unsupported configurations. Typically used internally by other hooks.
+ * Also narrows the context type based on the passed options.
  *
  * @example
  * ```ts
@@ -23,22 +42,26 @@ export type CheckContextOptions<H extends HookContext = HookContext> =
  *   checkContext(context, ['before', 'around'], ['create', 'patch'], 'myHook')
  *   // or with options object:
  *   checkContext(context, { type: ['before', 'around'], method: ['create', 'patch'], label: 'myHook' })
- *   // ... hook logic
+ *   // context.type is now 'before' | 'around', context.method is now 'create' | 'patch'
  * }
  * ```
  *
  * @see https://utils.feathersjs.com/utils/check-context.html
  */
-export function checkContext<H extends HookContext = HookContext>(
+export function checkContext<
+  H extends HookContext,
+  const O extends CheckContextOptions<NoInfer<H>>,
+>(context: H, options: O): asserts context is NarrowedContext<H, O>
+export function checkContext<
+  H extends HookContext,
+  const T extends HookType | HookType[] | null | undefined = undefined,
+  const M extends MethodName | MethodName[] | null | undefined = undefined,
+>(
   context: H,
-  options: CheckContextOptions<NoInfer<H>>,
-): void
-export function checkContext<H extends HookContext = HookContext>(
-  context: H,
-  type?: HookType | HookType[] | null,
-  methods?: MethodName | MethodName[] | null,
+  type?: T,
+  methods?: M,
   label?: string,
-): void
+): asserts context is NarrowedContext<H, { type: T; method: M }>
 export function checkContext<H extends HookContext = HookContext>(
   context: H,
   typeOrOptions?:
@@ -69,6 +92,26 @@ export function checkContext<H extends HookContext = HookContext>(
   }
 
   if (!isContext(options)(context)) {
-    throw new Error(`The '${hookLabel}' hook has invalid context.`)
+    const details: string[] = []
+
+    if (options.type != null) {
+      details.push(
+        `type: expected '${Array.isArray(options.type) ? options.type.join("' | '") : options.type}' but got '${context.type}'`,
+      )
+    }
+    if (options.method != null) {
+      details.push(
+        `method: expected '${Array.isArray(options.method) ? options.method.join("' | '") : options.method}' but got '${context.method}'`,
+      )
+    }
+    if (options.path != null) {
+      details.push(
+        `path: expected '${Array.isArray(options.path) ? options.path.join("' | '") : options.path}' but got '${context.path}'`,
+      )
+    }
+
+    throw new Error(
+      `The '${hookLabel}' hook has invalid context (${details.join(', ')}).`,
+    )
   }
 }
