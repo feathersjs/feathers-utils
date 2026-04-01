@@ -35,7 +35,7 @@ export const disallow = <H extends HookContext = HookContext>(
 
     if (isProvider(...(transportsArr as TransportName[]))(context)) {
       throw new MethodNotAllowed(
-        `Provider '${context.params.provider}' can not call '${context.method}'. (disallow)`,
+        `Provider '${context.params.provider}' can not call '${context.method}' on '${context.path}'. (disallow)`,
       )
     }
 
