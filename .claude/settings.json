@@ -7,7 +7,18 @@
       "Bash(npx vitepress *)",
       "Bash(npx prettier *)",
       "Bash(pnpm test)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "WebFetch(domain:daddywarbucks.github.io)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -sS https://raw.githubusercontent.com/DaddyWarbucks/feathers-fletching/master/src/hooks/rateLimit.ts)",
+      "Bash(curl -sS https://raw.githubusercontent.com/DaddyWarbucks/feathers-fletching/master/tests/hooks/rateLimit.test.ts)",
+      "Bash(pnpm run test:unit)",
+      "Bash(pnpm run test:unit *)",
+      "Bash(pnpm run build)",
+      "Bash(gh release list *)",
+      "Bash(gh release view *)"
     ]
   }
 }

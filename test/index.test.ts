@@ -19,6 +19,7 @@ const hooks = [
   'paramsForServer',
   'paramsFromClient',
   'preventChanges',
+  'rateLimit',
   'resolve',
   'resolveData',
   'resolveQuery',

@@ -122,9 +122,16 @@
     "tsdown": "^0.20.3",
     "typescript": "^5.9.3",
     "vitepress": "^2.0.0-alpha.16",
+    "rate-limiter-flexible": "^10.0.1",
     "vitest": "^4.0.18"
   },
   "peerDependencies": {
-    "@feathersjs/feathers": "^5.0.0"
+    "@feathersjs/feathers": "^5.0.0",
+    "rate-limiter-flexible": ">=10.0.0"
+  },
+  "peerDependenciesMeta": {
+    "rate-limiter-flexible": {
+      "optional": true
+    }
   }
 }
