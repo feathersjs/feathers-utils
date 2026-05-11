@@ -6,6 +6,10 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "type": "module",
+  "packageManager": "pnpm@10.12.4",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
