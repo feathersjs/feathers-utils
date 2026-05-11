@@ -1,5 +1,5 @@
 import type { HookContext } from '@feathersjs/feathers'
-import { assert } from 'vitest'
+import { assert, expect, vi } from 'vitest'
 import { unless } from './unless.hook.js'
 import { clone, isPromise } from '../../common/index.js'
 
@@ -382,8 +382,7 @@ describe('async predicate', () => {
   })
 
   it('is resolved', async () => {
-    // @ts-expect-error TODO
-    const result = unless(predicateAsyncFunny, hookFcnSync)(hook)
+    const result = unless(predicateAsyncFunny as any, hookFcnSync)(hook)
 
     if (!isPromise(result)) {
       assert.fail('promise unexpectedly not returned')
@@ -446,5 +445,44 @@ describe('runs multiple hooks', () => {
       assert.equal(hookFcnCalls, 1)
       assert.deepEqual(hook, hookAfter)
     })
+  })
+})
+
+describe('around hooks', () => {
+  beforeEach(() => {
+    hook = {
+      type: 'around',
+      method: 'create',
+      data: { first: 'John', last: 'Doe' },
+    }
+    hookFcnSyncCalls = 0
+  })
+
+  it('runs hooks and then next() when predicate is falsy', async () => {
+    const next = vi.fn()
+
+    await unless(false, hookFcnSync)(hook, next)
+
+    assert.equal(hookFcnSyncCalls, 1)
+    expect(next).toHaveBeenCalledOnce()
+  })
+
+  it('skips hooks but still calls next() when predicate is truthy', async () => {
+    const next = vi.fn()
+
+    await unless(true, hookFcnSync)(hook, next)
+
+    assert.equal(hookFcnSyncCalls, 0)
+    expect(next).toHaveBeenCalledOnce()
+  })
+
+  it('awaits async predicate then runs hooks and next()', async () => {
+    const next = vi.fn()
+    const asyncFalse = () => Promise.resolve(false)
+
+    await unless(asyncFalse, hookFcnSync)(hook, next)
+
+    assert.equal(hookFcnSyncCalls, 1)
+    expect(next).toHaveBeenCalledOnce()
   })
 })

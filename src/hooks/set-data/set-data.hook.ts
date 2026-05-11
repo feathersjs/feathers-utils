@@ -75,6 +75,7 @@ export function setData<H extends HookContext = HookContext>(
 
     if (!_has(contextJson, from)) {
       if (!context.params?.provider || allowUndefined === true) {
+        if (next) return next()
         return context
       }
 
@@ -82,6 +83,7 @@ export function setData<H extends HookContext = HookContext>(
         !overwrite &&
         data.every((item: Record<string, unknown>) => _has(item, to))
       ) {
+        if (next) return next()
         return context
       }
 

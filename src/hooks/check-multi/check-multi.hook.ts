@@ -33,20 +33,18 @@ export function checkMulti<H extends HookContext = HookContext>(
 ) {
   return (context: H, next?: NextFunction) => {
     const { service, method } = context
-    if (!service.allowsMulti || !isMulti(context) || method === 'find') {
+    if (
+      !service.allowsMulti ||
+      !isMulti(context) ||
+      method === 'find' ||
+      service.allowsMulti(method)
+    ) {
+      if (next) return next()
       return context
     }
 
-    if (!service.allowsMulti(method)) {
-      throw options?.error
-        ? options.error(context)
-        : new MethodNotAllowed(`Can not ${method} multiple entries`)
-    }
-
-    if (next) {
-      return next()
-    }
-
-    return context
+    throw options?.error
+      ? options.error(context)
+      : new MethodNotAllowed(`Can not ${method} multiple entries`)
   }
 }

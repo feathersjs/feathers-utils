@@ -66,7 +66,6 @@ describe('hook - disallow', () => {
   describe('disallow functionality is like isProvider', () => {
     let hookServer: any
     let hookSocketio: any
-    let hook: any
 
     beforeEach(() => {
       hookServer = {
@@ -88,7 +87,7 @@ describe('hook - disallow', () => {
     })
 
     it('throws on no args', () => {
-      assert.throws(() => disallow()(hook))
+      assert.throws(() => disallow()({} as any))
     })
 
     it('finds provider with 1 arg', () => {

@@ -25,6 +25,7 @@ export const skippable =
 
     function skipOrRun(skip: boolean) {
       if (skip) {
+        if (next) return next()
         return context
       } else {
         return hook(context, next)

@@ -38,6 +38,7 @@ export const paramsFromClient = (
       !context.params?.query?.[keyToHide] ||
       typeof context.params.query[keyToHide] !== 'object'
     ) {
+      if (next) return next()
       return context
     }
 

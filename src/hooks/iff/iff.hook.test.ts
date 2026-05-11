@@ -1,5 +1,5 @@
 import type { HookContext } from '@feathersjs/feathers'
-import { assert } from 'vitest'
+import { assert, expect, vi } from 'vitest'
 import { iff } from './iff.hook.js'
 import { clone, isPromise } from '../../common/index.js'
 
@@ -81,23 +81,15 @@ describe('services iff - sync predicate, sync hook', () => {
     hookFcnAsyncCalls = 0
   })
 
-  it('calls sync hook function if truthy non-function', () => {
-    iff(
-      // @ts-expect-error TODO
-      'a',
-      hookFcnSync,
-    )(hook)
-      // @ts-expect-error TODO
-      .then((hook: any) => {
-        assert.deepEqual(hook, hookAfter)
-        assert.equal(hookFcnSyncCalls, 1)
-        assert.deepEqual(hook, hookAfter)
-      })
+  it('calls sync hook function if truthy non-function', async () => {
+    const result = await iff('a' as any, hookFcnSync)(hook)
+    assert.deepEqual(result, hookAfter)
+    assert.equal(hookFcnSyncCalls, 1)
+    assert.deepEqual(hook, hookAfter)
   })
 
   it('does not call sync hook function if falsey non-function', () => {
-    // @ts-expect-error TODO
-    const result = iff('', hookFcnSync)(hook)
+    const result = iff('' as any, hookFcnSync)(hook)
 
     if (isPromise(result)) {
       assert.fail('promise unexpectedly returned')
@@ -108,23 +100,15 @@ describe('services iff - sync predicate, sync hook', () => {
     }
   })
 
-  it('calls sync hook function if sync predicate truthy', () => {
-    iff(
-      // @ts-expect-error TODO
-      () => 'a',
-      hookFcnSync,
-    )(hook)
-      // @ts-expect-error TODO
-      .then((hook: any) => {
-        assert.deepEqual(hook, hookAfter)
-        assert.equal(hookFcnSyncCalls, 1)
-        assert.deepEqual(hook, hookAfter)
-      })
+  it('calls sync hook function if sync predicate truthy', async () => {
+    const result = await iff((() => 'a') as any, hookFcnSync)(hook)
+    assert.deepEqual(result, hookAfter)
+    assert.equal(hookFcnSyncCalls, 1)
+    assert.deepEqual(hook, hookAfter)
   })
 
   it('does not call sync hook function if sync predicate falsey', () => {
-    // @ts-expect-error TODO
-    const result = iff(() => '', hookFcnSync)(hook)
+    const result = iff((() => '') as any, hookFcnSync)(hook)
 
     if (isPromise(result)) {
       assert.fail('promise unexpectedly returned')
@@ -317,47 +301,28 @@ describe('services iff - sync predicate', () => {
     predicateOptions = null
   })
 
-  it('does not need to access hook', () => {
-    iff(
-      // @ts-expect-error TODO
-      () => 'a',
-      hookFcnSync,
-    )(hook)
-      // @ts-expect-error TODO
-      .then((hook: any) => {
-        assert.deepEqual(hook, hookAfter)
-        assert.equal(hookFcnSyncCalls, 1)
-        assert.deepEqual(hook, hookAfter)
-      })
+  it('does not need to access hook', async () => {
+    const result = await iff((() => 'a') as any, hookFcnSync)(hook)
+    assert.deepEqual(result, hookAfter)
+    assert.equal(hookFcnSyncCalls, 1)
+    assert.deepEqual(hook, hookAfter)
   })
 
-  it('is passed hook as param', () => {
-    iff(
-      predicateSync,
-      hookFcnSync,
-    )(hook)
-      // @ts-expect-error TODO
-      .then((hook: any) => {
-        assert.deepEqual(predicateHook, hookBefore)
-        assert.deepEqual(hook, hookAfter)
-        assert.equal(hookFcnSyncCalls, 1)
-        assert.deepEqual(hook, hookAfter)
-      })
+  it('is passed hook as param', async () => {
+    const result = await iff(predicateSync, hookFcnSync)(hook)
+    assert.deepEqual(predicateHook, hookBefore)
+    assert.deepEqual(result, hookAfter)
+    assert.equal(hookFcnSyncCalls, 1)
+    assert.deepEqual(hook, hookAfter)
   })
 
-  it('a higher order predicate can pass more options', () => {
-    iff(
-      predicateSync2({ z: 'z' }),
-      hookFcnSync,
-    )(hook)
-      // @ts-expect-error TODO
-      .then((hook: any) => {
-        assert.deepEqual(predicateOptions, { z: 'z' })
-        assert.deepEqual(predicateHook, hookBefore)
-        assert.deepEqual(hook, hookAfter)
-        assert.equal(hookFcnSyncCalls, 1)
-        assert.deepEqual(hook, hookAfter)
-      })
+  it('a higher order predicate can pass more options', async () => {
+    const result = await iff(predicateSync2({ z: 'z' }), hookFcnSync)(hook)
+    assert.deepEqual(predicateOptions, { z: 'z' })
+    assert.deepEqual(predicateHook, hookBefore)
+    assert.deepEqual(result, hookAfter)
+    assert.equal(hookFcnSyncCalls, 1)
+    assert.deepEqual(hook, hookAfter)
   })
 })
 
@@ -382,8 +347,7 @@ describe('services iff - async predicate', () => {
   })
 
   it('is passed hook as param', async () => {
-    // @ts-expect-error TODO
-    const result = iff(predicateAsync, hookFcnSync)(hook)
+    const result = iff(predicateAsync as any, hookFcnSync)(hook)
 
     if (!isPromise(result)) {
       assert.fail('promise unexpectedly not returned')
@@ -398,8 +362,7 @@ describe('services iff - async predicate', () => {
   })
 
   it('is resolved', async () => {
-    // @ts-expect-error TODO
-    const result = iff(predicateAsyncFunny, hookFcnSync)(hook)
+    const result = iff(predicateAsyncFunny as any, hookFcnSync)(hook)
 
     if (!isPromise(result)) {
       assert.fail('promise unexpectedly not returned')
@@ -416,8 +379,7 @@ describe('services iff - async predicate', () => {
   })
 
   it('a higher order predicate can pass more options', async () => {
-    // @ts-expect-error TODO
-    const result = iff(predicateAsync2({ y: 'y' }), hookFcnSync)(hook)
+    const result = iff(predicateAsync2({ y: 'y' }) as any, hookFcnSync)(hook)
 
     if (!isPromise(result)) {
       assert.fail('promise unexpectedly not returned')
@@ -451,19 +413,76 @@ describe('services iff - runs multiple hooks', () => {
   })
 
   it('runs successfully', async () => {
-    await iff(
-      true,
-      hookFcnSync,
-      hookFcnAsync,
-      hookFcn,
-    )(hook)
-      // @ts-expect-error TODO
-      .then((hook: any) => {
-        assert.deepEqual(hook, hookAfter)
-        assert.equal(hookFcnSyncCalls, 1)
-        assert.equal(hookFcnAsyncCalls, 1)
-        assert.equal(hookFcnCbCalls, 1)
-        assert.deepEqual(hook, hookAfter)
-      })
+    const result = await iff(true, hookFcnSync, hookFcnAsync, hookFcn)(hook)
+    assert.deepEqual(result, hookAfter)
+    assert.equal(hookFcnSyncCalls, 1)
+    assert.equal(hookFcnAsyncCalls, 1)
+    assert.equal(hookFcnCbCalls, 1)
+    assert.deepEqual(hook, hookAfter)
+  })
+})
+
+describe('services iff - around hooks', () => {
+  beforeEach(() => {
+    hookBefore = {
+      type: 'around',
+      method: 'create',
+      data: { first: 'John', last: 'Doe' },
+    }
+    hook = clone(hookBefore)
+    hookFcnSyncCalls = 0
+    hookFcnAsyncCalls = 0
+  })
+
+  it('runs hooks and then next() when predicate is truthy', async () => {
+    const next = vi.fn()
+
+    await iff(true, hookFcnSync)(hook, next)
+
+    assert.equal(hookFcnSyncCalls, 1)
+    expect(next).toHaveBeenCalledOnce()
+  })
+
+  it('skips hooks but still calls next() when predicate is falsy', async () => {
+    const next = vi.fn()
+
+    await iff(false, hookFcnSync)(hook, next)
+
+    assert.equal(hookFcnSyncCalls, 0)
+    expect(next).toHaveBeenCalledOnce()
+  })
+
+  it('awaits async predicate then runs hooks and next()', async () => {
+    const next = vi.fn()
+    const asyncTrue = () => Promise.resolve(true)
+
+    await iff(asyncTrue, hookFcnSync)(hook, next)
+
+    assert.equal(hookFcnSyncCalls, 1)
+    expect(next).toHaveBeenCalledOnce()
+  })
+
+  describe('.else()', () => {
+    it('runs trueHooks and next() when predicate is truthy', async () => {
+      const next = vi.fn()
+      const elseFn = vi.fn()
+
+      await iff(true, hookFcnSync).else(elseFn)(hook, next)
+
+      assert.equal(hookFcnSyncCalls, 1)
+      expect(elseFn).not.toHaveBeenCalled()
+      expect(next).toHaveBeenCalledOnce()
+    })
+
+    it('runs falseHooks and next() when predicate is falsy', async () => {
+      const next = vi.fn()
+      const elseFn = vi.fn((h) => h)
+
+      await iff(false, hookFcnSync).else(elseFn)(hook, next)
+
+      assert.equal(hookFcnSyncCalls, 0)
+      expect(elseFn).toHaveBeenCalledOnce()
+      expect(next).toHaveBeenCalledOnce()
+    })
   })
 })

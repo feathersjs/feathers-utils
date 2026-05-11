@@ -1,4 +1,4 @@
-import type { HookContext } from '@feathersjs/feathers'
+import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { iffElse } from '../iff-else/iff-else.hook.js'
 import type { HookFunction, PredicateFn } from '../../types.js'
 
@@ -34,14 +34,14 @@ export function iff<H extends HookContext = HookContext>(
     hooks = hooks[0]
   }
 
-  const iffWithoutElse = function (context: H) {
-    return iffElse(predicate, hooks.slice())(context)
+  const iffWithoutElse = function (context: H, next?: NextFunction) {
+    return iffElse(predicate, hooks.slice())(context, next)
   }
 
   iffWithoutElse.else =
     (...falseHooks: any[]) =>
-    (context: H) =>
-      iffElse(predicate, hooks.slice(), falseHooks.slice())(context)
+    (context: H, next?: NextFunction) =>
+      iffElse(predicate, hooks.slice(), falseHooks.slice())(context, next)
 
   return iffWithoutElse as IffHook<H>
 }

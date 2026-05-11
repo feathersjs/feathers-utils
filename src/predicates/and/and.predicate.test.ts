@@ -73,9 +73,8 @@ describe('predicates/and', () => {
             iff(
               every(
                 (_hook: any) => true,
-                // @ts-expect-error TODO
-                (_hook: any) => 1,
-                (_hook: any) => {},
+                ((_hook: any) => 1) as any,
+                ((_hook: any) => {}) as any,
                 (_hook: any) => Promise.resolve(true),
               ),
               (hook: any) => Promise.resolve(hook),
@@ -165,10 +164,9 @@ describe('predicates/and', () => {
                   (_hook: any) => Promise.resolve(true),
                   (_hook: any) => Promise.resolve(false),
                   (_hook: any) => false,
-                  // @ts-expect-error TODO
-                  (_hook: any) => 0,
-                  (_hook: any) => null,
-                  (_hook: any) => undefined,
+                  ((_hook: any) => 0) as any,
+                  ((_hook: any) => null) as any,
+                  ((_hook: any) => undefined) as any,
                   (_hook: any) => true,
                 ),
               ),
