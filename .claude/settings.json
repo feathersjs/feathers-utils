@@ -19,7 +19,8 @@
       "Bash(pnpm run build)",
       "Bash(gh release list *)",
       "Bash(gh release view *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(pnpm typecheck *)"
     ]
   }
 }

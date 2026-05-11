@@ -87,7 +87,7 @@ describe('hook - disallow', () => {
     })
 
     it('throws on no args', () => {
-      assert.throws(() => disallow()(hook))
+      assert.throws(() => disallow()({} as any))
     })
 
     it('finds provider with 1 arg', () => {
