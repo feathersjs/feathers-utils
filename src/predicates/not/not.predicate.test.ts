@@ -56,28 +56,24 @@ describe('predicates/not', () => {
   it('negates an async function 1', async () => {
     const hook = clone(hookServer)
 
-    await not(predicateAsync(true))(hook)
-      // @ts-expect-error TODO
-      .then((result: any) => {
-        assert.equal(predicateCalls, 1)
-        assert.equal(result, false)
-      })
-      .catch(() => {
-        assert.fail('unexpected catch')
-      })
+    try {
+      const result = await not(predicateAsync(true))(hook)
+      assert.equal(predicateCalls, 1)
+      assert.equal(result, false)
+    } catch {
+      assert.fail('unexpected catch')
+    }
   })
 
   it('negates an async function 2', async () => {
     const hook = clone(hookServer)
-    await not(predicateAsync(false))(hook)
-      // @ts-expect-error TODO
-      .then((result: any) => {
-        assert.equal(predicateCalls, 1)
-        assert.equal(result, true)
-      })
-      .catch(() => {
-        assert.fail('unexpected catch')
-      })
+    try {
+      const result = await not(predicateAsync(false))(hook)
+      assert.equal(predicateCalls, 1)
+      assert.equal(result, true)
+    } catch {
+      assert.fail('unexpected catch')
+    }
   })
 })
 

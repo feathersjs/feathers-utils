@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import type { HookContext } from '@feathersjs/feathers'
 import { setData } from './set-data.hook.js'
 import { Forbidden } from '@feathersjs/errors'
@@ -386,5 +387,85 @@ describe('overwrite: predicate', function () {
         assert.strictEqual(item.userId, i, `${method}': data has 'userId:${i}`)
       })
     })
+  })
+})
+
+describe('around hooks', function () {
+  it('calls next() after setting data', async function () {
+    const context = {
+      method: 'create',
+      type: 'around',
+      params: { user: { id: 1 } },
+      data: {},
+    } as HookContext
+    const next = vi.fn()
+
+    await setData('params.user.id', 'userId')(context, next)
+
+    expect(next).toHaveBeenCalledOnce()
+    expect(context.data.userId).toBe(1)
+  })
+
+  it("calls next() when 'from' is missing and no provider", async function () {
+    const context = {
+      method: 'create',
+      type: 'around',
+      params: {},
+      data: { userId: 2 },
+    } as HookContext
+    const next = vi.fn()
+
+    await setData('params.user.id', 'userId')(context, next)
+
+    expect(next).toHaveBeenCalledOnce()
+  })
+
+  it("calls next() when 'from' is missing and 'allowUndefined: true'", async function () {
+    const context = {
+      method: 'create',
+      type: 'around',
+      params: { provider: 'socket.io' },
+      data: {},
+    } as HookContext
+    const next = vi.fn()
+
+    await setData('params.user.id', 'userId', { allowUndefined: true })(
+      context,
+      next,
+    )
+
+    expect(next).toHaveBeenCalledOnce()
+  })
+
+  it("calls next() when 'from' is missing, 'overwrite: false' and all items have 'to'", async function () {
+    const context = {
+      method: 'create',
+      type: 'around',
+      params: { provider: 'socket.io' },
+      data: { userId: 1 },
+    } as HookContext
+    const next = vi.fn()
+
+    await setData('params.user.id', 'userId', { overwrite: false })(
+      context,
+      next,
+    )
+
+    expect(next).toHaveBeenCalledOnce()
+  })
+
+  it("does not call next() and throws when 'from' missing, provider set, no 'allowUndefined'", function () {
+    const context = {
+      method: 'create',
+      type: 'around',
+      params: { provider: 'socket.io' },
+      data: {},
+    } as HookContext
+    const next = vi.fn()
+
+    expect(() => setData('params.user.id', 'userId')(context, next)).toThrow(
+      Forbidden,
+    )
+    expect(next).not.toHaveBeenCalled()
   })
 })

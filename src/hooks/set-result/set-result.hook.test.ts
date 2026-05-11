@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import type { HookContext } from '@feathersjs/feathers'
 import { setResult } from './set-result.hook.js'
 import { Forbidden } from '@feathersjs/errors'
@@ -413,5 +414,73 @@ describe('overwrite: predicate', function () {
         )
       })
     })
+  })
+})
+
+describe('around hooks', function () {
+  it('awaits next() before mutating result', async function () {
+    const context = {
+      method: 'get',
+      type: 'around',
+      params: { user: { id: 1 } },
+    } as HookContext
+    const next = vi.fn(async () => {
+      context.result = {}
+    })
+
+    await setResult('params.user.id', 'userId')(context, next)
+
+    expect(next).toHaveBeenCalledOnce()
+    expect(context.result.userId).toBe(1)
+  })
+
+  it("calls next() when 'from' is missing and no provider", async function () {
+    const context = {
+      method: 'get',
+      type: 'around',
+      params: {},
+    } as HookContext
+    const next = vi.fn(async () => {
+      context.result = { userId: 2 }
+    })
+
+    await setResult('params.user.id', 'userId')(context, next)
+
+    expect(next).toHaveBeenCalledOnce()
+    expect(context.result.userId).toBe(2)
+  })
+
+  it("calls next() when 'from' is missing and 'allowUndefined: true'", async function () {
+    const context = {
+      method: 'get',
+      type: 'around',
+      params: { provider: 'rest' },
+    } as HookContext
+    const next = vi.fn(async () => {
+      context.result = {}
+    })
+
+    await setResult('params.user.id', 'userId', { allowUndefined: true })(
+      context,
+      next,
+    )
+
+    expect(next).toHaveBeenCalledOnce()
+  })
+
+  it("throws after next() when 'from' missing and provider set", async function () {
+    const context = {
+      method: 'get',
+      type: 'around',
+      params: { provider: 'rest' },
+    } as HookContext
+    const next = vi.fn(async () => {
+      context.result = {}
+    })
+
+    await expect(
+      setResult('params.user.id', 'userId')(context, next),
+    ).rejects.toThrow(Forbidden)
+    expect(next).toHaveBeenCalledOnce()
   })
 })

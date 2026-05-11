@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-this-alias */
 import type { HookContext } from '@feathersjs/feathers'
-import { assert } from 'vitest'
+import { assert, expect, vi } from 'vitest'
 import { iffElse } from './iff-else.hook.js'
 import { or } from '../../predicates/or/or.predicate.js'
 import { and } from '../../predicates/and/and.predicate.js'
@@ -53,9 +53,9 @@ const hookFcn = function (this: any, hook: any, _cb: any) {
 const predicateTrue = function (
   this: any,
   hook: any,
-  more2: any,
-  more3: any,
-  more4: any,
+  more2?: any,
+  more3?: any,
+  more4?: any,
 ): true {
   predicateTrueContext = this
 
@@ -128,28 +128,26 @@ describe('services iffElse', () => {
     })
 
     it('when false', () => {
-      return (
-        // @ts-expect-error TODO
-        iffElse(false, null, [hookFcnSync, hookFcnAsync, hookFcn])(hook).then(
-          (hook: any) => {
-            assert.deepEqual(hook, hookAfter)
-            assert.equal(hookFcnSyncCalls, 1)
-            assert.equal(hookFcnAsyncCalls, 1)
-            assert.equal(hookFcnCalls, 1)
-            assert.deepEqual(hook, hookAfter)
-          },
-        )
-      )
+      return iffElse(
+        false,
+        undefined,
+        [hookFcnSync, hookFcnAsync, hookFcn],
+      )(hook).then((hook: any) => {
+        assert.deepEqual(hook, hookAfter)
+        assert.equal(hookFcnSyncCalls, 1)
+        assert.equal(hookFcnAsyncCalls, 1)
+        assert.equal(hookFcnCalls, 1)
+        assert.deepEqual(hook, hookAfter)
+      })
     })
   })
 
   describe('predicate gets right params', () => {
     it('when true', () => {
       return iffElse(
-        // @ts-expect-error TODO
         predicateTrue,
         [hookFcnSync, hookFcnAsync, hookFcn],
-        null,
+        undefined,
       )(hook).then(() => {
         assert.deepEqual(predicateParam1, hook, 'param1')
         assert.strictEqual(predicateParam2, undefined, 'param2')
@@ -160,7 +158,6 @@ describe('services iffElse', () => {
 
     it('and passes on correct params', () => {
       return iffElse(
-        // @ts-expect-error TODO
         and(predicateTrue),
         [hookFcnSync, hookFcnAsync, hookFcn],
         [],
@@ -174,7 +171,6 @@ describe('services iffElse', () => {
 
     it('or passes on correct params', () => {
       return iffElse(
-        // @ts-expect-error TODO
         or(predicateTrue),
         [hookFcnSync, hookFcnAsync, hookFcn],
         [],
@@ -197,23 +193,81 @@ describe('services iffElse', () => {
     })
 
     it('services', () => {
-      return (
-        // @ts-expect-error TODO
-        iffElse(predicateTrue, [hookFcnSync, hookFcnAsync, hookFcn], null)
-          .call(context, hook)
-          .then((hook: any) => {
-            assert.deepEqual(hook, hookAfter)
-            assert.equal(hookFcnSyncCalls, 1)
-            assert.equal(hookFcnAsyncCalls, 1)
-            assert.equal(hookFcnCalls, 1)
-            assert.deepEqual(hook, hookAfter)
-
-            assert.deepEqual(predicateTrueContext, { service: 'abc' })
-            assert.deepEqual(hookFcnSyncContext, { service: 'abc' })
-            assert.deepEqual(hookFcnAsyncContext, { service: 'abc' })
-            assert.deepEqual(hookFcnContext, { service: 'abc' })
-          })
+      return iffElse(
+        predicateTrue,
+        [hookFcnSync, hookFcnAsync, hookFcn],
+        undefined,
       )
+        .call(context, hook)
+        .then((hook: any) => {
+          assert.deepEqual(hook, hookAfter)
+          assert.equal(hookFcnSyncCalls, 1)
+          assert.equal(hookFcnAsyncCalls, 1)
+          assert.equal(hookFcnCalls, 1)
+          assert.deepEqual(hook, hookAfter)
+
+          assert.deepEqual(predicateTrueContext, { service: 'abc' })
+          assert.deepEqual(hookFcnSyncContext, { service: 'abc' })
+          assert.deepEqual(hookFcnAsyncContext, { service: 'abc' })
+          assert.deepEqual(hookFcnContext, { service: 'abc' })
+        })
+    })
+  })
+
+  describe('around hooks', () => {
+    it('runs trueHooks and then next() when predicate is truthy', async () => {
+      const next = vi.fn()
+
+      await iffElse(true, hookFcnSync, hookFcnAsync)(hook, next)
+
+      assert.equal(hookFcnSyncCalls, 1)
+      assert.equal(hookFcnAsyncCalls, 0)
+      expect(next).toHaveBeenCalledOnce()
+    })
+
+    it('runs falseHooks and then next() when predicate is falsy', async () => {
+      const next = vi.fn()
+
+      await iffElse(false, hookFcnSync, hookFcnAsync)(hook, next)
+
+      assert.equal(hookFcnSyncCalls, 0)
+      assert.equal(hookFcnAsyncCalls, 1)
+      expect(next).toHaveBeenCalledOnce()
+    })
+
+    it('calls next() even when no hooks are provided for the branch', async () => {
+      const next = vi.fn()
+
+      await iffElse(true, undefined, undefined)(hook, next)
+
+      expect(next).toHaveBeenCalledOnce()
+    })
+
+    it('awaits async predicate then runs trueHooks and next()', async () => {
+      const next = vi.fn()
+      const asyncTrue = () => Promise.resolve(true)
+
+      await iffElse(asyncTrue, hookFcnSync, hookFcnAsync)(hook, next)
+
+      assert.equal(hookFcnSyncCalls, 1)
+      assert.equal(hookFcnAsyncCalls, 0)
+      expect(next).toHaveBeenCalledOnce()
+    })
+
+    it('calls next() after inner hooks finish, not before', async () => {
+      const order: string[] = []
+      const slowHook = async (h: any) => {
+        await new Promise((r) => setTimeout(r, 5))
+        order.push('inner')
+        return h
+      }
+      const next = vi.fn(async () => {
+        order.push('next')
+      })
+
+      await iffElse(true, slowHook, undefined)(hook, next)
+
+      assert.deepEqual(order, ['inner', 'next'])
     })
   })
 })

@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import type { HookContext } from '@feathersjs/feathers'
 import { checkMulti } from './check-multi.hook.js'
 import { MethodNotAllowed } from '@feathersjs/errors'
@@ -135,6 +136,76 @@ describe('checkMulti', function () {
           `'${type}:${method}': throws`,
         )
       })
+    })
+  })
+
+  describe('around hooks', function () {
+    it("calls next() when 'allowsMulti' is not defined", async function () {
+      const context = {
+        service: {},
+        type: 'around',
+        method: 'create',
+        data: [],
+      } as HookContext
+      const next = vi.fn()
+
+      await checkMulti()(context, next)
+
+      expect(next).toHaveBeenCalledOnce()
+    })
+
+    it("calls next() when 'allowsMulti' returns true", async function () {
+      const context = {
+        service: { allowsMulti: () => true },
+        type: 'around',
+        method: 'create',
+        data: [],
+      } as HookContext
+      const next = vi.fn()
+
+      await checkMulti()(context, next)
+
+      expect(next).toHaveBeenCalledOnce()
+    })
+
+    it("calls next() for 'find' even when 'allowsMulti' returns false", async function () {
+      const context = {
+        service: { allowsMulti: () => false },
+        type: 'around',
+        method: 'find',
+      } as HookContext
+      const next = vi.fn()
+
+      await checkMulti()(context, next)
+
+      expect(next).toHaveBeenCalledOnce()
+    })
+
+    it('calls next() when no multi data', async function () {
+      const context = {
+        service: { allowsMulti: () => false },
+        type: 'around',
+        method: 'create',
+        data: {},
+      } as HookContext
+      const next = vi.fn()
+
+      await checkMulti()(context, next)
+
+      expect(next).toHaveBeenCalledOnce()
+    })
+
+    it("does not call next() and throws when 'allowsMulti' returns false and multi data", function () {
+      const context = {
+        service: { allowsMulti: () => false },
+        type: 'around',
+        method: 'create',
+        data: [],
+      } as HookContext
+      const next = vi.fn()
+
+      expect(() => checkMulti()(context, next)).toThrow(MethodNotAllowed)
+      expect(next).not.toHaveBeenCalled()
     })
   })
 

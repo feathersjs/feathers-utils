@@ -120,7 +120,7 @@ export function setResult<H extends HookContext = HookContext>(
 
   return (context: H, next?: NextFunction) => {
     if (next) {
-      next().then(() => fn(context))
+      return next().then(() => fn(context))
     }
 
     return fn(context)

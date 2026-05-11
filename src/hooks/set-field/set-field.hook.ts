@@ -58,6 +58,7 @@ export const setField =
 
     if (value === undefined) {
       if (!params.provider || allowUndefined) {
+        if (next) return next()
         return context
       }
 

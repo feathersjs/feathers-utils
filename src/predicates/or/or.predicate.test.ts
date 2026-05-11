@@ -61,10 +61,9 @@ describe('predicates/or', () => {
       some(
         () => false,
         () => Promise.resolve(false),
-        // @ts-expect-error test case
-        () => null,
-        () => undefined,
-        () => 0,
+        (() => null) as any,
+        (() => undefined) as any,
+        (() => 0) as any,
       )({} as HookContext),
     ).resolves.toBe(false)
   })

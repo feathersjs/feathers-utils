@@ -1,4 +1,4 @@
-import type { HookContext } from '@feathersjs/feathers'
+import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { isPromise } from '../../common/index.js'
 import { combine } from '../../utils/combine/combine.util.js'
 import type { HookFunction, PredicateFn } from '../../types.js'
@@ -27,7 +27,7 @@ export function iffElse<H extends HookContext = HookContext>(
   falseHook?: HookFunction<H> | HookFunction<H>[] | undefined,
 ) {
   // fnArgs is [context] for service & permission hooks, [data, connection, context] for event filters
-  return function (this: any, ctx: H) {
+  return function (this: any, ctx: H, next?: NextFunction) {
     const trueHooks = Array.isArray(trueHook)
       ? trueHook
       : typeof trueHook === 'function'
@@ -47,17 +47,18 @@ export function iffElse<H extends HookContext = HookContext>(
         ? predicate.apply(that, [ctx])
         : !!predicate
 
-    if (!check) {
-      return callHooks.call(that, ctx, falseHooks as any)
-    }
-
     if (!isPromise(check)) {
-      return callHooks.call(that, ctx, trueHooks as any)
+      return callHooks.call(
+        that,
+        ctx,
+        (check ? trueHooks : falseHooks) as any,
+        next,
+      )
     }
 
     return check.then((check1: any) => {
       const hooks = check1 ? trueHooks : falseHooks
-      return callHooks.call(that, ctx, hooks as any)
+      return callHooks.call(that, ctx, hooks as any, next)
     })
   }
 }
@@ -66,6 +67,16 @@ function callHooks<H extends HookContext = HookContext>(
   this: any,
   ctx: H,
   serviceHooks: HookFunction<H>[],
+  next?: NextFunction,
 ) {
-  return serviceHooks ? combine(...serviceHooks).call(this, ctx) : ctx
+  if (!serviceHooks) {
+    if (next) return next()
+    return ctx
+  }
+
+  const result = combine(...serviceHooks).call(this, ctx)
+
+  if (!next) return result
+
+  return Promise.resolve(result).then(() => next())
 }

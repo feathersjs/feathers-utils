@@ -121,4 +121,64 @@ describe('skippable', () => {
 
     expect(fn).toHaveBeenCalled()
   })
+
+  describe('around hooks', () => {
+    it('calls next() when skipped', async () => {
+      const fn = vi.fn()
+      const next = vi.fn()
+
+      await skippable(
+        fn,
+        shouldSkip('testHook'),
+      )(
+        {
+          type: 'around',
+          method: 'create',
+          params: { skipHooks: ['all'] },
+        },
+        next,
+      )
+
+      expect(fn).not.toHaveBeenCalled()
+      expect(next).toHaveBeenCalledOnce()
+    })
+
+    it('passes next() through to wrapped hook when not skipped', async () => {
+      const fn = vi.fn((_context, next) => next())
+      const next = vi.fn()
+
+      await skippable(
+        fn,
+        shouldSkip('testHook'),
+      )(
+        {
+          type: 'around',
+          method: 'create',
+          params: { skipHooks: [] },
+        },
+        next,
+      )
+
+      expect(fn).toHaveBeenCalledOnce()
+      expect(next).toHaveBeenCalledOnce()
+    })
+
+    it('calls next() when async predicate returns true', async () => {
+      const fn = vi.fn()
+      const next = vi.fn()
+      const asyncSkip = () => Promise.resolve(true)
+
+      await skippable(fn, asyncSkip)(
+        {
+          type: 'around',
+          method: 'create',
+          params: {},
+        },
+        next,
+      )
+
+      expect(fn).not.toHaveBeenCalled()
+      expect(next).toHaveBeenCalledOnce()
+    })
+  })
 })

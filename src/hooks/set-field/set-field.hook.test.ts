@@ -1,9 +1,12 @@
-import { assert, expect } from 'vitest'
+import { assert, expect, vi } from 'vitest'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { setField } from './set-field.hook.js'
 
-import type { Application } from '@feathersjs/feathers'
+import type { Application, HookContext, Params } from '@feathersjs/feathers'
+import { Forbidden } from '@feathersjs/errors'
+
+type ParamsWithUser = Params & { user?: { id: number; name: string } }
 
 describe('setField', () => {
   const user = {
@@ -40,21 +43,20 @@ describe('setField', () => {
 
   it('find queries with user information, does not modify original objects', async () => {
     const query = {}
-    // @ts-expect-error TODO
-    const results = await app.service('messages').find({ query, user })
+    const params: ParamsWithUser = { query, user }
+    const results = await app.service('messages').find(params)
 
     assert.equal(results.length, 1)
     assert.deepEqual(query, {})
   })
 
   it('adds user information to get, throws NotFound event if record exists', async () => {
+    const params: ParamsWithUser = { user }
     await expect(async () => {
-      // @ts-expect-error TODO
-      await app.service('messages').get(2, { user })
+      await app.service('messages').get(2, params)
     }).rejects.toThrow()
 
-    // @ts-expect-error TODO
-    const result = await app.service('messages').get(1, { user })
+    const result = await app.service('messages').get(1, params)
 
     assert.deepEqual(result, {
       id: 1,
@@ -90,5 +92,74 @@ describe('setField', () => {
     await expect(async () => {
       await app.service('messages').get(1)
     }).rejects.toThrow()
+  })
+
+  describe('around hooks', () => {
+    it('calls next() after setting field', async () => {
+      const context = {
+        type: 'around',
+        method: 'find',
+        params: { user: { id: 1 }, query: {} },
+      } as HookContext
+      const next = vi.fn()
+
+      await setField({
+        from: 'params.user.id',
+        as: 'params.query.userId',
+      })(context, next)
+
+      expect(next).toHaveBeenCalledOnce()
+      expect(context.params.query.userId).toBe(1)
+    })
+
+    it('calls next() when value is undefined and no provider', async () => {
+      const context = {
+        type: 'around',
+        method: 'find',
+        params: { query: {} },
+      } as HookContext
+      const next = vi.fn()
+
+      await setField({
+        from: 'params.user.id',
+        as: 'params.query.userId',
+      })(context, next)
+
+      expect(next).toHaveBeenCalledOnce()
+    })
+
+    it("calls next() when value is undefined and 'allowUndefined: true'", async () => {
+      const context = {
+        type: 'around',
+        method: 'find',
+        params: { provider: 'rest', query: {} },
+      } as HookContext
+      const next = vi.fn()
+
+      await setField({
+        from: 'params.user.id',
+        as: 'params.query.userId',
+        allowUndefined: true,
+      })(context, next)
+
+      expect(next).toHaveBeenCalledOnce()
+    })
+
+    it('does not call next() and throws when value undefined and provider set', () => {
+      const context = {
+        type: 'around',
+        method: 'find',
+        params: { provider: 'rest', query: {} },
+      } as HookContext
+      const next = vi.fn()
+
+      expect(() =>
+        setField({
+          from: 'params.user.id',
+          as: 'params.query.userId',
+        })(context, next),
+      ).toThrow(Forbidden)
+      expect(next).not.toHaveBeenCalled()
+    })
   })
 })
