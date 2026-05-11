@@ -705,15 +705,24 @@ describe('cache hook logger', () => {
 
     await usersService.get(1)
     expect(logger).toHaveBeenCalledTimes(2)
-    expect(logger.mock.calls[0][0]).toMatchObject({ type: 'miss', method: 'get' })
-    expect(logger.mock.calls[1][0]).toMatchObject({ type: 'set', method: 'get' })
+    expect(logger.mock.calls[0][0]).toMatchObject({
+      type: 'miss',
+      method: 'get',
+    })
+    expect(logger.mock.calls[1][0]).toMatchObject({
+      type: 'set',
+      method: 'get',
+    })
 
     logger.mockClear()
 
     await usersService.get(1)
     // hit in before hook, then set again in after hook (re-caches same result)
     expect(logger).toHaveBeenCalledTimes(2)
-    expect(logger.mock.calls[0][0]).toMatchObject({ type: 'hit', method: 'get' })
+    expect(logger.mock.calls[0][0]).toMatchObject({
+      type: 'hit',
+      method: 'get',
+    })
     expect(logger.mock.calls[1][0]).toMatchObject({
       type: 'set',
       method: 'get',
@@ -733,15 +742,24 @@ describe('cache hook logger', () => {
 
     await usersService.find()
     expect(logger).toHaveBeenCalledTimes(2)
-    expect(logger.mock.calls[0][0]).toMatchObject({ type: 'miss', method: 'find' })
-    expect(logger.mock.calls[1][0]).toMatchObject({ type: 'set', method: 'find' })
+    expect(logger.mock.calls[0][0]).toMatchObject({
+      type: 'miss',
+      method: 'find',
+    })
+    expect(logger.mock.calls[1][0]).toMatchObject({
+      type: 'set',
+      method: 'find',
+    })
 
     logger.mockClear()
 
     await usersService.find()
     // hit in before hook, then set again in after hook (re-caches same result)
     expect(logger).toHaveBeenCalledTimes(2)
-    expect(logger.mock.calls[0][0]).toMatchObject({ type: 'hit', method: 'find' })
+    expect(logger.mock.calls[0][0]).toMatchObject({
+      type: 'hit',
+      method: 'find',
+    })
     expect(logger.mock.calls[1][0]).toMatchObject({
       type: 'set',
       method: 'find',
@@ -768,7 +786,10 @@ describe('cache hook logger', () => {
 
     const invalidateEvents = events.filter((e: any) => e.type === 'invalidate')
     expect(invalidateEvents.length).toBe(2) // find cache + get cache
-    expect(invalidateEvents[0]).toMatchObject({ type: 'invalidate', method: 'patch' })
+    expect(invalidateEvents[0]).toMatchObject({
+      type: 'invalidate',
+      method: 'patch',
+    })
   })
 
   it('logs clear when no ids found', async () => {

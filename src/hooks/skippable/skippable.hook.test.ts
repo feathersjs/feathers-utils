@@ -127,10 +127,7 @@ describe('skippable', () => {
       const fn = vi.fn()
       const next = vi.fn()
 
-      await skippable(
-        fn,
-        shouldSkip('testHook'),
-      )(
+      await skippable(fn, shouldSkip('testHook'))(
         {
           type: 'around',
           method: 'create',
@@ -147,10 +144,7 @@ describe('skippable', () => {
       const fn = vi.fn((_context, next) => next())
       const next = vi.fn()
 
-      await skippable(
-        fn,
-        shouldSkip('testHook'),
-      )(
+      await skippable(fn, shouldSkip('testHook'))(
         {
           type: 'around',
           method: 'create',

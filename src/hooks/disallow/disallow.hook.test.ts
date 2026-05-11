@@ -66,7 +66,6 @@ describe('hook - disallow', () => {
   describe('disallow functionality is like isProvider', () => {
     let hookServer: any
     let hookSocketio: any
-    let hook: any
 
     beforeEach(() => {
       hookServer = {
