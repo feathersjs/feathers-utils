@@ -28,7 +28,9 @@ export const disallow = <H extends HookContext = HookContext>(
   transports?: MaybeArray<TransportName>,
 ) => {
   const transportsArr = toArray(transports)
-  return (context: H, next?: NextFunction) => {
+  function hook(context: H): void
+  function hook(context: H, next: NextFunction): Promise<void>
+  function hook(context: H, next?: NextFunction): void | Promise<void> {
     if (!transports) {
       throw new MethodNotAllowed('Method not allowed')
     }
@@ -39,6 +41,9 @@ export const disallow = <H extends HookContext = HookContext>(
       )
     }
 
-    if (next) return next().then(() => context)
+    if (next) return next()
+
+    return
   }
+  return hook
 }

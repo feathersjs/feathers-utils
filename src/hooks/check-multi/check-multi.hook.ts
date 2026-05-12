@@ -31,7 +31,9 @@ export type CheckMultiOptions = {
 export function checkMulti<H extends HookContext = HookContext>(
   options?: CheckMultiOptions,
 ) {
-  return (context: H, next?: NextFunction) => {
+  function hook(context: H): void
+  function hook(context: H, next: NextFunction): Promise<void>
+  function hook(context: H, next?: NextFunction): void | Promise<void> {
     const { service, method } = context
     if (
       !service.allowsMulti ||
@@ -40,11 +42,12 @@ export function checkMulti<H extends HookContext = HookContext>(
       service.allowsMulti(method)
     ) {
       if (next) return next()
-      return context
+      return
     }
 
     throw options?.error
       ? options.error(context)
       : new MethodNotAllowed(`Can not ${method} multiple entries`)
   }
+  return hook
 }

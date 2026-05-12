@@ -18,7 +18,7 @@ import type { HookContext, NextFunction } from '@feathersjs/feathers'
  */
 export const debug =
   <H extends HookContext = HookContext>(msg: string, ...fieldNames: string[]) =>
-  async (context: H, next?: NextFunction) => {
+  async (context: H, next?: NextFunction): Promise<void> => {
     if (next) {
       await next()
     }

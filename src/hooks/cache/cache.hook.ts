@@ -93,7 +93,7 @@ export const cache = <H extends HookContext = HookContext>(
   options: CacheOptions,
 ) => {
   const cacheMap = new ContextCacheMap(options)
-  return async (context: H, next?: NextFunction) => {
+  return async (context: H, next?: NextFunction): Promise<void> => {
     if (context.type === 'before') {
       return await cacheBefore(context, cacheMap)
     }
@@ -110,25 +110,27 @@ export const cache = <H extends HookContext = HookContext>(
   }
 }
 
-const cacheBefore = async (context: HookContext, cacheMap: ContextCacheMap) => {
+const cacheBefore = async (
+  context: HookContext,
+  cacheMap: ContextCacheMap,
+): Promise<void> => {
   if (context.method === 'get' || context.method === 'find') {
     const value = await cacheMap.get(context)
     if (value) {
       context.result = value
     }
   }
-
-  return context
 }
 
-const cacheAfter = async (context: HookContext, cacheMap: ContextCacheMap) => {
+const cacheAfter = async (
+  context: HookContext,
+  cacheMap: ContextCacheMap,
+): Promise<void> => {
   if (context.method === 'get' || context.method === 'find') {
     await cacheMap.set(context)
   } else {
     await cacheMap.clear(context)
   }
-
-  return context
 }
 
 class ContextCacheMap {

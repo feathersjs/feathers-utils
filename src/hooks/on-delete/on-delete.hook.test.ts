@@ -2,6 +2,7 @@ import { expect, expectTypeOf } from 'vitest'
 import { feathers } from '@feathersjs/feathers'
 import type {
   Application,
+  AroundHookFunction,
   HookContext,
   Params,
   Query,
@@ -913,6 +914,19 @@ describe('onDelete', function () {
       ])
 
       expectTypeOf(hook).toBeFunction()
+    })
+
+    it('is type-compatible with AroundHookFunction', function () {
+      type AppHookContext = HookContext<App>
+
+      const hook = onDelete<AppHookContext>({
+        service: 'todos',
+        keyThere: 'userId',
+        keyHere: 'id',
+        onDelete: 'cascade',
+      })
+
+      expectTypeOf(hook).toExtend<AroundHookFunction<App, any>>()
     })
   })
 })

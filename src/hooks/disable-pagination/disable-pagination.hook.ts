@@ -18,9 +18,10 @@ import { checkContext } from '../../utils/index.js'
  *
  * @see https://utils.feathersjs.com/hooks/disable-pagination.html
  */
-export const disablePagination =
-  <H extends HookContext = HookContext>() =>
-  (context: H, next?: NextFunction) => {
+export const disablePagination = <H extends HookContext = HookContext>() => {
+  function hook(context: H): void
+  function hook(context: H, next: NextFunction): Promise<void>
+  function hook(context: H, next?: NextFunction): void | Promise<void> {
     checkContext(context, {
       type: ['before', 'around'],
       method: ['find'],
@@ -35,5 +36,7 @@ export const disablePagination =
 
     if (next) return next()
 
-    return context
+    return
   }
+  return hook
+}

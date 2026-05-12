@@ -42,14 +42,15 @@ export interface SetFieldOptions {
  *
  * @see https://utils.feathersjs.com/hooks/set-field.html
  */
-export const setField =
-  <H extends HookContext = HookContext>({
-    as,
-    from,
-    allowUndefined = false,
-    error,
-  }: SetFieldOptions) =>
-  (context: H, next?: NextFunction) => {
+export const setField = <H extends HookContext = HookContext>({
+  as,
+  from,
+  allowUndefined = false,
+  error,
+}: SetFieldOptions) => {
+  function hook(context: H): void
+  function hook(context: H, next: NextFunction): Promise<void>
+  function hook(context: H, next?: NextFunction): void | Promise<void> {
     const { params } = context
 
     checkContext(context, { type: ['before', 'around'], label: 'setField' })
@@ -59,7 +60,7 @@ export const setField =
     if (value === undefined) {
       if (!params.provider || allowUndefined) {
         if (next) return next()
-        return context
+        return
       }
 
       throw error
@@ -67,9 +68,11 @@ export const setField =
         : new Forbidden(`Expected field ${as} not available`)
     }
 
-    context = _setWith(context, as, value, _clone)
+    _setWith(context, as, value, _clone)
 
     if (next) return next()
 
-    return context
+    return
   }
+  return hook
+}

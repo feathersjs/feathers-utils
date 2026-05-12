@@ -44,17 +44,16 @@ const defaultStashFunc = (context: HookContext) => {
  */
 export function stashable<H extends HookContext = HookContext>(
   options?: StashableOptions,
-): {
-  (context: H, next: NextFunction): Promise<void>
-  (context: H): H
-} {
+) {
   const propName = options?.propName ?? 'stashed'
   const stashFunc = options?.stashFunc ?? defaultStashFunc
 
-  return ((context: H, next?: NextFunction) => {
+  function hook(context: H): void
+  function hook(context: H, next: NextFunction): Promise<void>
+  function hook(context: H, next?: NextFunction): void | Promise<void> {
     if (context.params._stashable) {
       if (next) return next()
-      return context
+      return
     }
 
     checkContext(context, {
@@ -68,6 +67,8 @@ export function stashable<H extends HookContext = HookContext>(
     context.params[propName] = () => promise
 
     if (next) return next()
-    return context
-  }) as any
+
+    return
+  }
+  return hook
 }

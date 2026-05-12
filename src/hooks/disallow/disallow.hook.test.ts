@@ -1,5 +1,8 @@
-import { assert } from 'vitest'
+import { assert, expectTypeOf } from 'vitest'
 import { disallow } from './disallow.hook.js'
+import { feathers } from '@feathersjs/feathers'
+import { MemoryService } from '@feathersjs/memory'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 
 describe('hook - disallow', () => {
   describe('disallow is compatible with .disable (without predicate)', () => {
@@ -153,6 +156,61 @@ describe('hook - disallow', () => {
 
       const result = disallow('server')(hook)
       assert.equal(result, undefined)
+    })
+  })
+
+  describe('integration with service.hooks({ around })', () => {
+    type User = { id: number; name: string }
+    type Services = { users: MemoryService<User> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<User>>
+
+    const setup = () => {
+      const app = feathers<Services>()
+      app.use('users', new MemoryService<User>({ multi: true }))
+
+      // Wiring the hook into the `around` map exercises type compatibility
+      // with feathers' strict `AroundHookFunction`.
+      app.service('users').hooks({
+        around: {
+          create: [disallow<Ctx>('external')],
+          remove: [disallow<Ctx>()],
+        },
+      })
+
+      return app
+    }
+
+    it('blocks "external" provider on create', async () => {
+      const service = setup().service('users')
+
+      await expect(
+        service.create({ name: 'Alice' }, { provider: 'rest' }),
+      ).rejects.toThrow(/Provider 'rest' can not call 'create'/)
+    })
+
+    it('allows internal (no-provider) create', async () => {
+      const service = setup().service('users')
+
+      const created = await service.create({ name: 'Alice' })
+      assert.equal(created.name, 'Alice')
+    })
+
+    it('blocks remove for every caller', async () => {
+      const service = setup().service('users')
+      const created = await service.create({ name: 'Alice' })
+
+      await expect(service.remove(created.id)).rejects.toThrow(
+        /Method not allowed/,
+      )
+    })
+
+    it('is type-compatible with AroundHookFunction', () => {
+      const hook = disallow<Ctx>('external')
+
+      expectTypeOf(hook).toExtend<
+        AroundHookFunction<App, MemoryService<User>>
+      >()
     })
   })
 })

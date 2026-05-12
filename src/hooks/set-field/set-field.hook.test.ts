@@ -1,9 +1,14 @@
-import { assert, expect, vi } from 'vitest'
+import { assert, expect, expectTypeOf, vi } from 'vitest'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { setField } from './set-field.hook.js'
 
-import type { Application, HookContext, Params } from '@feathersjs/feathers'
+import type {
+  Application,
+  AroundHookFunction,
+  HookContext,
+  Params,
+} from '@feathersjs/feathers'
 import { Forbidden } from '@feathersjs/errors'
 
 type ParamsWithUser = Params & { user?: { id: number; name: string } }
@@ -160,6 +165,48 @@ describe('setField', () => {
         })(context, next),
       ).toThrow(Forbidden)
       expect(next).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('integration with service.hooks({ around })', () => {
+    type Item = { id: number; name: string }
+    type Services = { items: MemoryService<Item> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<Item>>
+
+    it('is type-compatible with AroundHookFunction', () => {
+      expectTypeOf(
+        setField<Ctx>({
+          from: 'params.user.id',
+          as: 'params.query.userId',
+        }),
+      ).toExtend<AroundHookFunction<App, MemoryService<Item>>>()
+    })
+
+    it('scopes find via params.user.id', async () => {
+      const app = feathers<Services>()
+      app.use(
+        'items',
+        new MemoryService<Item>({
+          multi: true,
+          paginate: { default: 10, max: 50 },
+        }),
+      )
+      app.service('items').hooks({
+        around: {
+          find: [
+            setField<Ctx>({ from: 'params.user.id', as: 'params.query.id' }),
+          ],
+        },
+      })
+
+      await app.service('items').create([{ name: 'a' }, { name: 'b' }])
+
+      const result = (await app
+        .service('items')
+        .find({ user: { id: 1 } } as any)) as any
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0].id).toBe(1)
     })
   })
 })

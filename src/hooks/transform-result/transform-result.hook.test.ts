@@ -1,6 +1,8 @@
-import { assert } from 'vitest'
+import { assert, expectTypeOf } from 'vitest'
+import { feathers } from '@feathersjs/feathers'
+import { MemoryService } from '@feathersjs/memory'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { transformResult } from './transform-result.hook.js'
-import type { HookContext } from '@feathersjs/feathers'
 
 let hookAfter: any
 let hookFindPaginate: any
@@ -243,6 +245,40 @@ describe('transformResult', () => {
       first: 'Jack',
       last: 'Doe',
       new: 'Jack',
+    })
+  })
+
+  describe('integration with service.hooks({ around })', () => {
+    type Item = { id: number; name: string; password?: string }
+    type Services = { items: MemoryService<Item> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<Item>>
+
+    it('is type-compatible with AroundHookFunction', () => {
+      expectTypeOf(transformResult<Ctx>(() => {})).toExtend<
+        AroundHookFunction<App, MemoryService<Item>>
+      >()
+    })
+
+    it('omits password from result after get', async () => {
+      const app = feathers<Services>()
+      app.use('items', new MemoryService<Item>())
+      app.service('items').hooks({
+        around: {
+          get: [
+            transformResult<Ctx>((item: any) => {
+              delete item.password
+            }),
+          ],
+        },
+      })
+
+      const created = await app
+        .service('items')
+        .create({ name: 'Alice', password: 'secret' })
+      const got = await app.service('items').get(created.id)
+      expect((got as any).password).toBeUndefined()
+      expect(got.name).toBe('Alice')
     })
   })
 })

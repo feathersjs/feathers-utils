@@ -1,4 +1,7 @@
-import { assert } from 'vitest'
+import { assert, expectTypeOf } from 'vitest'
+import { feathers } from '@feathersjs/feathers'
+import { MemoryService } from '@feathersjs/memory'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { traverse } from './traverse.hook.js'
 import { copy } from 'fast-copy'
 
@@ -124,5 +127,41 @@ describe('traverse', () => {
     )
 
     assert.deepEqual(obj, result)
+  })
+
+  describe('integration with service.hooks({ around })', () => {
+    type Item = { id: number; name: string }
+    type Services = { items: MemoryService<Item> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<Item>>
+
+    it('is type-compatible with AroundHookFunction', () => {
+      expectTypeOf(
+        traverse<Ctx>({
+          transformer: function () {},
+          getObject: (ctx) => ctx.data,
+        }),
+      ).toExtend<AroundHookFunction<App, MemoryService<Item>>>()
+    })
+
+    it('trims string data fields before create', async () => {
+      const app = feathers<Services>()
+      app.use('items', new MemoryService<Item>())
+      app.service('items').hooks({
+        around: {
+          create: [
+            traverse<Ctx>({
+              transformer(this: any, node) {
+                if (typeof node === 'string') this.update(node.trim())
+              },
+              getObject: (ctx) => ctx.data,
+            }),
+          ],
+        },
+      })
+
+      const created = await app.service('items').create({ name: '  Alice  ' })
+      expect(created.name).toBe('Alice')
+    })
   })
 })

@@ -23,16 +23,17 @@ export const transformQuery = <
 >(
   transformer: TransformerFn<Q, H>,
 ) => {
-  return (context: H, next?: NextFunction) => {
+  function hook(context: H): void
+  function hook(context: H, next: NextFunction): Promise<void>
+  function hook(context: H, next?: NextFunction): void | Promise<void> {
     context.params.query = transformer(context.params.query ?? {}, {
       context,
       i: 0,
     })
 
-    if (next) {
-      return next().then(() => context)
-    }
+    if (next) return next()
 
-    return context
+    return
   }
+  return hook
 }

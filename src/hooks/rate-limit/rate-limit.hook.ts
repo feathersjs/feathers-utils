@@ -37,7 +37,7 @@ export const rateLimit = <H extends HookContext = HookContext>(
   const key = options?.key ?? ((context: HookContext) => context.path)
   const points = options?.points ?? (() => 1)
 
-  return async (context: H, next?: NextFunction) => {
+  return async (context: H, next?: NextFunction): Promise<void> => {
     checkContext(context, { type: ['before', 'around'], label: 'rateLimit' })
 
     const resolvedKey = await key(context)
@@ -53,6 +53,6 @@ export const rateLimit = <H extends HookContext = HookContext>(
       })
     }
 
-    if (next) return await next()
+    if (next) await next()
   }
 }

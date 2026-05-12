@@ -128,11 +128,9 @@ describe('services iffElse', () => {
     })
 
     it('when false', () => {
-      return iffElse(
-        false,
-        undefined,
-        [hookFcnSync, hookFcnAsync, hookFcn],
-      )(hook).then((hook: any) => {
+      return iffElse(false, undefined, [hookFcnSync, hookFcnAsync, hookFcn])(
+        hook,
+      ).then((hook: any) => {
         assert.deepEqual(hook, hookAfter)
         assert.equal(hookFcnSyncCalls, 1)
         assert.equal(hookFcnAsyncCalls, 1)

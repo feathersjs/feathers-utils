@@ -21,20 +21,22 @@ export const setSlug = <H extends HookContext = HookContext>(
   slug: string,
   fieldName?: string,
 ) => {
-  if (typeof fieldName !== 'string') {
-    fieldName = `query.${slug}`
-  }
+  const targetField: string =
+    typeof fieldName === 'string' ? fieldName : `query.${slug}`
 
-  return (context: H, next?: NextFunction) => {
+  function hook(context: H): void
+  function hook(context: H, next: NextFunction): Promise<void>
+  function hook(context: H, next?: NextFunction): void | Promise<void> {
     if (context.params && context.params.provider === 'rest') {
       const value = context.params.route[slug]
       if (typeof value === 'string' && value[0] !== ':') {
-        _set(context.params, fieldName, value)
+        _set(context.params, targetField, value)
       }
     }
 
     if (next) return next()
 
-    return context
+    return
   }
+  return hook
 }

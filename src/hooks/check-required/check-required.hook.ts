@@ -27,7 +27,9 @@ export function checkRequired<H extends HookContext = HookContext>(
   fieldNames: MaybeArray<string>,
 ) {
   const fieldNamesArray = toArray(fieldNames)
-  return (context: H, next?: NextFunction) => {
+  function hook(context: H): void
+  function hook(context: H, next: NextFunction): Promise<void>
+  function hook(context: H, next?: NextFunction): void | Promise<void> {
     checkContext(context, {
       type: ['before', 'around'],
       method: ['create', 'update', 'patch'],
@@ -55,5 +57,8 @@ export function checkRequired<H extends HookContext = HookContext>(
     }
 
     if (next) return next()
+
+    return
   }
+  return hook
 }

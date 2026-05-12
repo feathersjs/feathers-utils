@@ -1,5 +1,7 @@
-import { vi } from 'vitest'
-import type { HookContext } from '@feathersjs/feathers'
+import { expectTypeOf, vi } from 'vitest'
+import { feathers } from '@feathersjs/feathers'
+import { MemoryService } from '@feathersjs/memory'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { checkMulti } from './check-multi.hook.js'
 import { MethodNotAllowed } from '@feathersjs/errors'
 
@@ -239,6 +241,56 @@ describe('checkMulti', function () {
           `'${type}:${method}': throws`,
         )
       })
+    })
+  })
+
+  describe('integration with service.hooks({ around })', () => {
+    type User = { id: number; name: string }
+    type Services = { users: MemoryService<User> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<User>>
+
+    const setup = (multi: boolean) => {
+      const app = feathers<Services>()
+      app.use('users', new MemoryService<User>({ multi }))
+
+      app.service('users').hooks({
+        around: {
+          create: [checkMulti<Ctx>()],
+        },
+      })
+
+      return app
+    }
+
+    it('blocks multi-create when multi is not allowed', async () => {
+      const service = setup(false).service('users')
+
+      await expect(
+        service.create([{ name: 'Alice' }, { name: 'Bob' }]),
+      ).rejects.toThrow(/Can not create multiple entries/)
+    })
+
+    it('allows single-create when multi is not allowed', async () => {
+      const service = setup(false).service('users')
+
+      const created = await service.create({ name: 'Alice' })
+      assert.equal(created.name, 'Alice')
+    })
+
+    it('allows multi-create when multi is allowed', async () => {
+      const service = setup(true).service('users')
+
+      const created = await service.create([{ name: 'Alice' }, { name: 'Bob' }])
+      assert.lengthOf(created, 2)
+    })
+
+    it('is type-compatible with AroundHookFunction', () => {
+      const hook = checkMulti<Ctx>()
+
+      expectTypeOf(hook).toExtend<
+        AroundHookFunction<App, MemoryService<User>>
+      >()
     })
   })
 })

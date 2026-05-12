@@ -54,7 +54,7 @@ export interface CreateRelatedOptions<
 export function createRelated<H extends HookContext = HookContext>(
   options: MaybeArray<CreateRelatedOptions<H>>,
 ) {
-  return async (context: H, next?: NextFunction) => {
+  return async (context: H, next?: NextFunction): Promise<void> => {
     checkContext(context, {
       type: ['after', 'around'],
       method: ['create'],
@@ -80,7 +80,7 @@ export function createRelated<H extends HookContext = HookContext>(
           .filter((x) => !!x)
 
         if (!dataToCreate || dataToCreate.length <= 0) {
-          return context
+          return
         }
 
         if (multi || dataToCreate.length === 1) {

@@ -1,4 +1,7 @@
-import { assert } from 'vitest'
+import { assert, expectTypeOf } from 'vitest'
+import { feathers } from '@feathersjs/feathers'
+import { MemoryService } from '@feathersjs/memory'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { transformData } from './transform-data.hook.js'
 
 let hookBefore: any
@@ -61,16 +64,20 @@ describe('transformData', () => {
     })
   })
 
-  it('returns a promise that contains context', async () => {
+  it('returns a promise that resolves once context is mutated', async () => {
     const promise = transformData(async (item: any) => {
       item.state = 'UT'
     })(hookBefore)
 
     assert.ok(promise instanceof Promise)
 
-    const result = await promise
+    await promise
 
-    assert.deepEqual(result, hookBefore)
+    assert.deepEqual(hookBefore.data, {
+      first: 'John',
+      last: 'Doe',
+      state: 'UT',
+    })
   })
 
   it('updates hook before::create with new item returned', async () => {
@@ -110,6 +117,32 @@ describe('transformData', () => {
       first: 'John',
       last: 'Doe',
       state: 'UT',
+    })
+  })
+
+  describe('integration with service.hooks({ around })', () => {
+    type Item = { id: number; name: string; state?: string }
+    type Services = { items: MemoryService<Item> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<Item>>
+
+    it('is type-compatible with AroundHookFunction', () => {
+      expectTypeOf(transformData<Ctx>(() => {})).toExtend<
+        AroundHookFunction<App, MemoryService<Item>>
+      >()
+    })
+
+    it('adds state field before create', async () => {
+      const app = feathers<Services>()
+      app.use('items', new MemoryService<Item>())
+      app.service('items').hooks({
+        around: {
+          create: [transformData<Ctx>((item) => ({ ...item, state: 'UT' }))],
+        },
+      })
+
+      const created = await app.service('items').create({ name: 'Alice' })
+      expect(created.state).toBe('UT')
     })
   })
 })

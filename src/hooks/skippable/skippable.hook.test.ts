@@ -1,3 +1,7 @@
+import { expectTypeOf } from 'vitest'
+import { feathers } from '@feathersjs/feathers'
+import { MemoryService } from '@feathersjs/memory'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { shouldSkip } from '../../predicates/should-skip/should-skip.predicate.js'
 import { skippable } from './skippable.hook.js'
 
@@ -5,7 +9,6 @@ describe('skippable', () => {
   it('runs hook when not skipped', async () => {
     const fn = vi.fn((context) => {
       context.result = { data: 'test' }
-      return context
     })
 
     const hook = {
@@ -13,13 +16,14 @@ describe('skippable', () => {
       method: 'create',
       params: { skipHooks: [] },
     }
-    const context = { ...hook, result: null }
+    const context = { ...hook, result: null as any }
 
     const skippableHook = skippable(fn, shouldSkip('testHook'))
 
-    const result = await skippableHook(context)
+    await skippableHook(context)
 
-    expect(result).toEqual({ ...context, result: { data: 'test' } })
+    expect(context.result).toEqual({ data: 'test' })
+    expect(fn).toHaveBeenCalledOnce()
   })
 
   it('skips for hookName in skipHooks', async () => {
@@ -173,6 +177,55 @@ describe('skippable', () => {
 
       expect(fn).not.toHaveBeenCalled()
       expect(next).toHaveBeenCalledOnce()
+    })
+  })
+
+  describe('integration with service.hooks({ around })', () => {
+    type Item = { id: number; name: string; marked?: boolean }
+    type Services = { items: MemoryService<Item> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<Item>>
+
+    it('is type-compatible with AroundHookFunction', () => {
+      const inner = (_ctx: Ctx) => {}
+      expectTypeOf(skippable<Ctx>(inner, shouldSkip('inner'))).toExtend<
+        AroundHookFunction<App, MemoryService<Item>>
+      >()
+    })
+
+    const innerHook = (ctx: Ctx, next?: any) => {
+      ;(ctx.data as Item).marked = true
+      if (next) return next()
+    }
+
+    it('skips wrapped hook when skipHooks matches', async () => {
+      const app = feathers<Services>()
+      app.use('items', new MemoryService<Item>())
+
+      app.service('items').hooks({
+        around: {
+          create: [skippable<Ctx>(innerHook, shouldSkip('inner'))],
+        },
+      })
+
+      const created = await app
+        .service('items')
+        .create({ name: 'Alice' }, { skipHooks: ['inner'] } as any)
+      expect(created.marked).toBeUndefined()
+    })
+
+    it('runs wrapped hook when not skipped', async () => {
+      const app = feathers<Services>()
+      app.use('items', new MemoryService<Item>())
+
+      app.service('items').hooks({
+        around: {
+          create: [skippable<Ctx>(innerHook, shouldSkip('inner'))],
+        },
+      })
+
+      const created = await app.service('items').create({ name: 'Alice' })
+      expect(created.marked).toBe(true)
     })
   })
 })

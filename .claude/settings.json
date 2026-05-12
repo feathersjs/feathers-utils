@@ -20,7 +20,8 @@
       "Bash(gh release list *)",
       "Bash(gh release view *)",
       "Bash(npm run *)",
-      "Bash(pnpm typecheck *)"
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm vitest *)"
     ]
   }
 }

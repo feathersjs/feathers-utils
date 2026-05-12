@@ -32,7 +32,7 @@ export const throwIf = <H extends HookContext = HookContext>(
   predicate: PredicateFn,
   options?: ThrowIfOptions,
 ) => {
-  return async (context: H, next?: NextFunction) => {
+  return async (context: H, next?: NextFunction): Promise<void> => {
     const result = await predicate(context)
 
     if (result) {
@@ -42,7 +42,7 @@ export const throwIf = <H extends HookContext = HookContext>(
     }
 
     if (next) {
-      return await next()
+      await next()
     }
   }
 }

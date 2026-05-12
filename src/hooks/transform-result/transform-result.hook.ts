@@ -1,10 +1,6 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { mutateResult } from '../../utils/mutate-result/mutate-result.util.js'
-import type {
-  DispatchOption,
-  HookFunction,
-  TransformerInputFn,
-} from '../../types.js'
+import type { DispatchOption, TransformerInputFn } from '../../types.js'
 import type { ResultSingleHookContext } from '../../utility-types/hook-context.js'
 import type { AnyFallback } from '../../internal.utils.js'
 
@@ -37,9 +33,10 @@ export const transformResult =
   <H extends HookContext = HookContext, R = Result<H>>(
     transformer: TransformerInputFn<R, H>,
     options?: TransformResultOptions,
-  ): HookFunction<H> =>
-  (context: H, next?: NextFunction) =>
-    mutateResult(context, transformer, {
+  ) =>
+  async (context: H, next?: NextFunction): Promise<void> => {
+    await mutateResult(context, transformer, {
       next,
       dispatch: options?.dispatch,
-    }) as Promise<H>
+    })
+  }

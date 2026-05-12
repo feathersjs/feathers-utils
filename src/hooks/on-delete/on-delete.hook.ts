@@ -72,7 +72,7 @@ export const onDelete = <H extends HookContext = HookContext>(
 ) => {
   const optionsMulti = Array.isArray(options) ? options : [options]
 
-  return async (context: H, next?: NextFunction) => {
+  return async (context: H, next?: NextFunction): Promise<void> => {
     checkContext(context, {
       type: ['after', 'around'],
       method: 'remove',
@@ -97,7 +97,7 @@ export const onDelete = <H extends HookContext = HookContext>(
         ids = [...new Set(ids)]
 
         if (!ids || ids.length <= 0) {
-          return context
+          return
         }
 
         const params = {

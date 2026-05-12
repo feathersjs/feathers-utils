@@ -26,17 +26,18 @@ export type TraverseOptions = {
  *
  * @see https://utils.feathersjs.com/hooks/traverse.html
  */
-export const traverse =
-  <H extends HookContext = HookContext>({
-    transformer,
-    getObject,
-  }: TraverseOptions) =>
-  (context: H, next?: NextFunction) => {
+export const traverse = <H extends HookContext = HookContext>({
+  transformer,
+  getObject,
+}: TraverseOptions) => {
+  function hook(context: H): void
+  function hook(context: H, next: NextFunction): Promise<void>
+  function hook(context: H, next?: NextFunction): void | Promise<void> {
     _traverse(getObject(context), transformer)
 
-    if (next) {
-      return next()
-    }
+    if (next) return next()
 
-    return context
+    return
   }
+  return hook
+}

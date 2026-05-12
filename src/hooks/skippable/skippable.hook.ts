@@ -15,26 +15,29 @@ import type { HookFunction, PredicateFn } from '../../types.js'
  *
  * @see https://utils.feathersjs.com/hooks/skippable.html
  */
-export const skippable =
-  <H extends HookContext = HookContext>(
-    hook: HookFunction<H>,
-    predicate: PredicateFn<H>,
-  ) =>
-  (context: H, next?: NextFunction) => {
+export const skippable = <H extends HookContext = HookContext>(
+  innerHook: HookFunction<H>,
+  predicate: PredicateFn<H>,
+) => {
+  function hook(context: H): void
+  function hook(context: H, next: NextFunction): Promise<void>
+  function hook(context: H, next?: NextFunction): void | Promise<void> {
     const skip = predicate(context)
 
-    function skipOrRun(skip: boolean) {
-      if (skip) {
+    const skipOrRun = (shouldSkip: boolean): void | Promise<void> => {
+      if (shouldSkip) {
         if (next) return next()
-        return context
-      } else {
-        return hook(context, next)
+        return
       }
+      if (next) return innerHook(context, next) as Promise<void>
+      innerHook(context)
     }
 
     if (!skip || typeof skip === 'boolean') {
       return skipOrRun(skip)
     }
 
-    return skip.then(skipOrRun)
+    return skip.then(skipOrRun) as Promise<void>
   }
+  return hook
+}

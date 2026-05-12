@@ -1,11 +1,11 @@
-import type { HookContext } from '@feathersjs/feathers'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { feathers } from '@feathersjs/feathers'
 import type { CacheOptions } from './cache.hook.js'
 import { cache } from './cache.hook.js'
 import { LRUCache } from 'lru-cache'
 import { TTLCache } from '@isaacs/ttlcache'
 import { MemoryService } from '@feathersjs/memory'
-import { expect } from 'vitest'
+import { expect, expectTypeOf } from 'vitest'
 import { copy } from 'fast-copy'
 
 const setup = (options: CacheOptions, serviceOptions?: { id?: string }) => {
@@ -961,5 +961,16 @@ describe('cache hook with custom serialize', () => {
     // Different query but same serialize output => cache hit
     await usersService.find({ query: { name: 'Jane' } })
     expect(before.find).toHaveBeenCalledTimes(1)
+  })
+
+  it('is type-compatible with AroundHookFunction', () => {
+    type Item = { id: number; name: string }
+    type Services = { items: MemoryService<Item> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<Item>>
+
+    expectTypeOf(
+      cache<Ctx>({ map: new Map(), transformParams: (p) => p }),
+    ).toExtend<AroundHookFunction<App, MemoryService<Item>>>()
   })
 })

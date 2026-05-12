@@ -29,12 +29,10 @@ export const transformData =
   <H extends HookContext = HookContext, D = Data<H>>(
     transformer: TransformerInputFn<D, H>,
   ) =>
-  async (context: H, next?: NextFunction) => {
+  async (context: H, next?: NextFunction): Promise<void> => {
     await mutateData(context, transformer)
 
     if (next) {
-      return next()
+      await next()
     }
-
-    return context
   }

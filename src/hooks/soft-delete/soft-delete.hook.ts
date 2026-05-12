@@ -65,13 +65,14 @@ export const softDelete = <H extends HookContext = HookContext>(
     )
   }
 
-  return async (context: H, next?: NextFunction) => {
+  return async (context: H, next?: NextFunction): Promise<void> => {
     checkContext(context, { type: ['before', 'around'], label: 'softDelete' })
 
     const { disableSoftDeleteKey = 'disableSoftDelete' } = options
 
     if (context.params[disableSoftDeleteKey]) {
-      return early(context, next)
+      await early(context, next)
+      return
     }
 
     const { deletedQuery, removeData } = options
@@ -105,10 +106,8 @@ export const softDelete = <H extends HookContext = HookContext>(
     }
 
     if (next) {
-      return await next()
+      await next()
     }
-
-    return context
   }
 }
 
