@@ -118,11 +118,17 @@ export function setResult<H extends HookContext = HookContext>(
     return forResultOrDispatch(context, !!options?.dispatch)
   }
 
-  return (context: H, next?: NextFunction) => {
+  function hook(context: H): void
+  function hook(context: H, next: NextFunction): Promise<void>
+  function hook(context: H, next?: NextFunction): void | Promise<void> {
     if (next) {
-      return next().then(() => fn(context))
+      return next().then(() => {
+        fn(context)
+      })
     }
 
-    return fn(context)
+    fn(context)
+    return
   }
+  return hook
 }

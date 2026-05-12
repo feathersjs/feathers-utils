@@ -1,5 +1,9 @@
-import { assert, expect } from 'vitest'
-import type { Application } from '@feathersjs/feathers'
+import { assert, expect, expectTypeOf } from 'vitest'
+import type {
+  Application,
+  AroundHookFunction,
+  HookContext,
+} from '@feathersjs/feathers'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { stashable } from './stashable.hook.js'
@@ -251,5 +255,16 @@ describe('stashable', () => {
 
     const stashed = await params2.stashed()
     expect(stashed).toBeUndefined()
+  })
+
+  it('is type-compatible with AroundHookFunction', () => {
+    type Item = { id: number; name: string }
+    type Services = { items: MemoryService<Item> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<Item>>
+
+    expectTypeOf(stashable<Ctx>()).toExtend<
+      AroundHookFunction<App, MemoryService<Item>>
+    >()
   })
 })

@@ -68,7 +68,9 @@ export function setData<H extends HookContext = HookContext>(
 ) {
   const { allowUndefined = false, overwrite = true } = options ?? {}
 
-  return (context: H, next?: NextFunction) => {
+  function hook(context: H): void
+  function hook(context: H, next: NextFunction): Promise<void>
+  function hook(context: H, next?: NextFunction): void | Promise<void> {
     const { data } = getDataIsArray(context)
 
     const contextJson = contextToJson(context)
@@ -76,7 +78,7 @@ export function setData<H extends HookContext = HookContext>(
     if (!_has(contextJson, from)) {
       if (!context.params?.provider || allowUndefined === true) {
         if (next) return next()
-        return context
+        return
       }
 
       if (
@@ -84,7 +86,7 @@ export function setData<H extends HookContext = HookContext>(
         data.every((item: Record<string, unknown>) => _has(item, to))
       ) {
         if (next) return next()
-        return context
+        return
       }
 
       throw options?.error
@@ -107,10 +109,9 @@ export function setData<H extends HookContext = HookContext>(
       _set(item, to, val)
     }
 
-    if (next) {
-      return next()
-    }
+    if (next) return next()
 
-    return context
+    return
   }
+  return hook
 }

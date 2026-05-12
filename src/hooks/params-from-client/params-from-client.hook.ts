@@ -33,13 +33,18 @@ export const paramsFromClient = (
 ) => {
   const whitelistArr = toArray(whitelist)
   const { keyToHide = FROM_CLIENT_FOR_SERVER_DEFAULT_KEY } = options || {}
-  return (context: HookContext, next?: NextFunction) => {
+  function hook(context: HookContext): void
+  function hook(context: HookContext, next: NextFunction): Promise<void>
+  function hook(
+    context: HookContext,
+    next?: NextFunction,
+  ): void | Promise<void> {
     if (
       !context.params?.query?.[keyToHide] ||
       typeof context.params.query[keyToHide] !== 'object'
     ) {
       if (next) return next()
-      return context
+      return
     }
 
     const params = {
@@ -67,10 +72,9 @@ export const paramsFromClient = (
 
     context.params = params
 
-    if (next) {
-      return next()
-    }
+    if (next) return next()
 
-    return context
+    return
   }
+  return hook
 }

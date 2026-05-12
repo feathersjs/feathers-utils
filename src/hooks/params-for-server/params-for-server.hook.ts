@@ -35,7 +35,15 @@ export const paramsForServer = (
 
   const { keyToHide = FROM_CLIENT_FOR_SERVER_DEFAULT_KEY } = options || {}
 
-  return <H extends HookContext>(context: H, next?: NextFunction) => {
+  function hook<H extends HookContext>(context: H): void
+  function hook<H extends HookContext>(
+    context: H,
+    next: NextFunction,
+  ): Promise<void>
+  function hook<H extends HookContext>(
+    context: H,
+    next?: NextFunction,
+  ): void | Promise<void> {
     // clone params on demand
     let clonedParams: any
 
@@ -67,10 +75,9 @@ export const paramsForServer = (
       context.params = clonedParams
     }
 
-    if (next) {
-      return next()
-    }
+    if (next) return next()
 
-    return context
+    return
   }
+  return hook
 }

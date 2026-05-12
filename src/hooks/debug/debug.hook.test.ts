@@ -1,3 +1,7 @@
+import { expectTypeOf } from 'vitest'
+import { feathers } from '@feathersjs/feathers'
+import { MemoryService } from '@feathersjs/memory'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { debug } from './debug.hook.js'
 
 describe('services debug', () => {
@@ -21,5 +25,18 @@ describe('services debug', () => {
       result: { c: 'c' },
     }
     debug('my message', 'query', 'foo')(hook)
+  })
+
+  describe('integration with service.hooks({ around })', () => {
+    type Item = { id: number; name: string }
+    type Services = { items: MemoryService<Item> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<Item>>
+
+    it('is type-compatible with AroundHookFunction', () => {
+      expectTypeOf(debug<Ctx>('msg')).toExtend<
+        AroundHookFunction<App, MemoryService<Item>>
+      >()
+    })
   })
 })

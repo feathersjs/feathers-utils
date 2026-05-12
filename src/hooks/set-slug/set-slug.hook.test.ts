@@ -1,4 +1,7 @@
-import { assert } from 'vitest'
+import { assert, expectTypeOf } from 'vitest'
+import { feathers } from '@feathersjs/feathers'
+import { MemoryService } from '@feathersjs/memory'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 
 import { setSlug } from './set-slug.hook.js'
 
@@ -52,6 +55,42 @@ describe('services setSlug', () => {
       hook.params.route.storeId = '123'
       setSlug('storeId', 'query.slugger')(hook)
       assert.deepEqual(hook.params.query, { a: 'a', slugger: '123' })
+    })
+  })
+
+  describe('integration with service.hooks({ around })', () => {
+    type Item = { id: number; storeId?: string }
+    type Services = { items: MemoryService<Item> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<Item>>
+
+    it('is type-compatible with AroundHookFunction', () => {
+      expectTypeOf(setSlug<Ctx>('storeId')).toExtend<
+        AroundHookFunction<App, MemoryService<Item>>
+      >()
+    })
+
+    it('copies slug into params.query on rest provider', async () => {
+      const app = feathers<Services>()
+      app.use('items', new MemoryService<Item>({ multi: true }))
+      app.service('items').hooks({
+        around: {
+          find: [setSlug<Ctx>('storeId')],
+        },
+      })
+
+      await app.service('items').create([
+        { storeId: '1' },
+        { storeId: '2' },
+      ] as any)
+
+      const result = (await app.service('items').find({
+        provider: 'rest',
+        route: { storeId: '1' },
+        paginate: false,
+      } as any)) as unknown as Item[]
+      expect(result).toHaveLength(1)
+      expect(result[0].storeId).toBe('1')
     })
   })
 })

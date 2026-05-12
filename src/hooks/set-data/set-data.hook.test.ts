@@ -1,5 +1,7 @@
-import { vi } from 'vitest'
-import type { HookContext } from '@feathersjs/feathers'
+import { expectTypeOf, vi } from 'vitest'
+import { feathers } from '@feathersjs/feathers'
+import { MemoryService } from '@feathersjs/memory'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { setData } from './set-data.hook.js'
 import { Forbidden } from '@feathersjs/errors'
 
@@ -19,10 +21,10 @@ describe('setData', function () {
         data: {},
       } as HookContext
 
-      const result = setData('params.user.id', 'userId')(context) as HookContext
+      setData('params.user.id', 'userId')(context)
 
       assert.strictEqual(
-        result.data.userId,
+        context.data.userId,
         1,
         `'${method}': data has 'userId:1'`,
       )
@@ -45,10 +47,10 @@ it('overwrites userId for single item', function () {
       data: { userId: 2 },
     } as HookContext
 
-    const result = setData('params.user.id', 'userId')(context) as HookContext
+    setData('params.user.id', 'userId')(context)
 
     assert.strictEqual(
-      result.data.userId,
+      context.data.userId,
       1,
       `'${method}': data has 'userId:1'`,
     )
@@ -70,8 +72,8 @@ it('sets userId for multiple items', function () {
       data: [{}, {}, {}],
     } as HookContext
 
-    const result = setData('params.user.id', 'userId')(context) as HookContext
-    result.data.forEach((item: any) => {
+    setData('params.user.id', 'userId')(context)
+    context.data.forEach((item: any) => {
       assert.strictEqual(item.userId, 1, `'${method}': data has 'userId:1'`)
     })
   })
@@ -92,8 +94,8 @@ it('overwrites userId for multiple items', function () {
       data: [{ userId: 2 }, {}, { userId: 'abc' }],
     } as HookContext
 
-    const result = setData('params.user.id', 'userId')(context) as HookContext
-    result.data.forEach((item: any) => {
+    setData('params.user.id', 'userId')(context)
+    context.data.forEach((item: any) => {
       assert.strictEqual(item.userId, 1, `'${method}': data has 'userId:1'`)
     })
   })
@@ -109,10 +111,10 @@ it("does not change createdById if 'params.user.id' is not provided", function (
       data: { userId: 2 },
     } as HookContext
 
-    const result = setData('params.user.id', 'userId')(context) as HookContext
+    setData('params.user.id', 'userId')(context)
 
     assert.strictEqual(
-      result.data.userId,
+      context.data.userId,
       2,
       `'${method}': data has 'userId:2'`,
     )
@@ -194,12 +196,12 @@ describe('overwrite: false', function () {
         data: {},
       } as unknown as HookContext
 
-      const result = setData('params.user.id', 'userId', {
+      setData('params.user.id', 'userId', {
         overwrite: false,
-      })(context) as HookContext
+      })(context)
 
       assert.strictEqual(
-        result.data.userId,
+        context.data.userId,
         1,
         `'${method}': data has 'userId:1'`,
       )
@@ -221,12 +223,12 @@ describe('overwrite: false', function () {
         data: { userId: 2 },
       } as unknown as HookContext
 
-      const result = setData('params.user.id', 'userId', {
+      setData('params.user.id', 'userId', {
         overwrite: false,
-      })(context) as HookContext
+      })(context)
 
       assert.strictEqual(
-        result.data.userId,
+        context.data.userId,
         2,
         `'${method}': data has 'userId:2'`,
       )
@@ -248,11 +250,11 @@ describe('overwrite: false', function () {
         data: [{}, {}, {}],
       } as unknown as HookContext
 
-      const result = setData('params.user.id', 'userId', {
+      setData('params.user.id', 'userId', {
         overwrite: false,
-      })(context) as HookContext
+      })(context)
 
-      result.data.forEach((item: any) => {
+      context.data.forEach((item: any) => {
         assert.strictEqual(item.userId, 1, `${method}': data has 'userId:1'`)
       })
     })
@@ -273,11 +275,11 @@ describe('overwrite: false', function () {
         data: [{ userId: 0 }, {}, { userId: 2 }],
       } as unknown as HookContext
 
-      const result = setData('params.user.id', 'userId', {
+      setData('params.user.id', 'userId', {
         overwrite: false,
-      })(context) as HookContext
+      })(context)
 
-      result.data.forEach((item: any, i: any) => {
+      context.data.forEach((item: any, i: any) => {
         assert.strictEqual(item.userId, i, `${method}': data has 'userId:${i}`)
       })
     })
@@ -300,11 +302,11 @@ describe('overwrite: predicate', function () {
         data: [{ userId: 2 }, {}, { userId: 'abc' }],
       } as unknown as HookContext
 
-      const result = setData('params.user.id', 'userId', {
+      setData('params.user.id', 'userId', {
         overwrite: () => true,
-      })(context) as HookContext
+      })(context)
 
-      result.data.forEach((item: any) => {
+      context.data.forEach((item: any) => {
         assert.strictEqual(item.userId, 1, `'${method}': data has 'userId:1'`)
       })
     })
@@ -325,12 +327,12 @@ describe('overwrite: predicate', function () {
         data: { userId: 2 },
       } as unknown as HookContext
 
-      const result = setData('params.user.id', 'userId', {
+      setData('params.user.id', 'userId', {
         overwrite: (item: any) => item.userId == null,
-      })(context) as HookContext
+      })(context)
 
       assert.strictEqual(
-        result.data.userId,
+        context.data.userId,
         2,
         `'${method}': data has 'userId:2'`,
       )
@@ -352,12 +354,12 @@ describe('overwrite: predicate', function () {
         data: { userId: 2 },
       } as unknown as HookContext
 
-      const result = setData('params.user.id', 'userId', {
+      setData('params.user.id', 'userId', {
         overwrite: (item: any, context) => context.type === 'before',
-      })(context) as HookContext
+      })(context)
 
       assert.strictEqual(
-        result.data.userId,
+        context.data.userId,
         1,
         `'${method}': data has 'userId:1'`,
       )
@@ -379,11 +381,11 @@ describe('overwrite: predicate', function () {
         data: [{ userId: 0 }, {}, { userId: 2 }],
       } as unknown as HookContext
 
-      const result = setData('params.user.id', 'userId', {
+      setData('params.user.id', 'userId', {
         overwrite: (item) => item.userId == null,
-      })(context) as HookContext
+      })(context)
 
-      result.data.forEach((item: any, i: any) => {
+      context.data.forEach((item: any, i: any) => {
         assert.strictEqual(item.userId, i, `${method}': data has 'userId:${i}`)
       })
     })
@@ -467,5 +469,33 @@ describe('around hooks', function () {
       Forbidden,
     )
     expect(next).not.toHaveBeenCalled()
+  })
+
+  describe('integration with service.hooks({ around })', () => {
+    type Item = { id: number; name: string; userId?: number }
+    type Services = { items: MemoryService<Item> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<Item>>
+
+    it('is type-compatible with AroundHookFunction', () => {
+      expectTypeOf(setData<Ctx>('params.user.id', 'userId')).toExtend<
+        AroundHookFunction<App, MemoryService<Item>>
+      >()
+    })
+
+    it('sets userId from params before create', async () => {
+      const app = feathers<Services>()
+      app.use('items', new MemoryService<Item>())
+      app.service('items').hooks({
+        around: {
+          create: [setData<Ctx>('params.user.id', 'userId')],
+        },
+      })
+
+      const created = await app
+        .service('items')
+        .create({ name: 'a' }, { user: { id: 42 } } as any)
+      expect(created.userId).toBe(42)
+    })
   })
 })

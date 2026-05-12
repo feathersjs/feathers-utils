@@ -1,22 +1,24 @@
-import { vi } from 'vitest'
-import type { HookContext } from '@feathersjs/feathers'
+import { expectTypeOf, vi } from 'vitest'
+import { feathers } from '@feathersjs/feathers'
+import { MemoryService } from '@feathersjs/memory'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { paramsFromClient } from './params-from-client.hook.js'
 
 describe('paramsFromClient', () => {
   it('should move params to query._$client', () => {
-    expect(
-      paramsFromClient(['a', 'b'])({
-        params: {
-          query: {
-            _$client: {
-              a: 1,
-              b: 2,
-            },
-            c: 3,
+    const context = {
+      params: {
+        query: {
+          _$client: {
+            a: 1,
+            b: 2,
           },
+          c: 3,
         },
-      } as HookContext),
-    ).toEqual({
+      },
+    } as HookContext
+    paramsFromClient(['a', 'b'])(context)
+    expect(context).toEqual({
       params: {
         a: 1,
         b: 2,
@@ -28,19 +30,19 @@ describe('paramsFromClient', () => {
   })
 
   it('should move params to query._$client and leave remaining', () => {
-    expect(
-      paramsFromClient('a')({
-        params: {
-          query: {
-            _$client: {
-              a: 1,
-              b: 2,
-            },
-            c: 3,
+    const context = {
+      params: {
+        query: {
+          _$client: {
+            a: 1,
+            b: 2,
           },
+          c: 3,
         },
-      } as HookContext),
-    ).toEqual({
+      },
+    } as HookContext
+    paramsFromClient('a')(context)
+    expect(context).toEqual({
       params: {
         a: 1,
         query: {
@@ -94,6 +96,43 @@ describe('paramsFromClient', () => {
         a: 1,
         query: { c: 3 },
       })
+    })
+  })
+
+  describe('integration with service.hooks({ around })', () => {
+    type Item = { id: number; name: string }
+    type Services = { items: MemoryService<Item> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<Item>>
+
+    it('is type-compatible with AroundHookFunction', () => {
+      expectTypeOf(paramsFromClient('user')).toExtend<
+        AroundHookFunction<App, MemoryService<Item>>
+      >()
+    })
+
+    it('unpacks _$client into params on the server side', async () => {
+      const app = feathers<Services>()
+      app.use('items', new MemoryService<Item>())
+
+      let seenUser: any
+      app.service('items').hooks({
+        around: {
+          create: [
+            paramsFromClient('user'),
+            async (ctx, next) => {
+              seenUser = (ctx.params as any).user
+              await next()
+            },
+          ],
+        },
+      })
+
+      await app.service('items').create({ name: 'Alice' }, {
+        query: { _$client: { user: { id: 5 } } },
+      } as any)
+
+      expect(seenUser).toEqual({ id: 5 })
     })
   })
 })

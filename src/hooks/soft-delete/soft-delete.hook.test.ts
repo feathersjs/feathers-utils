@@ -1,6 +1,7 @@
-import { assert, expect } from 'vitest'
+import { assert, expect, expectTypeOf } from 'vitest'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { softDelete } from './soft-delete.hook.js'
 
 async function setup(options: { type: 'before' | 'around' }) {
@@ -210,4 +211,18 @@ describe('softDelete', () => {
   testForHookType('before')
 
   testForHookType('around')
+
+  it('is type-compatible with AroundHookFunction', () => {
+    type Item = { id: number; deletedAt: Date | null }
+    type Services = { items: MemoryService<Item> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<Item>>
+
+    expectTypeOf(
+      softDelete<Ctx>({
+        deletedQuery: { deletedAt: null },
+        removeData: { deletedAt: new Date() },
+      }),
+    ).toExtend<AroundHookFunction<App, MemoryService<Item>>>()
+  })
 })

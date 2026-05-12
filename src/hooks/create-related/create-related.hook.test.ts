@@ -1,6 +1,7 @@
-import { expect } from 'vitest'
+import { expect, expectTypeOf } from 'vitest'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { createRelated } from './create-related.hook.js'
 
 type MockAppOptions = {
@@ -401,5 +402,23 @@ describe('hook - createRelated', function () {
     const todos = await todosService.find({ query: {} })
 
     expect(todos).toStrictEqual([])
+  })
+
+  it('is type-compatible with AroundHookFunction', () => {
+    type User = { id: number; name: string }
+    type Todo = { id: number; userId: number; title: string }
+    type Services = {
+      users: MemoryService<User>
+      todos: MemoryService<Todo>
+    }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<User>>
+
+    expectTypeOf(
+      createRelated<Ctx>({
+        service: 'todos',
+        data: (user) => ({ userId: user.id, title: 'welcome' }),
+      }),
+    ).toExtend<AroundHookFunction<App, MemoryService<User>>>()
   })
 })

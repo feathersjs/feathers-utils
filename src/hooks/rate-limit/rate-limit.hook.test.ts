@@ -1,5 +1,8 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, expectTypeOf, vi } from 'vitest'
 import { RateLimiterMemory } from 'rate-limiter-flexible'
+import { feathers } from '@feathersjs/feathers'
+import { MemoryService } from '@feathersjs/memory'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { rateLimit } from './rate-limit.hook.js'
 
 describe('hook - rateLimit', () => {
@@ -115,5 +118,35 @@ describe('hook - rateLimit', () => {
     await rateLimit(rateLimiter)(context, next)
 
     expect(next).toHaveBeenCalledOnce()
+  })
+
+  describe('integration with service.hooks({ around })', () => {
+    type Item = { id: number; name: string }
+    type Services = { items: MemoryService<Item> }
+    type App = ReturnType<typeof feathers<Services>>
+    type Ctx = HookContext<App, MemoryService<Item>>
+
+    it('is type-compatible with AroundHookFunction', () => {
+      const rateLimiter = new RateLimiterMemory({ points: 5, duration: 1 })
+      expectTypeOf(rateLimit<Ctx>(rateLimiter)).toExtend<
+        AroundHookFunction<App, MemoryService<Item>>
+      >()
+    })
+
+    it('rejects with TooManyRequests after exceeding limit', async () => {
+      const rateLimiter = new RateLimiterMemory({ points: 1, duration: 60 })
+      const app = feathers<Services>()
+      app.use('items', new MemoryService<Item>())
+      app.service('items').hooks({
+        around: {
+          find: [rateLimit<Ctx>(rateLimiter)],
+        },
+      })
+
+      await app.service('items').find()
+      await expect(app.service('items').find()).rejects.toThrow(
+        /Too many requests/,
+      )
+    })
   })
 })
