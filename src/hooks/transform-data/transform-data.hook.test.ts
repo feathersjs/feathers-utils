@@ -137,9 +137,7 @@ describe('transformData', () => {
       app.use('items', new MemoryService<Item>())
       app.service('items').hooks({
         around: {
-          create: [
-            transformData<Ctx>((item) => ({ ...item, state: 'UT' })),
-          ],
+          create: [transformData<Ctx>((item) => ({ ...item, state: 'UT' }))],
         },
       })
 

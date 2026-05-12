@@ -79,10 +79,9 @@ describe('services setSlug', () => {
         },
       })
 
-      await app.service('items').create([
-        { storeId: '1' },
-        { storeId: '2' },
-      ] as any)
+      await app
+        .service('items')
+        .create([{ storeId: '1' }, { storeId: '2' }] as any)
 
       const result = (await app.service('items').find({
         provider: 'rest',

@@ -21,10 +21,7 @@ describe('setResult', function () {
         result: {},
       } as HookContext
 
-      setResult(
-        'params.user.id',
-        'userId',
-      )(context)
+      setResult('params.user.id', 'userId')(context)
 
       assert.strictEqual(
         context.result.userId,
@@ -49,10 +46,7 @@ describe('setResult', function () {
         result: { userId: 2 },
       } as HookContext
 
-      setResult(
-        'params.user.id',
-        'userId',
-      )(context)
+      setResult('params.user.id', 'userId')(context)
 
       assert.strictEqual(
         context.result.userId,
@@ -77,10 +71,7 @@ describe('setResult', function () {
         result: [{}, {}, {}],
       } as HookContext
 
-      setResult(
-        'params.user.id',
-        'userId',
-      )(context)
+      setResult('params.user.id', 'userId')(context)
       context.result.forEach((item: any) => {
         assert.strictEqual(item.userId, 1, `'${method}': result has 'userId:1'`)
       })
@@ -102,10 +93,7 @@ describe('setResult', function () {
         result: [{ userId: 2 }, {}, { userId: 'abc' }],
       } as HookContext
 
-      setResult(
-        'params.user.id',
-        'userId',
-      )(context)
+      setResult('params.user.id', 'userId')(context)
       context.result.forEach((item: any) => {
         assert.strictEqual(item.userId, 1, `'${method}': result has 'userId:1'`)
       })
@@ -123,10 +111,7 @@ describe('setResult', function () {
         result: { userId: 2 },
       } as HookContext
 
-      setResult(
-        'params.user.id',
-        'userId',
-      )(context)
+      setResult('params.user.id', 'userId')(context)
 
       assert.strictEqual(
         context.result.userId,

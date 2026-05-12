@@ -25,7 +25,10 @@ type Result<H extends HookContext> = AnyFallback<
  * })
  * ```
  */
-export const resolveResult = <H extends HookContext = HookContext, R = Result<H>>(
+export const resolveResult = <
+  H extends HookContext = HookContext,
+  R = Result<H>,
+>(
   resolvers: ResolverObject<R, H>,
 ): {
   (context: H, next: NextFunction): Promise<void>

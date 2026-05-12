@@ -48,9 +48,7 @@ describe('transformQuery', () => {
       app.use('items', new MemoryService<Item>({ multi: true }))
       app.service('items').hooks({
         around: {
-          find: [
-            transformQuery<any, Ctx>((q) => ({ ...q, active: true })),
-          ],
+          find: [transformQuery<any, Ctx>((q) => ({ ...q, active: true }))],
         },
       })
 

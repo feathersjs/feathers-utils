@@ -68,7 +68,7 @@ export const setField = <H extends HookContext = HookContext>({
         : new Forbidden(`Expected field ${as} not available`)
     }
 
-    context = _setWith(context, as, value, _clone)
+    _setWith(context, as, value, _clone)
 
     if (next) return next()
 

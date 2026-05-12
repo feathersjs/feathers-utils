@@ -1,7 +1,10 @@
 import { expectTypeOf } from 'vitest'
-import { feathers } from '@feathersjs/feathers'
-import { MemoryService } from '@feathersjs/memory'
-import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
+import type {
+  feathers,
+  AroundHookFunction,
+  HookContext,
+} from '@feathersjs/feathers'
+import type { MemoryService } from '@feathersjs/memory'
 import { debug } from './debug.hook.js'
 
 describe('services debug', () => {
