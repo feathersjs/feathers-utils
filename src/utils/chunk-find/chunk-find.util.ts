@@ -68,6 +68,13 @@ export async function* chunkFind<
   do {
     result = await (service as any).find(params)
 
+    // Guard against an infinite loop: an empty page never advances $skip, so
+    // `total > $skip` could stay true forever (e.g. $limit:0, or a stale total
+    // when items are concurrently removed / filtered out by hooks).
+    if (!result.data.length) {
+      break
+    }
+
     yield result.data
 
     params.query.$skip = (params.query.$skip ?? 0) + result.data.length

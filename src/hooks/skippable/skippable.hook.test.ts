@@ -126,6 +126,48 @@ describe('skippable', () => {
     expect(fn).toHaveBeenCalled()
   })
 
+  it('awaits an async inner hook in before mode', async () => {
+    let resolved = false
+    const inner = async (_ctx: any) => {
+      await new Promise((r) => setTimeout(r, 5))
+      resolved = true
+    }
+
+    await skippable(
+      inner,
+      shouldSkip('testHook'),
+    )({
+      type: 'before',
+      method: 'create',
+      params: { skipHooks: [] },
+    } as any)
+
+    // Without returning the inner hook's promise, this resolves before the
+    // inner async work completes and `resolved` would still be false.
+    expect(resolved).toBe(true)
+  })
+
+  it('propagates a returned context in before mode', async () => {
+    const replaced = {
+      type: 'before',
+      method: 'create',
+      params: {},
+      replaced: true,
+    }
+    const inner = ((_ctx: any) => replaced) as any
+
+    const result: any = await skippable(
+      inner,
+      shouldSkip('testHook'),
+    )({
+      type: 'before',
+      method: 'create',
+      params: { skipHooks: [] },
+    } as any)
+
+    expect(result).toBe(replaced)
+  })
+
   describe('around hooks', () => {
     it('calls next() when skipped', async () => {
       const fn = vi.fn()

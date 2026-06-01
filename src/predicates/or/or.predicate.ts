@@ -26,10 +26,9 @@ export const or = <H extends HookContext = HookContext>(
   )
 
   return (context: H): boolean | Promise<boolean> => {
-    // same as Array.prototype.some for empty arrays
-    // see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/some#description
+    // The identity element of logical OR is `false` (an empty OR is false).
     if (!filtered.length) {
-      return true
+      return false
     }
 
     const promises: Promise<boolean>[] = []
@@ -37,12 +36,11 @@ export const or = <H extends HookContext = HookContext>(
     for (const predicate of filtered) {
       const result = predicate(context)
 
-      if (result === true) {
-        return true
-      } else if (result === false) {
-        continue
-      } else if (isPromise(result)) {
+      if (isPromise(result)) {
         promises.push(result)
+      } else if (result) {
+        // any truthy sync result short-circuits to true
+        return true
       }
     }
 

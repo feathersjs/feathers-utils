@@ -99,6 +99,53 @@ describe('setField', () => {
     }).rejects.toThrow()
   })
 
+  describe('multiple targets and function source', () => {
+    it('writes the value to every path when `as` is an array', () => {
+      const context = {
+        type: 'before',
+        method: 'find',
+        params: { user: { id: 7 }, query: {} },
+      } as HookContext
+
+      setField({
+        from: 'params.user.id',
+        as: ['params.query.userId', 'params.query.ownerId'],
+      })(context)
+
+      expect(context.params.query).toEqual({ userId: 7, ownerId: 7 })
+    })
+
+    it('derives the value from a `from` function', () => {
+      const context = {
+        type: 'before',
+        method: 'find',
+        params: { user: { id: 3, name: 'David' }, query: {} },
+      } as HookContext
+
+      setField<HookContext>({
+        from: (ctx) => (ctx.params.user as any)?.name?.toUpperCase(),
+        as: 'params.query.userName',
+      })(context)
+
+      expect(context.params.query.userName).toBe('DAVID')
+    })
+
+    it('throws (external) when the function source returns undefined', () => {
+      const context = {
+        type: 'before',
+        method: 'find',
+        params: { provider: 'rest', query: {} },
+      } as HookContext
+
+      expect(() =>
+        setField<HookContext>({
+          from: () => undefined,
+          as: 'params.query.userId',
+        })(context),
+      ).toThrow(Forbidden)
+    })
+  })
+
   describe('around hooks', () => {
     it('calls next() after setting field', async () => {
       const context = {

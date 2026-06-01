@@ -10,6 +10,14 @@ describe('isContext', () => {
     expect(isContext({ path: 'users' })({ path: 'posts' })).toBe(false)
   })
 
+  it('matches path exactly, not as a substring', () => {
+    // 'user' must NOT match 'users' / 'admin-users' / 'user-settings'
+    expect(isContext({ path: 'user' })({ path: 'users' })).toBe(false)
+    expect(isContext({ path: 'user' })({ path: 'admin-users' })).toBe(false)
+    expect(isContext({ path: 'order' })({ path: 'orders-archive' })).toBe(false)
+    expect(isContext({ path: 'user' })({ path: 'user' })).toBe(true)
+  })
+
   it('returns true for type', () => {
     expect(isContext({ type: 'before' })({ type: 'before' })).toBe(true)
     expect(isContext({ type: ['before', 'after'] })({ type: 'before' })).toBe(

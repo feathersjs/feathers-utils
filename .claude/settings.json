@@ -12,8 +12,6 @@
       "WebSearch",
       "WebFetch(domain:daddywarbucks.github.io)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(curl -sS https://raw.githubusercontent.com/DaddyWarbucks/feathers-fletching/master/src/hooks/rateLimit.ts)",
-      "Bash(curl -sS https://raw.githubusercontent.com/DaddyWarbucks/feathers-fletching/master/tests/hooks/rateLimit.test.ts)",
       "Bash(pnpm run test:unit)",
       "Bash(pnpm run test:unit *)",
       "Bash(pnpm run build)",
@@ -21,7 +19,8 @@
       "Bash(gh release view *)",
       "Bash(npm run *)",
       "Bash(pnpm typecheck *)",
-      "Bash(pnpm vitest *)"
+      "Bash(pnpm vitest *)",
+      "Bash(pnpm lint *)"
     ]
   }
 }

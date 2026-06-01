@@ -69,6 +69,25 @@ describe('paramsForServer', () => {
     })
   })
 
+  it('does not mutate a pre-existing query._$client on the caller', () => {
+    const originalClient = { existing: true }
+    const context = {
+      params: {
+        user: { id: 1 },
+        query: { _$client: originalClient },
+      },
+    } as unknown as HookContext
+
+    paramsForServer('user')(context)
+
+    // The caller's original nested object must be untouched.
+    expect(originalClient).toEqual({ existing: true })
+    expect((context.params.query as any)._$client).toEqual({
+      existing: true,
+      user: { id: 1 },
+    })
+  })
+
   describe('integration with service.hooks({ around })', () => {
     type Item = { id: number; name: string }
     type Services = { items: MemoryService<Item> }

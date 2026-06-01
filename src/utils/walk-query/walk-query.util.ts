@@ -43,7 +43,7 @@ const _walkQueryUtil = <Q extends Query>(
 
   for (const key in query) {
     if (
-      (key === '$or' || key === '$and' || key === '$nor' || key === '$not') &&
+      (key === '$or' || key === '$and' || key === '$nor') &&
       Array.isArray(query[key])
     ) {
       let array = query[key]
@@ -122,7 +122,7 @@ const _walkQueryUtil = <Q extends Query>(
 }
 
 /**
- * Walks every property of a Feathers query (including nested `$and`/`$or`/`$nor`/`$not` arrays)
+ * Walks every property of a Feathers query (including nested `$and`/`$or`/`$nor` arrays)
  * and calls the `walker` function for each one. The walker receives the property name, operator,
  * value, and path, and can return a replacement value. Returns a new query only if changes were made.
  *

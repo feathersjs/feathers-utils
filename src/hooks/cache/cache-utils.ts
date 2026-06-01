@@ -1,30 +1,17 @@
-import isObject from 'lodash/isObject.js'
 import { sortQueryProperties } from '../../utils/sort-query-properties/sort-query-properties.util.js'
 
 export { sortQueryProperties }
 
 export const stableStringify = (obj: Record<string, any>) => {
-  if (obj.query) {
-    obj = { ...obj, query: sortQueryProperties(obj.query) }
-  }
+  // Canonicalize the whole params object once (recursive key-sort + operator-array
+  // sort). The JSON.stringify pass then only needs to reject non-JSON values
+  // instead of re-sorting and re-allocating every node.
+  const normalized = sortQueryProperties(obj as any)
 
-  return JSON.stringify(obj, (key, value) => {
+  return JSON.stringify(normalized, (_key, value) => {
     if (typeof value === 'function') {
       throw new Error('Cannot stringify non JSON value')
     }
-
-    if (isObject(value)) {
-      return Object.keys(value)
-        .sort()
-        .reduce(
-          (result, key) => {
-            result[key] = (value as any)[key]
-            return result
-          },
-          {} as Record<string, any>,
-        )
-    }
-
     return value
   })
 }

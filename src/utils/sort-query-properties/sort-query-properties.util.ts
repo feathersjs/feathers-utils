@@ -1,7 +1,9 @@
 import type { Query } from '@feathersjs/feathers'
-import isObject from 'lodash/isObject.js'
 
 const arrayOperators = new Set(['$or', '$and', '$nor', '$not', '$in', '$nin'])
+
+const isPlainObjectLike = (value: unknown): value is Record<string, any> =>
+  value !== null && typeof value === 'object'
 
 /**
  * Recursively normalizes a Feathers query object for order-independent comparison.
@@ -35,21 +37,26 @@ const normalize = (value: any): any => {
     return value.map(normalize)
   }
 
-  if (!isObject(value)) {
+  if (!isPlainObjectLike(value)) {
     return value
   }
 
   const sorted: Record<string, any> = {}
 
-  for (const key of Object.keys(value as Record<string, any>).sort()) {
-    const val = (value as Record<string, any>)[key]
+  for (const key of Object.keys(value).sort()) {
+    const val = value[key]
 
     if (arrayOperators.has(key) && Array.isArray(val)) {
+      // Schwartzian transform: serialize each normalized element once, sort by
+      // that key, then unwrap. Avoids the O(n log n) repeated JSON.stringify of
+      // the previous comparator (which also returned 1 for equal elements).
       sorted[key] = val
-        .map(normalize)
-        .sort((a: any, b: any) =>
-          JSON.stringify(a) < JSON.stringify(b) ? -1 : 1,
-        )
+        .map((el) => {
+          const normalized = normalize(el)
+          return { k: JSON.stringify(normalized), v: normalized }
+        })
+        .sort((a, b) => (a.k < b.k ? -1 : a.k > b.k ? 1 : 0))
+        .map((entry) => entry.v)
     } else {
       sorted[key] = normalize(val)
     }

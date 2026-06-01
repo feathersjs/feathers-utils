@@ -9,8 +9,13 @@ export const hasOwnProperty = (
 
 export type MaybeArray<T> = T | readonly T[]
 export type UnpackMaybeArray<T> = T extends readonly (infer E)[] ? E : T
+/**
+ * Normalizes a value or array into an array. The returned array MUST be treated
+ * as read-only — when the input is already an array it is returned as-is (no copy)
+ * to avoid a per-call allocation on hook hot paths.
+ */
 export const toArray = <T>(value: T | readonly T[]): T[] =>
-  Array.isArray(value) ? [...value] : [value as T]
+  Array.isArray(value) ? (value as T[]) : [value as T]
 
 export type Promisable<T> = T | Promise<T>
 export type KeyOf<T> = Extract<keyof T, string>

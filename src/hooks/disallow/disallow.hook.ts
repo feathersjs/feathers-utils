@@ -31,7 +31,9 @@ export const disallow = <H extends HookContext = HookContext>(
   function hook(context: H): void
   function hook(context: H, next: NextFunction): Promise<void>
   function hook(context: H, next?: NextFunction): void | Promise<void> {
-    if (!transports) {
+    // No transports (undefined) or an empty list means "block completely".
+    // Fail closed for a guard hook rather than throwing a confusing internal error.
+    if (!transports || transportsArr.length === 0) {
       throw new MethodNotAllowed('Method not allowed')
     }
 

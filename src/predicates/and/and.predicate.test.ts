@@ -59,6 +59,18 @@ describe('predicates/and', () => {
     expect(fn).toHaveBeenCalledTimes(1)
   })
 
+  it('returns false synchronously for a falsy (non-boolean) result', () => {
+    expect(every((() => 0) as any)({} as HookContext)).toBe(false)
+    expect(every((() => undefined) as any)({} as HookContext)).toBe(false)
+    expect(every((() => '') as any)({} as HookContext)).toBe(false)
+    expect(every((() => null) as any)({} as HookContext)).toBe(false)
+  })
+
+  it('returns true synchronously for a truthy (non-boolean) result', () => {
+    expect(every((() => 1) as any)({} as HookContext)).toBe(true)
+    expect(every((() => 'x') as any)({} as HookContext)).toBe(true)
+  })
+
   let app: any
 
   beforeEach(() => {
@@ -74,7 +86,7 @@ describe('predicates/and', () => {
               every(
                 (_hook: any) => true,
                 ((_hook: any) => 1) as any,
-                ((_hook: any) => {}) as any,
+                ((_hook: any) => 'truthy') as any,
                 (_hook: any) => Promise.resolve(true),
               ),
               (hook: any) => Promise.resolve(hook),

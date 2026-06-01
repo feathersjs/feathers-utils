@@ -163,5 +163,47 @@ describe('traverse', () => {
       const created = await app.service('items').create({ name: '  Alice  ' })
       expect(created.name).toBe('Alice')
     })
+
+    it('transforms context.result in an around hook with runAfter', async () => {
+      const app = feathers<Services>()
+      app.use('items', new MemoryService<Item>())
+      app.service('items').hooks({
+        around: {
+          create: [
+            traverse<Ctx>({
+              runAfter: true,
+              transformer(this: any, node) {
+                if (typeof node === 'string') this.update(node.toUpperCase())
+              },
+              getObject: (ctx) => ctx.result,
+            }),
+          ],
+        },
+      })
+
+      const created = await app.service('items').create({ name: 'alice' })
+      // result-targeting transform only runs because runAfter defers it past next()
+      expect(created.name).toBe('ALICE')
+    })
+
+    it('result target no-ops in an around hook without runAfter', async () => {
+      const app = feathers<Services>()
+      app.use('items', new MemoryService<Item>())
+      app.service('items').hooks({
+        around: {
+          create: [
+            traverse<Ctx>({
+              transformer(this: any, node) {
+                if (typeof node === 'string') this.update(node.toUpperCase())
+              },
+              getObject: (ctx) => ctx.result ?? {},
+            }),
+          ],
+        },
+      })
+
+      const created = await app.service('items').create({ name: 'alice' })
+      expect(created.name).toBe('alice')
+    })
   })
 })

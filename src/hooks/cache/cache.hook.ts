@@ -67,6 +67,16 @@ export type CacheOptions = {
    * ```
    */
   logger?: (event: CacheEvent) => void
+  /**
+   * How to clone results on store and on hit so callers can't mutate the shared
+   * cached object. Defaults to a `fast-copy` deep clone.
+   *
+   * Set to `false` to skip cloning entirely (fastest, but the caller MUST treat
+   * results as immutable), or pass a custom clone function (e.g. `structuredClone`).
+   *
+   * @default true
+   */
+  clone?: boolean | (<T>(value: T) => T)
 }
 
 /**
@@ -139,12 +149,19 @@ class ContextCacheMap {
   private options: CacheOptions
   private log: ((event: CacheEvent) => void) | undefined
   private serialize: (params: Params) => string
+  private clone: <T>(value: T) => T
 
   constructor(options: CacheOptions) {
     this.map = options.map
     this.options = options
     this.log = options.logger
     this.serialize = options.serialize ?? stableStringify
+    this.clone =
+      options.clone === false
+        ? (value) => value
+        : typeof options.clone === 'function'
+          ? options.clone
+          : copy
   }
 
   private stringifyCacheKey(context: HookContext) {
@@ -184,10 +201,10 @@ class ContextCacheMap {
    */
   async get(context: HookContext) {
     const key = this.stringifyCacheKey(context)
-    const result = this.map.get(key)
+    const result = await this.map.get(key)
     if (result) {
       this.log?.({ type: 'hit', method: context.method, key })
-      return copy(result) // Use copy to avoid mutation of the original result
+      return this.clone(result) // clone to avoid mutation of the cached result
     }
     this.log?.({ type: 'miss', method: context.method, key })
   }
@@ -200,7 +217,8 @@ class ContextCacheMap {
   async set(context: HookContext) {
     const key = this.stringifyCacheKey(context)
     this.log?.({ type: 'set', method: context.method, key })
-    return this.map.set(key, copy(context.result)) // Use copy to avoid mutation of the original result
+    // clone to avoid later mutation of the cached result
+    return this.map.set(key, this.clone(context.result))
   }
 
   // Called after create(), update(), patch(), and remove()
@@ -222,6 +240,9 @@ class ContextCacheMap {
       return context
     }
 
+    // O(1) membership instead of an O(itemIds) scan per cached key.
+    const idSet = new Set<string>(itemIds.map((id: any) => `${id}`))
+
     for (const key of this.map.keys()) {
       const cachedId = this.getCachedId(key)
       if (cachedId === 'null') {
@@ -239,12 +260,10 @@ class ContextCacheMap {
         continue
       }
 
-      for (const itemId of itemIds) {
-        if (cachedId === itemId) {
-          // If the cached id matches the item id, delete the cached get
-          this.log?.({ type: 'invalidate', method: context.method, key })
-          promises.push(this.map.delete(key))
-        }
+      if (idSet.has(cachedId)) {
+        // If the cached id matches a mutated item id, delete the cached get
+        this.log?.({ type: 'invalidate', method: context.method, key })
+        promises.push(this.map.delete(key))
       }
     }
 

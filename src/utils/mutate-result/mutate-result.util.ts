@@ -1,5 +1,6 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { getResultIsArray } from '../get-result-is-array/get-result-is-array.util.js'
+import { replaceResult } from '../replace-result/replace-result.util.js'
 import { isPromise } from '../../common/index.js'
 import { copy } from 'fast-copy'
 import type { Promisable } from '../../internal.utils.js'
@@ -35,7 +36,7 @@ export function mutateResult<H extends HookContext = HookContext>(
   }
 
   function forResult(dispatch: boolean): Promisable<H> {
-    const { result, isArray, key } = getResultIsArray(context, { dispatch })
+    const { result } = getResultIsArray(context, { dispatch })
 
     if (!result.length) {
       return context
@@ -59,15 +60,8 @@ export function mutateResult<H extends HookContext = HookContext>(
         r = options.transform(r)
       }
 
-      if (!isArray) {
-        context[key] = r[0]
-      } else if (isArray && !Array.isArray(context[key]) && context[key].data) {
-        context[key].data = r
-      } else {
-        context[key] = r
-      }
-
-      return context
+      // delegate the single/array/paginated writeback to replaceResult
+      return replaceResult(context, r, { dispatch })
     }
 
     if (hasPromises) {

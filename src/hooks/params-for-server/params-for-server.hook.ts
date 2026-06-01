@@ -64,6 +64,10 @@ export const paramsForServer = (
 
         if (!clonedParams.query[keyToHide]) {
           clonedParams.query[keyToHide] = {}
+        } else {
+          // The shallow query copy still aliases a pre-existing key object;
+          // clone it so we don't mutate the caller's original params.
+          clonedParams.query[keyToHide] = { ...clonedParams.query[keyToHide] }
         }
 
         clonedParams.query[keyToHide][key] = clonedParams[key]

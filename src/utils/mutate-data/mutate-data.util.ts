@@ -1,5 +1,6 @@
 import type { HookContext } from '@feathersjs/feathers'
 import { getDataIsArray } from '../get-data-is-array/get-data-is-array.util.js'
+import { replaceData } from '../replace-data/replace-data.util.js'
 import { isPromise } from '../../common/index.js'
 import type { Promisable } from '../../internal.utils.js'
 import type { TransformerInputFn } from '../../types.js'
@@ -26,7 +27,24 @@ export function mutateData<H extends HookContext = HookContext>(
     return context
   }
 
-  const { data, isArray } = getDataIsArray(context)
+  // single-item fast path: avoid allocating a wrapper array + a mapped array
+  // for the common single create/update/patch case.
+  if (!Array.isArray(context.data)) {
+    const item = context.data
+    const result = transformer(item, { context, i: 0 })
+
+    if (isPromise(result)) {
+      return result.then((res: any) => {
+        context.data = res ?? item
+        return context
+      })
+    }
+
+    context.data = result ?? item
+    return context
+  }
+
+  const { data } = getDataIsArray(context)
 
   if (!data.length) {
     return context
@@ -46,9 +64,8 @@ export function mutateData<H extends HookContext = HookContext>(
   })
 
   function mutate(data: any) {
-    context.data = isArray ? data : data[0]
-
-    return context
+    // delegate the array writeback (single is handled by the fast path above)
+    return replaceData(context, data)
   }
 
   if (hasPromises) {

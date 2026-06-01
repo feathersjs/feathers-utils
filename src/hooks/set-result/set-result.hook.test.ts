@@ -78,6 +78,38 @@ describe('setResult', function () {
     })
   })
 
+  describe('dispatch', function () {
+    it('seeds and writes context.dispatch when dispatch is true (single item)', function () {
+      const context = {
+        method: 'get',
+        type: 'after',
+        params: { user: { id: 1 } },
+        result: { name: 'John' },
+      } as HookContext
+
+      setResult('params.user.id', 'userId', { dispatch: true })(context)
+
+      // dispatch must be populated from result and carry the new field
+      expect(context.dispatch).toMatchObject({ name: 'John', userId: 1 })
+      // result must NOT be mutated when dispatch is true (only)
+      expect((context.result as any).userId).toBeUndefined()
+    })
+
+    it('writes both result and dispatch with dispatch: "both" (array)', function () {
+      const context = {
+        method: 'find',
+        type: 'after',
+        params: { user: { id: 5 } },
+        result: [{ a: 1 }, { a: 2 }],
+      } as HookContext
+
+      setResult('params.user.id', 'userId', { dispatch: 'both' })(context)
+
+      context.result.forEach((item: any) => expect(item.userId).toBe(5))
+      context.dispatch.forEach((item: any) => expect(item.userId).toBe(5))
+    })
+  })
+
   it('overwrites userId for multiple items', function () {
     const methods = ['find', 'get', 'create', 'update', 'patch', 'remove']
 

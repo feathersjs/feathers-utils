@@ -6,9 +6,23 @@ import type { FeathersError } from '@feathersjs/errors'
 import { Forbidden } from '@feathersjs/errors'
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 
-export interface SetFieldOptions {
-  as: string
-  from: string
+export interface SetFieldOptions<H extends HookContext = HookContext> {
+  /**
+   * The target path(s) to set. Pass an array to write the same value to several
+   * paths (e.g. multiple query keys).
+   *
+   * @example 'params.query.userId'
+   * @example ['params.query.userId', 'params.query.ownerId']
+   */
+  as: string | string[]
+  /**
+   * The source of the value: a `dot.notation` path on the context, or a function
+   * that derives the value from the context.
+   *
+   * @example 'params.user.id'
+   * @example (context) => context.params.user?.id
+   */
+  from: string | ((context: H) => unknown)
   /**
    * If set to `true`, allows the field to be undefined.
    * If the field is not available and this is `true`, the hook will not throw an error.
@@ -23,7 +37,10 @@ export interface SetFieldOptions {
    *
    * If not provided, throws a `Forbidden` error with a message indicating the missing field.
    */
-  error?: (context: HookContext, from: string) => FeathersError
+  error?: (
+    context: H,
+    from: string | ((context: H) => unknown),
+  ) => FeathersError
 }
 
 /**
@@ -47,7 +64,9 @@ export const setField = <H extends HookContext = HookContext>({
   from,
   allowUndefined = false,
   error,
-}: SetFieldOptions) => {
+}: SetFieldOptions<H>) => {
+  const targets = Array.isArray(as) ? as : [as]
+
   function hook(context: H): void
   function hook(context: H, next: NextFunction): Promise<void>
   function hook(context: H, next?: NextFunction): void | Promise<void> {
@@ -55,7 +74,8 @@ export const setField = <H extends HookContext = HookContext>({
 
     checkContext(context, { type: ['before', 'around'], label: 'setField' })
 
-    const value = _get(context, from)
+    const value =
+      typeof from === 'function' ? from(context) : _get(context, from)
 
     if (value === undefined) {
       if (!params.provider || allowUndefined) {
@@ -65,10 +85,12 @@ export const setField = <H extends HookContext = HookContext>({
 
       throw error
         ? error(context, from)
-        : new Forbidden(`Expected field ${as} not available`)
+        : new Forbidden(`Expected field ${targets.join(', ')} not available`)
     }
 
-    _setWith(context, as, value, _clone)
+    for (const target of targets) {
+      _setWith(context, target, value, _clone)
+    }
 
     if (next) return next()
 

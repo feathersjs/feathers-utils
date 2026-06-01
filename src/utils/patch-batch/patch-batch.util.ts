@@ -1,6 +1,21 @@
 import type { Id, Params } from '@feathersjs/feathers'
-import { dequal as deepEqual } from 'dequal'
 import type { KeyOf } from '../../internal.utils.js'
+
+/**
+ * Deterministic, key-order-independent serialization used to group items with
+ * equal patch data in O(1) per item.
+ */
+const stableKey = (value: any): string =>
+  JSON.stringify(value, (_key, val) =>
+    val && typeof val === 'object' && !Array.isArray(val)
+      ? Object.keys(val)
+          .sort()
+          .reduce<Record<string, any>>((acc, k) => {
+            acc[k] = val[k]
+            return acc
+          }, {})
+      : val,
+  )
 
 export type PatchBatchOptions<IdKey extends string> = {
   /** the key of the id property */
@@ -47,27 +62,30 @@ export function patchBatch<
   items: T[],
   options?: PatchBatchOptions<IdKey>,
 ): PatchBatchResultItem<R, P>[] {
-  const map: { ids: Id[]; data: R }[] = []
-
   const idKey = options?.id ?? 'id'
 
-  for (const _data of items) {
-    const data = _data as unknown as R
-    const id = _data[idKey]
-    delete (data as any)[idKey as any]
+  // group items with identical (id-stripped) data in O(n) via a Map keyed by a
+  // stable serialization, instead of an O(n^2) findIndex + deepEqual scan.
+  const groups = new Map<string, { ids: Id[]; data: R }>()
 
-    const index = map.findIndex((item) => {
-      return deepEqual(item.data, data)
-    })
+  for (const item of items) {
+    const source = item as Record<string, any>
+    const id = source[idKey] as Id
+    // shallow copy then drop the id key, so the caller's input is never mutated.
+    const data = { ...source }
+    delete data[idKey as any]
 
-    if (index === -1) {
-      map.push({ ids: [id], data })
+    const key = stableKey(data)
+    const existing = groups.get(key)
+
+    if (existing) {
+      existing.ids.push(id)
     } else {
-      map[index].ids.push(id)
+      groups.set(key, { ids: [id], data: data as unknown as R })
     }
   }
 
-  return map.map(({ ids, data }) => {
+  return [...groups.values()].map(({ ids, data }) => {
     return ids.length === 1
       ? ([ids[0], data, undefined] as PatchBatchResultItem<R, P>)
       : ([

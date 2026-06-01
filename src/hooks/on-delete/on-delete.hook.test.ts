@@ -830,6 +830,84 @@ describe('onDelete', function () {
     })
   })
 
+  describe('error handling', function () {
+    it('non-blocking default surfaces related errors via onError, caller still resolves', async function () {
+      const { usersService, todosService } = mockApp()
+
+      todosService.hooks({
+        before: {
+          remove: [
+            () => {
+              throw new Error('boom')
+            },
+          ],
+        },
+      })
+
+      const onError = vi.fn()
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'cascade',
+              onError,
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe' })
+      await todosService.create({ title: 'Buy milk', userId: user.id })
+
+      // non-blocking: the caller's remove resolves even though the cascade fails
+      await expect(usersService.remove(user.id)).resolves.toBeDefined()
+
+      // let the fire-and-forget .catch() run
+      await new Promise((r) => setTimeout(r, 10))
+
+      expect(onError).toHaveBeenCalledOnce()
+      expect(onError.mock.calls[0][0]).toBeInstanceOf(Error)
+      expect(onError.mock.calls[0][0].message).toContain('boom')
+    })
+
+    it('blocking mode throws related errors to the caller', async function () {
+      const { usersService, todosService } = mockApp()
+
+      todosService.hooks({
+        before: {
+          remove: [
+            () => {
+              throw new Error('boom')
+            },
+          ],
+        },
+      })
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'cascade',
+              blocking: true,
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe' })
+      await todosService.create({ title: 'Buy milk', userId: user.id })
+
+      await expect(usersService.remove(user.id)).rejects.toThrow('boom')
+    })
+  })
+
   describe('types', function () {
     interface TodoResult {
       id: number

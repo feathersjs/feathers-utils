@@ -101,6 +101,38 @@ describe('chunkFind', function () {
     expect(chunks[0]).toEqual([expect.objectContaining({ name: 'test1' })])
   })
 
+  it('terminates on an empty page even if total stays high (stale total)', async function () {
+    let calls = 0
+    const fakeApp = {
+      service: () => ({
+        find: async (params: any) => {
+          calls++
+          if (params.query.$skip === 0) {
+            return {
+              data: [{ id: 1, name: 'a' }],
+              total: 100,
+              limit: 10,
+              skip: 0,
+            }
+          }
+          // empty page while total still claims more -> must break, not loop forever
+          return { data: [], total: 100, limit: 10, skip: params.query.$skip }
+        },
+      }),
+    } as any
+
+    const chunks: any[] = []
+    for await (const chunk of chunkFind<{ users: any }, 'users'>(
+      fakeApp,
+      'users',
+    )) {
+      chunks.push(chunk)
+    }
+
+    expect(chunks).toHaveLength(1)
+    expect(calls).toBeLessThanOrEqual(2)
+  }, 2000)
+
   it('ignores paginate:false and always paginates', async function () {
     const { app } = await setup()
 
