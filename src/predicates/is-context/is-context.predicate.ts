@@ -32,7 +32,7 @@ export const isContext = <H extends HookContext = HookContext>(
   const method = options.method != null ? toArray(options.method) : undefined
 
   return (context: any): boolean => {
-    if (path && !path.some((x) => context.path.includes(x))) {
+    if (path && !path.some((x) => context.path === x)) {
       return false
     }
 

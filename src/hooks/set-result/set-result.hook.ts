@@ -1,6 +1,7 @@
 import _get from 'lodash/get.js'
 import _set from 'lodash/set.js'
 import _has from 'lodash/has.js'
+import { copy } from 'fast-copy'
 
 import type { FeathersError } from '@feathersjs/errors'
 import { Forbidden } from '@feathersjs/errors'
@@ -110,6 +111,12 @@ export function setResult<H extends HookContext = HookContext>(
   }
 
   const fn = (context: H) => {
+    // Seed context.dispatch from result so the dispatch branch mutates (and
+    // persists to) a real object instead of a throwaway copy. Mirrors mutateResult.
+    if (!!options?.dispatch && !context.dispatch) {
+      context.dispatch = copy(context.result)
+    }
+
     if (options?.dispatch === 'both') {
       forResultOrDispatch(context, true)
       return forResultOrDispatch(context, false)

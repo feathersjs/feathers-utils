@@ -120,4 +120,35 @@ describe('iterateFind', function () {
       Array.from({ length }).map((_, i) => `test${i + 1}`),
     )
   })
+
+  it('terminates on an empty page even if total stays high (stale total)', async function () {
+    let calls = 0
+    const fakeApp = {
+      service: () => ({
+        find: async (params: any) => {
+          calls++
+          if (params.query.$skip === 0) {
+            return {
+              data: [{ id: 1, name: 'a' }],
+              total: 100,
+              limit: 10,
+              skip: 0,
+            }
+          }
+          return { data: [], total: 100, limit: 10, skip: params.query.$skip }
+        },
+      }),
+    } as any
+
+    const items: any[] = []
+    for await (const item of iterateFind<{ users: any }, 'users'>(
+      fakeApp,
+      'users',
+    )) {
+      items.push(item)
+    }
+
+    expect(items).toHaveLength(1)
+    expect(calls).toBeLessThanOrEqual(2)
+  }, 2000)
 })

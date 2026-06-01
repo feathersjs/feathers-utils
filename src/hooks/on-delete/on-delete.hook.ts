@@ -43,6 +43,12 @@ export interface OnDeleteOptions<
    * @default false
    */
   blocking?: boolean
+  /**
+   * Called when a non-blocking (`blocking: false`) related-service call rejects.
+   * Without this, fire-and-forget rejections are swallowed (but never leak as an
+   * unhandled rejection). In `blocking` mode the error is thrown to the caller instead.
+   */
+  onError?: (error: any, context: H) => void
 }
 
 /**
@@ -89,46 +95,60 @@ export const onDelete = <H extends HookContext = HookContext>(
       return
     }
 
-    const promises: Promise<any>[] = []
+    const blockingPromises: Promise<any>[] = []
 
-    optionsMulti.forEach(
-      async ({ keyHere, keyThere, onDelete, service, blocking, query }) => {
-        let ids = result.map((x) => x[keyHere]).filter((x) => !!x)
-        ids = [...new Set(ids)]
+    for (const {
+      keyHere,
+      keyThere,
+      onDelete,
+      service,
+      blocking,
+      query,
+      onError,
+    } of optionsMulti) {
+      let ids = result.map((x) => x[keyHere]).filter((x) => !!x)
+      ids = [...new Set(ids)]
 
-        if (!ids || ids.length <= 0) {
-          return
-        }
+      if (!ids || ids.length <= 0) {
+        continue
+      }
 
-        const params = {
-          query: {
-            ...query,
-            ...(ids.length === 1
-              ? { [keyThere]: ids[0] }
-              : { [keyThere]: { $in: ids } }),
-          },
-          paginate: false,
-        }
+      const params = {
+        query: {
+          ...query,
+          ...(ids.length === 1
+            ? { [keyThere]: ids[0] }
+            : { [keyThere]: { $in: ids } }),
+        },
+        paginate: false,
+      }
 
-        let promise: Promise<any> | undefined = undefined
+      let promise: Promise<any> | undefined = undefined
 
-        if (onDelete === 'cascade') {
-          promise = context.app.service(service as string).remove(null, params)
-        } else if (onDelete === 'set null') {
-          const data = { [keyThere]: null }
-          promise = context.app
-            .service(service as string)
-            .patch(null, data, params)
-        }
+      if (onDelete === 'cascade') {
+        promise = context.app.service(service as string).remove(null, params)
+      } else if (onDelete === 'set null') {
+        const data = { [keyThere]: null }
+        promise = context.app
+          .service(service as string)
+          .patch(null, data, params)
+      }
 
-        if (promise && blocking) {
-          promises.push(promise)
-        }
-      },
-    )
+      if (!promise) {
+        continue
+      }
 
-    if (promises.length) {
-      await Promise.all(promises)
+      if (blocking) {
+        blockingPromises.push(promise)
+      } else {
+        // fire-and-forget: always attach a catch so a rejection never becomes
+        // an unhandled promise rejection. Surface it via `onError` if provided.
+        promise.catch((error) => onError?.(error, context))
+      }
+    }
+
+    if (blockingPromises.length) {
+      await Promise.all(blockingPromises)
     }
 
     return

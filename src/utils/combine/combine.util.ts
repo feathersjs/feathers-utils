@@ -1,5 +1,6 @@
 import type { HookContext } from '@feathersjs/feathers'
 import type { HookFunction } from '../../types.js'
+import { isPromise } from '../../common/index.js'
 
 /**
  * Sequentially executes multiple hooks, passing the updated context from one to the next.
@@ -42,22 +43,14 @@ export function combine<H extends HookContext = HookContext>(
       return ctx
     }
 
-    // Go through all hooks and chain them into our promise
-
-    // @ts-expect-error TODO
-    const promise = serviceHooks.reduce(async (current, fn) => {
-      // @ts-expect-error TODO
-      const hook = fn.bind(this)
-
-      // Use the returned hook object or the old one
-
-      const currentHook = await current
-      const currentCtx = await hook(currentHook)
-      return updateCurrentHook(currentCtx)
-    }, Promise.resolve(ctx))
-
+    // Run the hooks sequentially, only awaiting when a hook is actually async.
+    // Avoids a microtask hop per hook and a per-hook `bind` allocation.
     try {
-      await promise
+      for (const fn of serviceHooks) {
+        // @ts-expect-error `this` is the bound service-hook context
+        const currentCtx = fn.call(this, ctx)
+        updateCurrentHook(isPromise(currentCtx) ? await currentCtx : currentCtx)
+      }
       return ctx
     } catch (error: any) {
       // Add the hook information to any errors

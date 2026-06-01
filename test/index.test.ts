@@ -57,6 +57,8 @@ const utils = [
   'mutateData',
   'mutateResult',
   'patchBatch',
+  'replaceData',
+  'replaceResult',
   'skipResult',
   'sortQueryProperties',
   'toPaginated',

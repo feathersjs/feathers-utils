@@ -6,6 +6,15 @@ export type TraverseOptions = {
   getObject: (
     context: HookContext,
   ) => Record<string, any> | Record<string, any>[]
+  /**
+   * For `around` hooks only: run the traversal *after* `next()` instead of before.
+   * Required when `getObject` targets `context.result`, which is only populated
+   * once the service method has run. Defaults to `false` (run before `next()`),
+   * which is correct for `context.data`/`context.params.query` targets.
+   *
+   * @default false
+   */
+  runAfter?: boolean
 }
 
 /**
@@ -29,11 +38,21 @@ export type TraverseOptions = {
 export const traverse = <H extends HookContext = HookContext>({
   transformer,
   getObject,
+  runAfter = false,
 }: TraverseOptions) => {
+  const runTraverse = (context: H) => _traverse(getObject(context), transformer)
+
   function hook(context: H): void
   function hook(context: H, next: NextFunction): Promise<void>
   function hook(context: H, next?: NextFunction): void | Promise<void> {
-    _traverse(getObject(context), transformer)
+    if (next && runAfter) {
+      // around hook targeting context.result: transform after the method ran
+      return next().then(() => {
+        runTraverse(context)
+      })
+    }
+
+    runTraverse(context)
 
     if (next) return next()
 

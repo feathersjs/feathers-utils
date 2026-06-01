@@ -26,8 +26,7 @@ export const and = <H extends HookContext = HookContext>(
   )
 
   return (context: H): boolean | Promise<boolean> => {
-    // same as Array.prototype.every for empty arrays
-    // see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/every#description
+    // The identity element of logical AND is `true` (an empty AND is true).
     if (!filtered.length) {
       return true
     }
@@ -36,10 +35,11 @@ export const and = <H extends HookContext = HookContext>(
 
     for (const predicate of filtered) {
       const result = predicate(context)
-      if (result === false) {
-        return false
-      } else if (isPromise(result)) {
+      if (isPromise(result)) {
         promises.push(result)
+      } else if (!result) {
+        // any falsy sync result short-circuits to false
+        return false
       }
     }
 

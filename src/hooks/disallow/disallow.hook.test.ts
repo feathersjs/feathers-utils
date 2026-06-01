@@ -93,6 +93,23 @@ describe('hook - disallow', () => {
       assert.throws(() => disallow()({} as any))
     })
 
+    it('treats an empty transport array as block-all', () => {
+      assert.throws(
+        () =>
+          disallow([])({
+            method: 'create',
+            params: { provider: 'rest' },
+          } as any),
+        /Method not allowed/,
+      )
+      // also blocks internal callers (fail closed)
+      assert.throws(
+        () =>
+          disallow([])({ method: 'create', params: { provider: '' } } as any),
+        /Method not allowed/,
+      )
+    })
+
     it('finds provider with 1 arg', () => {
       const hook = structuredClone(hookSocketio)
 

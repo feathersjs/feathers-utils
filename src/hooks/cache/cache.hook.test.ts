@@ -974,3 +974,176 @@ describe('cache hook with custom serialize', () => {
     ).toExtend<AroundHookFunction<App, MemoryService<Item>>>()
   })
 })
+
+/**
+ * Promise-based cache (Redis-like). Every method returns a Promise, so the hook
+ * MUST `await` the underlying `map.get`/`map.set`. `keys()` stays synchronous to
+ * match the `Cache` contract used by the invalidation loop.
+ */
+class AsyncCache {
+  private map = new Map<string, any>()
+  async get(key: string) {
+    return this.map.get(key)
+  }
+  async set(key: string, value: any) {
+    this.map.set(key, value)
+    return value
+  }
+  async delete(key: string) {
+    return this.map.delete(key)
+  }
+  async clear() {
+    this.map.clear()
+  }
+  keys() {
+    return this.map.keys()
+  }
+}
+
+describe('cache hook with an async (Promise-based) cache', () => {
+  // Regression for: get() must await map.get. Without the await, an async cache
+  // returns a (truthy) pending Promise, so a cold cache reports a "hit" instead of
+  // a "miss" (the value only survives by accident via fast-copy's thenable chaining).
+  it('reports a real miss/hit on a cold async cache', async () => {
+    const logger = vi.fn()
+    const { usersService, before } = setup({
+      map: new AsyncCache(),
+      transformParams: (params) => params,
+      logger,
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+    logger.mockClear()
+
+    let item = await usersService.get(1)
+    expect(item).toEqual({ id: 1, name: 'John' })
+    expect(before.get).toHaveBeenCalledTimes(1)
+    // cold cache -> first event MUST be a miss, not a hit
+    expect(logger.mock.calls[0][0]).toMatchObject({
+      type: 'miss',
+      method: 'get',
+    })
+
+    logger.mockClear()
+    item = await usersService.get(1)
+    expect(item).toEqual({ id: 1, name: 'John' })
+    expect(before.get).toHaveBeenCalledTimes(1)
+    expect(logger.mock.calls[0][0]).toMatchObject({
+      type: 'hit',
+      method: 'get',
+    })
+  })
+
+  it('invalidates an async cache on patch', async () => {
+    const { usersService, before } = setup({
+      map: new AsyncCache(),
+      transformParams: (params) => params,
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+    await usersService.find()
+    expect(before.find).toHaveBeenCalledTimes(1)
+
+    await usersService.patch(1, { name: 'John Doe' })
+    const items = await usersService.find()
+    expect(items.data).toEqual([{ id: 1, name: 'John Doe' }])
+    expect(before.find).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('cache hook clone option', () => {
+  it('clone: false skips cloning and serves the cached reference', async () => {
+    const map = new Map()
+    const { usersService } = setup({
+      map,
+      transformParams: (params) => params,
+      clone: false,
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+    const a = await usersService.get(1)
+    const b = await usersService.get(1)
+    // with cloning disabled, repeated hits return the same cached object
+    expect(a).toBe(b)
+  })
+
+  it('accepts a custom clone function', async () => {
+    const cloneFn = vi.fn((v: any) => structuredClone(v))
+    const { usersService } = setup({
+      map: new Map(),
+      transformParams: (params) => params,
+      clone: cloneFn as any,
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+    await usersService.get(1)
+    await usersService.get(1)
+    expect(cloneFn).toHaveBeenCalled()
+  })
+})
+
+describe('cache hook as an around hook', () => {
+  const setupAround = (options: CacheOptions) => {
+    const app = feathers<{ users: MemoryService }>()
+    app.use(
+      'users',
+      new MemoryService({
+        id: 'id',
+        paginate: { default: 10, max: 50 },
+        multi: true,
+      }),
+    )
+    const usersService = app.service('users')
+    const cacheHook = cache(options)
+    usersService.hooks({ around: { all: [cacheHook] } })
+    return { usersService }
+  }
+
+  it('serves get/find from cache and invalidates on mutation', async () => {
+    const logger = vi.fn()
+    const { usersService } = setupAround({
+      map: new Map(),
+      transformParams: (params) => params,
+      logger,
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+    logger.mockClear()
+
+    // miss -> set
+    let item = await usersService.get(1)
+    expect(item).toEqual({ id: 1, name: 'John' })
+    expect(logger.mock.calls.map((c) => c[0].type)).toEqual(['miss', 'set'])
+
+    logger.mockClear()
+    // hit (still re-set after)
+    item = await usersService.get(1)
+    expect(item).toEqual({ id: 1, name: 'John' })
+    expect(logger.mock.calls[0][0]).toMatchObject({
+      type: 'hit',
+      method: 'get',
+    })
+
+    logger.mockClear()
+    // mutation invalidates the get cache
+    await usersService.patch(1, { name: 'John Doe' })
+    expect(logger.mock.calls.some((c) => c[0].type === 'invalidate')).toBe(true)
+
+    item = await usersService.get(1)
+    expect(item).toEqual({ id: 1, name: 'John Doe' })
+  })
+
+  it('calls the service method exactly once on a miss', async () => {
+    const { usersService } = setupAround({
+      map: new Map(),
+      transformParams: (params) => params,
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+    const getSpy = vi.spyOn(usersService, 'get')
+
+    await usersService.get(1)
+    await usersService.get(1) // served from cache, but get() facade still invoked once each
+    expect(getSpy).toHaveBeenCalledTimes(2)
+  })
+})

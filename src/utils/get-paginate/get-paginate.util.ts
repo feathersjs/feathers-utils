@@ -23,12 +23,10 @@ export const getPaginate = <H extends HookContext = HookContext>(
   context: H,
 ): PaginationOptions | undefined => {
   if (hasOwnProperty(context.params, 'paginate')) {
+    // covers `paginate: false` too (`false || undefined` -> undefined)
     return (context.params.paginate as PaginationOptions) || undefined
   }
 
-  if (context.params.paginate === false) {
-    return undefined
-  }
   let options = context.service?.options || {}
 
   options = {

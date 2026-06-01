@@ -19,18 +19,20 @@ export const skippable = <H extends HookContext = HookContext>(
   innerHook: HookFunction<H>,
   predicate: PredicateFn<H>,
 ) => {
-  function hook(context: H): void
+  function hook(context: H): H | void | Promise<H | void>
   function hook(context: H, next: NextFunction): Promise<void>
-  function hook(context: H, next?: NextFunction): void | Promise<void> {
+  function hook(context: H, next?: NextFunction): H | void | Promise<H | void> {
     const skip = predicate(context)
 
-    const skipOrRun = (shouldSkip: boolean): void | Promise<void> => {
+    const skipOrRun = (shouldSkip: boolean): H | void | Promise<H | void> => {
       if (shouldSkip) {
         if (next) return next()
         return
       }
       if (next) return innerHook(context, next) as Promise<void>
-      innerHook(context)
+      // before/after mode: return the inner hook's result so an async hook is
+      // awaited and a returned/modified context is propagated to the pipeline.
+      return innerHook(context)
     }
 
     if (!skip || typeof skip === 'boolean') {

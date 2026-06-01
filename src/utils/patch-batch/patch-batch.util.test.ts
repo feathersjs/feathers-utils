@@ -20,6 +20,34 @@ describe('patchBatch', () => {
     ])
   })
 
+  it('does not mutate the input items', () => {
+    const items = [
+      { id: 1, name: 'John' },
+      { id: 2, name: 'John' },
+      { id: 3, name: 'Jane' },
+    ]
+
+    patchBatch(items, { id: 'id' })
+
+    expect(items).toEqual([
+      { id: 1, name: 'John' },
+      { id: 2, name: 'John' },
+      { id: 3, name: 'Jane' },
+    ])
+  })
+
+  it('groups deep-equal data regardless of key order', () => {
+    expect(
+      patchBatch(
+        [
+          { id: 1, a: 1, b: 2 },
+          { id: 2, b: 2, a: 1 },
+        ],
+        { id: 'id' },
+      ),
+    ).toEqual([[null, { a: 1, b: 2 }, { query: { id: { $in: [1, 2] } } }]])
+  })
+
   it('patchBatch with _id', () => {
     expect(
       patchBatch(

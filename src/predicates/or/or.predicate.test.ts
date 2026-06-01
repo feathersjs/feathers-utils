@@ -8,12 +8,27 @@ describe('predicates/or', () => {
     expect(someAlias).toBe(or)
   })
 
-  it('returns true synchronously when empty', () => {
-    expect(some()({} as HookContext)).toBe(true)
+  it('returns false synchronously when empty (OR identity)', () => {
+    expect(some()({} as HookContext)).toBe(false)
   })
 
-  it('returns true when all are undefined', () => {
-    expect(some(undefined, undefined, undefined)({} as HookContext)).toBe(true)
+  it('returns false when all are undefined', () => {
+    expect(some(undefined, undefined, undefined)({} as HookContext)).toBe(false)
+  })
+
+  it('returns true synchronously for a truthy (non-boolean) result', () => {
+    expect(some((() => 1) as any)({} as HookContext)).toBe(true)
+    expect(some((() => 'x') as any)({} as HookContext)).toBe(true)
+  })
+
+  it('returns false synchronously when all sync results are falsy', () => {
+    expect(
+      some(
+        (() => 0) as any,
+        (() => '') as any,
+        (() => null) as any,
+      )({} as HookContext),
+    ).toBe(false)
   })
 
   it('returns true synchronously when at least 1 hook is true', () => {

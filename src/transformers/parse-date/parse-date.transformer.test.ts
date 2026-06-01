@@ -31,6 +31,13 @@ describe('transformers/parseDate', () => {
     expect(item).toEqual({ date: '2023-10-01T12:00:00Z' })
   })
 
+  it('throws BadRequest for an unparseable date', () => {
+    const item = { date: 'not-a-date' } as any
+    expect(() => parseDate(item, 'date')).toThrow(/Expected valid date/)
+    // item must be left untouched when invalid
+    expect(item).toEqual({ date: 'not-a-date' })
+  })
+
   it('handles dot notation', () => {
     const item = { event: { startTime: '2023-10-01T12:00:00Z' } }
     parseDate(item, 'event.startTime')
