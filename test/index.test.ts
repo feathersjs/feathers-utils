@@ -13,6 +13,7 @@ const hooks = [
   'debug',
   'disablePagination',
   'disallow',
+  'findOrCreate',
   'iff',
   'iffElse',
   'onDelete',
