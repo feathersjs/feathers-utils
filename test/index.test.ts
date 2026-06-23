@@ -63,6 +63,7 @@ const utils = [
   'sortQueryProperties',
   'toPaginated',
   'transformParams',
+  'waitForServiceEvent',
   'walkQuery',
   'zipDataResult',
 ] satisfies (keyof typeof exportedUtils)[]
