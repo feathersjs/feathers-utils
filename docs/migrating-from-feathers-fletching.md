@@ -327,7 +327,7 @@ app.service("albums").find(addSkip({}, "myHook"));
 
 ## `stashable`
 
-In `feathers-fletching`, `stashable` lazily stashes the pre-mutation state of a record. In `feathers-utils`, [`stashable`](/hooks/stashable.html) eagerly starts the fetch but exposes a memoized function — calling it multiple times only hits the database once.
+In `feathers-fletching`, `stashable` lazily stashes the pre-mutation state of a record and exposes it as a memoized function on `context.params.stashed`. In `feathers-utils`, [`stashable`](/hooks/stashable.html) stashes all affected records by their id and stores the result as plain data on `context.params.stash` (`Record<Id, { before, item }>`). Enable `fetchBefore` to capture the pre-mutation state.
 
 ```ts
 // old
@@ -346,22 +346,25 @@ const before = await context.params.stashed();
 import { stashable } from "feathers-utils/hooks";
 
 app.service("users").hooks({
-  before: {
-    patch: [stashable()],
+  around: {
+    patch: [stashable(undefined, { fetchBefore: true })],
   },
 });
 
-// Access in a later hook (before or after):
-const before = await context.params.stashed();
+// Access in a later (after) hook by id:
+const { before, item } = context.params.stash[id];
 ```
 
 ### Key differences
 
-| `feathers-fletching`                       | `feathers-utils`                                                     |
-| ------------------------------------------ | -------------------------------------------------------------------- |
-| Lazy — only fetches when `stashed()` is called | Eager start — fetch begins immediately, result is memoized        |
-| `propName` option (default: `'stashed'`)   | Same — `propName` option (default: `'stashed'`)                      |
-| `stashFunc` option for custom fetch        | Same — `stashFunc` option for custom fetch                           |
+| `feathers-fletching`                            | `feathers-utils`                                                              |
+| ----------------------------------------------- | ---------------------------------------------------------------------------- |
+| Lazy — only fetches when `stashed()` is called  | Captures all affected records; opt into the before-state with `fetchBefore`  |
+| `context.params.stashed()` returns the record   | `context.params.stash` holds `Record<Id, { before, item }>`                   |
+| `propName` option (default: `'stashed'`)        | `name` option (default: `'stash'`)                                           |
+| `stashFunc` option for custom fetch             | `params` / `skipHooks` / `deleteParams` options to control the (re)fetch      |
+
+> The low-level [`stash`](/hooks/stashable.html) util (`stash(context, options?)`) lets you do the same imperatively inside your own hooks.
 
 ## `joinQuery`
 

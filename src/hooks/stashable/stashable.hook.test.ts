@@ -1,260 +1,621 @@
-import { assert, expect, expectTypeOf } from 'vitest'
-import type {
-  Application,
-  AroundHookFunction,
-  HookContext,
-} from '@feathersjs/feathers'
+import assert from 'node:assert'
+import { expectTypeOf } from 'vitest'
+import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { stashable } from './stashable.hook.js'
-import { clone } from '../../common/index.js'
+import type { StashOptions } from '../../utils/stash/stash.util.js'
 
-const startId = 6
-const storeInit = {
-  0: { name: 'Jane Doe', key: 'a', id: 0 },
-  1: { name: 'Jack Doe', key: 'a', id: 1 },
-  2: { name: 'John Doe', key: 'a', id: 2 },
-  3: { name: 'Rick Doe', key: 'b', id: 3 },
-  4: { name: 'Dick Doe', key: 'b', id: 4 },
-  5: { name: 'Dork Doe', key: 'b', id: 5 },
-}
+function mock(
+  cb: any,
+  hookName: string,
+  options?: Partial<StashOptions>,
+  beforeHook?: any,
+  afterHook?: any,
+) {
+  const app = feathers()
+  app.use('/test', new MemoryService({ multi: true }))
+  const service = app.service('test')
+  const hook = stashable(cb, options)
 
-let store: any
-let finalParams: any
+  const beforeAll = [hook]
+  if (beforeHook) {
+    beforeAll.push(beforeHook)
+  }
 
-function services(app: Application) {
-  store = clone(storeInit)
+  const afterAll = [hook]
+  if (afterHook) {
+    afterAll.push(afterHook)
+  }
 
-  app.use(
-    'users',
-    new MemoryService({
-      store,
-      startId,
-      multi: true,
-    }),
-  )
-
-  app.service('users').hooks({
+  service.hooks({
     before: {
-      all: [
-        stashable(),
-        (context: any) => {
-          finalParams = context.params
-        },
-      ],
+      [hookName]: beforeAll,
+    },
+    after: {
+      [hookName]: afterAll,
     },
   })
+
+  return {
+    app,
+    service,
+  }
 }
 
-describe('stashable', () => {
-  let app: Application<{ users: MemoryService }>
-  let users: any
+function mockAround(
+  cb: any,
+  hookName: string,
+  options?: Partial<StashOptions>,
+) {
+  const app = feathers()
+  app.use('/test', new MemoryService({ multi: true }))
+  const service = app.service('test')
+  const hook = stashable(cb, options)
 
-  beforeEach(() => {
-    finalParams = null
-    app = feathers().configure(services)
-    users = app.service('users')
+  service.hooks({
+    around: {
+      [hookName]: [hook],
+    },
   })
 
-  it('stashes lazily on patch', async () => {
-    await users.patch(0, { name: 'Updated' })
+  return {
+    app,
+    service,
+  }
+}
 
-    expect(typeof finalParams.stashed).toBe('function')
-    const before = await finalParams.stashed()
-    assert.deepEqual(before, storeInit[0])
+describe('hook - stashable (before/after)', function () {
+  describe('create', function () {
+    it('basic create', async function () {
+      let calledCb = false
+      const cb = (byId: any, context: any) => {
+        calledCb = true
+        assert.strictEqual(context.path, 'test', 'cb has context')
+        assert.strictEqual(byId['0'].before, undefined, 'before is undefined')
+        assert.deepStrictEqual(
+          byId['0'].item,
+          { id: 0, test: true, comment: 'awesome' },
+          'has right item',
+        )
+      }
+
+      const { service } = mock(cb, 'create')
+      assert.ok(!calledCb, 'not called cb')
+
+      const item = await service.create({ test: true, comment: 'awesome' })
+
+      assert.ok(calledCb, 'called cb')
+      assert.deepStrictEqual(
+        item,
+        { id: 0, test: true, comment: 'awesome' },
+        'has right result',
+      )
+    })
   })
 
-  it('stashes lazily on update', async () => {
-    await users.update(0, { name: 'Updated' })
+  describe('update', function () {
+    it('basic update', async function () {
+      let calledCb = false
+      const cb = (byId: any, context: any) => {
+        calledCb = true
+        assert.strictEqual(context.path, 'test', 'cb has context')
+        assert.deepStrictEqual(
+          byId['0'].before,
+          { id: 0, test: true, comment: 'awesome' },
+          'has right before',
+        )
+        assert.deepStrictEqual(
+          byId['0'].item,
+          { id: 0, test: false },
+          'has right item',
+        )
+      }
 
-    const before = await finalParams.stashed()
-    assert.deepEqual(before, storeInit[0])
+      const { service } = mock(cb, 'update', { fetchBefore: true })
+
+      const item = await service.create({ test: true, comment: 'awesome' })
+
+      assert.ok(!calledCb, 'not called cb')
+
+      const result = await service.update(item.id, { test: false })
+
+      assert.ok(calledCb, 'called cb')
+      assert.deepStrictEqual(result, { id: 0, test: false }, 'has right result')
+    })
+
+    it('basic update with $select', async function () {
+      let calledCb = false
+      const cb = (byId: any, context: any) => {
+        calledCb = true
+        assert.strictEqual(context.path, 'test', 'cb has context')
+        assert.deepStrictEqual(
+          byId['0'].before,
+          { id: 0, test: true, comment: 'awesome' },
+          'has right before',
+        )
+        assert.deepStrictEqual(
+          byId['0'].item,
+          { id: 0, test: false },
+          'has right item',
+        )
+      }
+      const { service } = mock(cb, 'update', { fetchBefore: true })
+
+      const item = await service.create({ test: true, comment: 'awesome' })
+
+      assert.ok(!calledCb, 'not called cb')
+
+      const result = await service.update(
+        item.id,
+        { test: false },
+        { query: { $select: ['id'] } },
+      )
+
+      assert.ok(calledCb, 'called cb')
+      assert.deepStrictEqual(result, { id: 0 }, 'has right result')
+    })
   })
 
-  it('stashes lazily on remove', async () => {
-    await users.remove(0)
+  describe('patch', function () {
+    it('basic patch', async function () {
+      let calledCb = false
+      const cb = (byId: any, context: any) => {
+        calledCb = true
+        assert.strictEqual(context.path, 'test', 'cb has context')
+        assert.deepStrictEqual(
+          byId['0'].before,
+          { id: 0, test: true, comment: 'awesome' },
+          'has right before',
+        )
+        assert.deepStrictEqual(
+          byId['0'].item,
+          { id: 0, test: false, comment: 'awesome' },
+          'has right item',
+        )
+      }
+      const { service } = mock(cb, 'patch', { fetchBefore: true })
 
-    const before = await finalParams.stashed()
-    assert.deepEqual(before, storeInit[0])
+      const item = await service.create({ test: true, comment: 'awesome' })
+
+      assert.ok(!calledCb, 'not called cb')
+
+      const result = await service.patch(item.id, { test: false })
+
+      assert.ok(calledCb, 'called cb')
+      assert.deepStrictEqual(
+        result,
+        { id: 0, test: false, comment: 'awesome' },
+        'has right result',
+      )
+    })
+
+    it('basic patch with $select', async function () {
+      let calledCb = false
+      const cb = (byId: any, context: any) => {
+        calledCb = true
+        assert.strictEqual(context.path, 'test', 'cb has context')
+        assert.deepStrictEqual(
+          byId['0'].before,
+          { id: 0, test: true, comment: 'awesome' },
+          'has right before',
+        )
+        assert.deepStrictEqual(
+          byId['0'].item,
+          { id: 0, test: false, comment: 'awesome' },
+          'has right item',
+        )
+      }
+      const { service } = mock(cb, 'patch', { fetchBefore: true })
+
+      const item = await service.create({ test: true, comment: 'awesome' })
+
+      assert.ok(!calledCb, 'not called cb')
+
+      const result = await service.patch(
+        item.id,
+        { test: false },
+        { query: { $select: ['id'] } },
+      )
+
+      assert.ok(calledCb, 'called cb')
+      assert.deepStrictEqual(result, { id: 0 }, 'has right result')
+    })
   })
 
-  it("throws on 'create'", async () => {
-    await expect(users.create({})).rejects.toThrow()
+  describe('remove', function () {
+    it('basic remove', async function () {
+      let calledCb = false
+      const cb = (byId: any, context: any) => {
+        calledCb = true
+        assert.strictEqual(context.path, 'test', 'cb has context')
+        assert.deepStrictEqual(
+          byId['0'].before,
+          { id: 0, test: true, comment: 'awesome' },
+          'has right before',
+        )
+        assert.deepStrictEqual(
+          byId['0'].item,
+          { id: 0, test: true, comment: 'awesome' },
+          'has right item',
+        )
+      }
+
+      const { service } = mock(cb, 'remove', { fetchBefore: true })
+
+      const item = await service.create({ test: true, comment: 'awesome' })
+
+      assert.ok(!calledCb, 'not called cb')
+
+      await service.remove(item.id)
+
+      assert.ok(calledCb, 'called cb')
+    })
+  })
+})
+
+describe('hook - stashable (around)', function () {
+  describe('create', function () {
+    it('basic create', async function () {
+      let calledCb = false
+      const cb = (byId: any, context: any) => {
+        calledCb = true
+        assert.strictEqual(context.path, 'test', 'cb has context')
+        assert.strictEqual(byId['0'].before, undefined, 'before is undefined')
+        assert.deepStrictEqual(
+          byId['0'].item,
+          { id: 0, test: true, comment: 'awesome' },
+          'has right item',
+        )
+      }
+
+      const { service } = mockAround(cb, 'create')
+      assert.ok(!calledCb, 'not called cb')
+
+      const item = await service.create({ test: true, comment: 'awesome' })
+
+      assert.ok(calledCb, 'called cb')
+      assert.deepStrictEqual(
+        item,
+        { id: 0, test: true, comment: 'awesome' },
+        'has right result',
+      )
+    })
   })
 
-  it("throws on 'find'", async () => {
-    await expect(users.find({})).rejects.toThrow()
+  describe('update', function () {
+    it('basic update', async function () {
+      let calledCb = false
+      const cb = (byId: any, context: any) => {
+        calledCb = true
+        assert.strictEqual(context.path, 'test', 'cb has context')
+        assert.deepStrictEqual(
+          byId['0'].before,
+          { id: 0, test: true, comment: 'awesome' },
+          'has right before',
+        )
+        assert.deepStrictEqual(
+          byId['0'].item,
+          { id: 0, test: false },
+          'has right item',
+        )
+      }
+
+      const { service } = mockAround(cb, 'update', { fetchBefore: true })
+
+      const item = await service.create({ test: true, comment: 'awesome' })
+
+      assert.ok(!calledCb, 'not called cb')
+
+      const result = await service.update(item.id, { test: false })
+
+      assert.ok(calledCb, 'called cb')
+      assert.deepStrictEqual(result, { id: 0, test: false }, 'has right result')
+    })
+
+    it('basic update with $select', async function () {
+      let calledCb = false
+      const cb = (byId: any, context: any) => {
+        calledCb = true
+        assert.strictEqual(context.path, 'test', 'cb has context')
+        assert.deepStrictEqual(
+          byId['0'].before,
+          { id: 0, test: true, comment: 'awesome' },
+          'has right before',
+        )
+        assert.deepStrictEqual(
+          byId['0'].item,
+          { id: 0, test: false },
+          'has right item',
+        )
+      }
+      const { service } = mockAround(cb, 'update', { fetchBefore: true })
+
+      const item = await service.create({ test: true, comment: 'awesome' })
+
+      assert.ok(!calledCb, 'not called cb')
+
+      const result = await service.update(
+        item.id,
+        { test: false },
+        { query: { $select: ['id'] } },
+      )
+
+      assert.ok(calledCb, 'called cb')
+      assert.deepStrictEqual(result, { id: 0 }, 'has right result')
+    })
   })
 
-  it("throws on 'get'", async () => {
-    await expect(users.get(0)).rejects.toThrow()
+  describe('patch', function () {
+    it('basic patch', async function () {
+      let calledCb = false
+      const cb = (byId: any, context: any) => {
+        calledCb = true
+        assert.strictEqual(context.path, 'test', 'cb has context')
+        assert.deepStrictEqual(
+          byId['0'].before,
+          { id: 0, test: true, comment: 'awesome' },
+          'has right before',
+        )
+        assert.deepStrictEqual(
+          byId['0'].item,
+          { id: 0, test: false, comment: 'awesome' },
+          'has right item',
+        )
+      }
+      const { service } = mockAround(cb, 'patch', { fetchBefore: true })
+
+      const item = await service.create({ test: true, comment: 'awesome' })
+
+      assert.ok(!calledCb, 'not called cb')
+
+      const result = await service.patch(item.id, { test: false })
+
+      assert.ok(calledCb, 'called cb')
+      assert.deepStrictEqual(
+        result,
+        { id: 0, test: false, comment: 'awesome' },
+        'has right result',
+      )
+    })
+
+    it('basic patch with $select', async function () {
+      let calledCb = false
+      const cb = (byId: any, context: any) => {
+        calledCb = true
+        assert.strictEqual(context.path, 'test', 'cb has context')
+        assert.deepStrictEqual(
+          byId['0'].before,
+          { id: 0, test: true, comment: 'awesome' },
+          'has right before',
+        )
+        assert.deepStrictEqual(
+          byId['0'].item,
+          { id: 0, test: false, comment: 'awesome' },
+          'has right item',
+        )
+      }
+      const { service } = mockAround(cb, 'patch', { fetchBefore: true })
+
+      const item = await service.create({ test: true, comment: 'awesome' })
+
+      assert.ok(!calledCb, 'not called cb')
+
+      const result = await service.patch(
+        item.id,
+        { test: false },
+        { query: { $select: ['id'] } },
+      )
+
+      assert.ok(calledCb, 'called cb')
+      assert.deepStrictEqual(result, { id: 0 }, 'has right result')
+    })
   })
 
-  it('memoizes the stash call', async () => {
-    let getCalls = 0
-    const origGet = app.service('users').get.bind(app.service('users'))
-    app.service('users').get = async (id: any, params: any) => {
-      getCalls++
-      return origGet(id, params)
+  describe('remove', function () {
+    it('basic remove', async function () {
+      let calledCb = false
+      const cb = (byId: any, context: any) => {
+        calledCb = true
+        assert.strictEqual(context.path, 'test', 'cb has context')
+        assert.deepStrictEqual(
+          byId['0'].before,
+          { id: 0, test: true, comment: 'awesome' },
+          'has right before',
+        )
+        assert.deepStrictEqual(
+          byId['0'].item,
+          { id: 0, test: true, comment: 'awesome' },
+          'has right item',
+        )
+      }
+
+      const { service } = mockAround(cb, 'remove', { fetchBefore: true })
+
+      const item = await service.create({ test: true, comment: 'awesome' })
+
+      assert.ok(!calledCb, 'not called cb')
+
+      await service.remove(item.id)
+
+      assert.ok(calledCb, 'called cb')
+    })
+  })
+})
+
+describe('hook - stashable (multi & options)', function () {
+  it('skips when shouldSkip("checkMulti") matches', async function () {
+    let calledCb = false
+    const cb = () => {
+      calledCb = true
     }
 
-    await users.patch(0, { name: 'Updated' })
+    const { service } = mock(cb, 'patch', { fetchBefore: true })
 
-    const first = await finalParams.stashed()
-    const second = await finalParams.stashed()
-    const third = await finalParams.stashed()
+    const item = await service.create({ test: true })
+    await service.patch(item.id, { test: false }, {
+      skipHooks: ['checkMulti'],
+    } as any)
 
-    expect(first).toStrictEqual(second)
-    expect(second).toStrictEqual(third)
-    // Only one get call despite three stashed() calls
-    // (1 extra from the patch internal get)
-    expect(getCalls).toBeLessThanOrEqual(2)
+    assert.ok(!calledCb, 'cb is not called when skipped')
   })
 
-  it('returns the same promise on every call', async () => {
-    await users.patch(0, { name: 'Updated' })
+  it('uses _find when skipHooks is true (multi)', async function () {
+    let byId: any
+    const cb = (changes: any) => {
+      byId = changes
+    }
 
-    const p1 = finalParams.stashed()
-    const p2 = finalParams.stashed()
-    expect(p1).toBe(p2)
+    const { service } = mock(cb, 'patch', {
+      fetchBefore: true,
+      skipHooks: true,
+    })
+
+    const item0 = await service.create({ test: true })
+    const item1 = await service.create({ test: true })
+
+    await service.patch(null, { test: false }, { query: {} })
+
+    assert.strictEqual(byId[item0.id].before.test, true, 'item0 before')
+    assert.strictEqual(byId[item1.id].item.test, false, 'item1 item')
   })
 
-  it('stashes multi patch', async () => {
-    const items = [storeInit[0], storeInit[1], storeInit[2]]
-    await users.patch(
+  it('respects deleteParams when (re)fetching', async function () {
+    let byId: any
+    const cb = (changes: any) => {
+      byId = changes
+    }
+
+    const { service } = mock(cb, 'patch', {
+      fetchBefore: true,
+      deleteParams: ['foo'],
+    })
+
+    const item = await service.create({ test: true, comment: 'awesome' })
+
+    await service.patch(item.id, { test: false }, { foo: 'bar' } as any)
+
+    assert.deepStrictEqual(
+      byId[item.id].before,
+      { id: item.id, test: true, comment: 'awesome' },
+      'has right before',
+    )
+    assert.strictEqual(byId[item.id].item.test, false, 'has right item')
+  })
+
+  it('multi patch with fetchBefore tracks all affected items', async function () {
+    let byId: any
+    const cb = (changes: any) => {
+      byId = changes
+    }
+
+    const { service } = mock(cb, 'patch', { fetchBefore: true })
+
+    const item0 = await service.create({ test: true })
+    const item1 = await service.create({ test: true })
+
+    await service.patch(null, { test: false }, { query: {} })
+
+    assert.deepStrictEqual(
+      byId[item0.id].before,
+      { id: item0.id, test: true },
+      'item0 before',
+    )
+    assert.deepStrictEqual(
+      byId[item0.id].item,
+      { id: item0.id, test: false },
+      'item0 item',
+    )
+    assert.deepStrictEqual(
+      byId[item1.id].before,
+      { id: item1.id, test: true },
+      'item1 before',
+    )
+    assert.deepStrictEqual(
+      byId[item1.id].item,
+      { id: item1.id, test: false },
+      'item1 item',
+    )
+  })
+
+  it('supports a params function and a custom (array) name', async function () {
+    let byId: any
+    let manipulated = false
+    const cb = (changes: any) => {
+      byId = changes
+    }
+
+    const { service } = mock(cb, 'patch', {
+      fetchBefore: true,
+      name: ['custom', 'nested'],
+      params: (params: any) => {
+        manipulated = true
+        return params
+      },
+    })
+
+    const item = await service.create({ test: true, comment: 'awesome' })
+
+    await service.patch(item.id, { test: false })
+
+    assert.ok(manipulated, 'params function was called')
+    assert.deepStrictEqual(
+      byId[item.id].before,
+      { id: item.id, test: true, comment: 'awesome' },
+      'has right before',
+    )
+    assert.strictEqual(byId[item.id].item.test, false, 'has right item')
+  })
+
+  it('works without a callback and stores the result on context.params.stash', async function () {
+    let stash: any
+    const { service } = mock(
+      undefined,
+      'patch',
+      { fetchBefore: true },
       null,
-      { key: 'c' },
-      { query: { id: { $in: items.map((x) => x.id) } } },
-    )
-
-    const before = await finalParams.stashed()
-    assert.deepEqual(before, items)
-  })
-
-  it('stashes multi remove', async () => {
-    const items = [storeInit[0], storeInit[1], storeInit[2]]
-    await users.remove(null, {
-      query: { id: { $in: items.map((x) => x.id) } },
-    })
-
-    const before = await finalParams.stashed()
-    assert.deepEqual(before, items)
-  })
-
-  it('supports custom propName', async () => {
-    // Reconfigure with custom propName
-    const app2 = feathers()
-    app2.use(
-      'users',
-      new MemoryService({ store: clone(storeInit), startId, multi: true }),
-    )
-    let params2: any
-    app2.service('users').hooks({
-      before: {
-        all: [
-          stashable({ propName: 'before' }),
-          (context: any) => {
-            params2 = context.params
-          },
-        ],
+      (context: any) => {
+        stash = context.params.stash
       },
-    })
+    )
 
-    await app2.service('users').patch(0, { name: 'Updated' })
+    const item = await service.create({ test: true, comment: 'awesome' })
 
-    expect(typeof params2.before).toBe('function')
-    const before = await params2.before()
-    expect(before.name).toBe('Jane Doe')
+    await service.patch(item.id, { test: false })
+
+    assert.deepStrictEqual(
+      stash[item.id].before,
+      { id: item.id, test: true, comment: 'awesome' },
+      'context.params.stash has right before',
+    )
+    assert.strictEqual(stash[item.id].item.test, false, 'has right item')
   })
 
-  it('supports custom stashFunc', async () => {
-    const app2 = feathers()
-    app2.use(
-      'users',
-      new MemoryService({ store: clone(storeInit), startId, multi: true }),
-    )
-    let params2: any
-    app2.service('users').hooks({
-      before: {
-        all: [
-          stashable({
-            stashFunc: async () => ({ custom: true }),
-          }),
-          (context: any) => {
-            params2 = context.params
-          },
-        ],
+  it('supports a custom (string) name', async function () {
+    let stash: any
+    const { service } = mock(
+      undefined,
+      'patch',
+      {
+        fetchBefore: true,
+        name: 'changes',
       },
-    })
-
-    await app2.service('users').patch(0, { name: 'Updated' })
-
-    const stashed = await params2.stashed()
-    expect(stashed).toStrictEqual({ custom: true })
-  })
-
-  it('works as around hook with stashed available after next()', async () => {
-    const app2 = feathers()
-    app2.use(
-      'users',
-      new MemoryService({ store: clone(storeInit), startId, multi: true }),
-    )
-    let stashedBefore: any
-    let stashedAfter: any
-    let resultAfter: any
-
-    app2.service('users').hooks({
-      around: {
-        patch: [
-          stashable(),
-          async (context: any, next: any) => {
-            stashedBefore = await context.params.stashed()
-            await next()
-            stashedAfter = await context.params.stashed()
-            resultAfter = context.result
-          },
-        ],
+      null,
+      (context: any) => {
+        stash = context.params.changes
       },
-    })
-
-    await app2.service('users').patch(0, { name: 'Updated' })
-
-    // Before next(): stashed has the original data
-    expect(stashedBefore.name).toBe('Jane Doe')
-    // After next(): stashed still returns the same (pre-mutation) data
-    expect(stashedAfter.name).toBe('Jane Doe')
-    // But the actual result has the updated data
-    expect(resultAfter.name).toBe('Updated')
-    // Same reference — memoized
-    expect(stashedBefore).toBe(stashedAfter)
-  })
-
-  it('returns undefined on fetch error', async () => {
-    const app2 = feathers()
-    app2.use(
-      'users',
-      new MemoryService({ store: clone(storeInit), startId, multi: true }),
     )
-    let params2: any
-    app2.service('users').hooks({
-      before: {
-        all: [
-          stashable({
-            stashFunc: async () => {
-              throw new Error('DB error')
-            },
-          }),
-          (context: any) => {
-            params2 = context.params
-          },
-        ],
-      },
-    })
 
-    await app2.service('users').patch(0, { name: 'Updated' })
+    const item = await service.create({ test: true, comment: 'awesome' })
 
-    const stashed = await params2.stashed()
-    expect(stashed).toBeUndefined()
+    await service.patch(item.id, { test: false })
+
+    assert.deepStrictEqual(
+      stash[item.id].before,
+      { id: item.id, test: true, comment: 'awesome' },
+      'context.params.changes has right before',
+    )
+    assert.strictEqual(stash[item.id].item.test, false, 'has right item')
   })
 
   it('is type-compatible with AroundHookFunction', () => {
