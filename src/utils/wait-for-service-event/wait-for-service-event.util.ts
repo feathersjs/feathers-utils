@@ -42,14 +42,16 @@ export type WaitForServiceEventDefaults = Pick<
   'timeout' | 'signal'
 >
 
-export type WaitForServiceEventResult<Event extends string, Result> = {
-  /** The event that fired (one of the requested events). */
-  event: Event
+export type WaitForServiceEventResult<Event extends string, Result> = [
   /** The emitted record. */
-  data: Result
-  /** The `HookContext` Feathers emitted alongside the record. */
-  context: HookContext
-}
+  data: Result,
+  meta: {
+    /** The event that fired (one of the requested events). */
+    event: Event
+    /** The `HookContext` Feathers emitted alongside the record. */
+    context: HookContext
+  },
+]
 
 /**
  * Wait for a service event to fire and resolve with the emitted record. Useful
@@ -57,8 +59,9 @@ export type WaitForServiceEventResult<Event extends string, Result> = {
  * `promisify` for Feathers events.
  *
  * Curried: bind the `app` (and optional defaults) once, then call the returned
- * function per service/event. The resolved `data` is typed as the service's
- * record type, and `event` is the union of the requested events.
+ * function per service/event. Resolves with a `[data, { event, context }]`
+ * tuple: `data` is typed as the service's record type, and `event` is the union
+ * of the requested events.
  *
  * Feathers emits events as `emit(event, record, context)` and fires one event
  * per record, so each resolution carries a single record and its `HookContext`.
@@ -71,10 +74,10 @@ export type WaitForServiceEventResult<Event extends string, Result> = {
  * const waitForEvent = waitForServiceEvent(app)
  *
  * // Wait for the next `users` record to be created.
- * const { data: user } = await waitForEvent('users', 'created')
+ * const [user] = await waitForEvent('users', 'created')
  *
  * // Wait for a specific record, with a custom timeout and filter.
- * const { event, data } = await waitForEvent(
+ * const [data, { event }] = await waitForEvent(
  *   'users',
  *   ['created', 'patched'],
  *   { filter: (user) => user.email === 'jane@example.com', timeout: 1000 },
@@ -120,7 +123,7 @@ export function waitForServiceEvent<Services>(
               return
             }
             cleanup()
-            resolve({ event, data, context })
+            resolve([data, { event, context }])
           }
           return [event, listener] as const
         })

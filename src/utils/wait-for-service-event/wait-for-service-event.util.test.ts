@@ -20,16 +20,16 @@ const setup = () => {
 }
 
 describe('waitForServiceEvent', function () {
-  it('resolves with { event, data, context } when the event fires', async function () {
+  it('resolves with [data, { event, context }] when the event fires', async function () {
     const { usersService, waitForEvent } = setup()
 
     const promise = waitForEvent('users', 'created')
     const created = await usersService.create({ name: 'jane' })
-    const result = await promise
+    const [data, { event, context }] = await promise
 
-    expect(result.event).toBe('created')
-    expect(result.data).toEqual(created)
-    expect(result.context.method).toBe('create')
+    expect(event).toBe('created')
+    expect(data).toEqual(created)
+    expect(context.method).toBe('create')
     // listeners are cleaned up after resolving
     expect(usersService.listenerCount('created')).toBe(0)
   })
@@ -43,9 +43,9 @@ describe('waitForServiceEvent', function () {
 
     await usersService.create({ name: 'nomatch' })
     const wanted = await usersService.create({ name: 'match' })
-    const result = await promise
+    const [data] = await promise
 
-    expect(result.data).toEqual(wanted)
+    expect(data).toEqual(wanted)
     expect(usersService.listenerCount('created')).toBe(0)
   })
 
@@ -74,10 +74,10 @@ describe('waitForServiceEvent', function () {
 
     const promise = waitForEvent('users', ['created', 'patched'])
     const patched = await usersService.patch(created.id, { name: 'jane2' })
-    const result = await promise
+    const [data, { event }] = await promise
 
-    expect(result.event).toBe('patched')
-    expect(result.data).toEqual(patched)
+    expect(event).toBe('patched')
+    expect(data).toEqual(patched)
     expect(usersService.listenerCount('created')).toBe(0)
     expect(usersService.listenerCount('patched')).toBe(0)
   })
@@ -105,9 +105,9 @@ describe('waitForServiceEvent', function () {
 
     const promise = waitForEvent('users', 'created', { timeout: false })
     const created = await usersService.create({ name: 'jane' })
-    const result = await promise
+    const [data] = await promise
 
-    expect(result.data).toEqual(created)
+    expect(data).toEqual(created)
   })
 
   it('never times out when timeout is false', async function () {
@@ -115,9 +115,9 @@ describe('waitForServiceEvent', function () {
 
     const promise = waitForEvent('users', 'created', { timeout: false })
     const created = await usersService.create({ name: 'jane' })
-    const result = await promise
+    const [data] = await promise
 
-    expect(result.data).toEqual(created)
+    expect(data).toEqual(created)
   })
 
   it('rejects when the AbortSignal aborts while waiting', async function () {

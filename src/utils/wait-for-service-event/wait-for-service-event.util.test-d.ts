@@ -19,21 +19,21 @@ it('currying returns a callable bound to the app', () => {
   waitForServiceEvent(app, { timeout: 1000 })
 })
 
-it('resolves data as the service record type', async () => {
+it('resolves a [data, { event, context }] tuple typed by the service', async () => {
   const waitForEvent = waitForServiceEvent(app)
 
-  const result = await waitForEvent('users', 'created')
-  expectTypeOf(result.data).toEqualTypeOf<User>()
-  expectTypeOf(result.context).toEqualTypeOf<HookContext>()
+  const [data, meta] = await waitForEvent('users', 'created')
+  expectTypeOf(data).toEqualTypeOf<User>()
+  expectTypeOf(meta.context).toEqualTypeOf<HookContext>()
 })
 
 it('event is the literal union of the requested events', async () => {
   const waitForEvent = waitForServiceEvent(app)
 
-  const single = await waitForEvent('users', 'created')
+  const [, single] = await waitForEvent('users', 'created')
   expectTypeOf(single.event).toEqualTypeOf<'created'>()
 
-  const many = await waitForEvent('users', ['created', 'patched'])
+  const [, many] = await waitForEvent('users', ['created', 'patched'])
   expectTypeOf(many.event).toEqualTypeOf<'created' | 'patched'>()
 })
 
