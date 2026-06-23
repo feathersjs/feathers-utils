@@ -364,7 +364,7 @@ import { some } from "feathers-utils/predicates";
 
 ## `stashBefore`
 
-The `stashBefore` hook has been renamed to [`stashable`](/hooks/stashable.html). Instead of eagerly fetching and storing the result directly on `context.params.before`, it now exposes a memoized function that returns a promise. The fetch starts immediately but multiple calls to `stashed()` only hit the database once.
+The `stashBefore` hook has been merged into [`stashable`](/hooks/stashable.html). Instead of storing the pre-mutation record directly on `context.params.before`, `stashable` captures all affected records by their id on `context.params.stash` (`Record<Id, { before, item }>`). Enable `fetchBefore` to capture the pre-mutation state.
 
 ```ts
 // old
@@ -383,16 +383,53 @@ const before = context.params.before;
 import { stashable } from "feathers-utils/hooks";
 
 app.service("users").hooks({
-  before: {
-    patch: [stashable()],
+  around: {
+    patch: [stashable(undefined, { fetchBefore: true })],
   },
 });
 
-// Access via memoized function:
-const before = await context.params.stashed();
+// Access by id in a later (after) hook:
+const { before } = context.params.stash[id];
 ```
 
-The default property name changed from `before` to `stashed`. You can restore the old name with `stashable({ propName: 'before' })`.
+The default property name changed from `before` to `stash`, and the stored shape is now `Record<Id, { before, item }>`. Use the `name` option to store it elsewhere.
+
+## `changesById`
+
+The `changesById` hook has been merged into [`stashable`](/hooks/stashable.html). It tracks the `{ before, item }` of all affected records by their id and passes them to an optional callback (the callback is now the first argument). The result is stored on `context.params.stash` instead of `context.params.changesById`.
+
+```ts
+// old
+import { changesById } from "feathers-hooks-common";
+
+app.service("users").hooks({
+  after: {
+    all: [
+      changesById((context, changes) => {
+        // react to the changes
+      }),
+    ],
+  },
+});
+
+// new
+import { stashable } from "feathers-utils/hooks";
+
+app.service("users").hooks({
+  around: {
+    all: [
+      stashable((changes, context) => {
+        for (const id in changes) {
+          const { before, item } = changes[id];
+          // react to the change
+        }
+      }, { fetchBefore: true }),
+    ],
+  },
+});
+```
+
+Enable `fetchBefore` to include the pre-mutation state. The same result is always available on `context.params.stash`, and the low-level [`stash`](/hooks/stashable.html) util lets you compute it imperatively.
 
 ## `traverse`
 

@@ -1,74 +1,70 @@
-import type { HookContext, NextFunction } from '@feathersjs/feathers'
-import { checkContext } from '../../utils/index.js'
-
-export type StashableOptions = {
-  /** The property name on `context.params` to store the stash function. @default 'stashed' */
-  propName?: string
-  /** Custom function to fetch the pre-mutation state. Defaults to `service.get` or `service.find`. */
-  stashFunc?: (context: HookContext) => Promise<any>
-}
-
-const defaultStashFunc = (context: HookContext) => {
-  const isMulti = context.id == null
-
-  const params = {
-    ...context.params,
-    _stashable: true,
-    ...(isMulti ? { paginate: false } : {}),
-  }
-
-  return isMulti
-    ? context.service.find(params)
-    : context.service.get(context.id, params)
-}
+import type { HookContext, Id, NextFunction } from '@feathersjs/feathers'
+import { shouldSkip } from '../../predicates/should-skip/should-skip.predicate.js'
+import { stashBefore, stashAfter } from '../../utils/stash/stash.util.js'
+import type { Change, StashOptions } from '../../utils/stash/stash.util.js'
 
 /**
- * Stashes the pre-mutation state of a record into `context.params`.
- * Eagerly starts the fetch but exposes a memoized function — calling it
- * multiple times only hits the database once.
- * Use in `before` hooks on `update`, `patch`, or `remove` methods.
+ * Stashes the affected records of a `create`, `update`, `patch` or `remove`
+ * call by their id and (optionally) passes them to a callback.
+ *
+ * Runs in `before` + `after` (or a single `around`) and stores the result at
+ * `context.params[name]` (default `stash`) as a `Record<Id, { before, item }>`.
+ * For every affected id it provides the state `before` the mutation (when
+ * `fetchBefore` is enabled) and the resulting `item` after it.
+ *
+ * Built on top of the {@link stash} util — use that directly if you need to
+ * stash imperatively inside your own hooks.
  *
  * @example
  * ```ts
  * import { stashable } from 'feathers-utils/hooks'
  *
  * app.service('users').hooks({
- *   before: { patch: [stashable()] }
+ *   around: {
+ *     all: [
+ *       stashable((stash, context) => {
+ *         for (const id in stash) {
+ *           const { before, item } = stash[id]
+ *           // react to the change
+ *         }
+ *       }, { fetchBefore: true }),
+ *     ],
+ *   },
  * })
  *
- * // In a later hook (before or after):
- * const before = await context.params.stashed()
+ * // or just read it later:
+ * const stash = context.params.stash
  * ```
  *
  * @see https://utils.feathersjs.com/hooks/stashable.html
  */
-export function stashable<H extends HookContext = HookContext>(
-  options?: StashableOptions,
-) {
-  const propName = options?.propName ?? 'stashed'
-  const stashFunc = options?.stashFunc ?? defaultStashFunc
-
-  function hook(context: H): void
+export const stashable = <H extends HookContext = HookContext, T = any>(
+  cb?: (stash: Record<Id, Change<T>>, context: H) => void | Promise<void>,
+  options?: Partial<StashOptions<H>>,
+) => {
+  function hook(context: H): Promise<H>
   function hook(context: H, next: NextFunction): Promise<void>
-  function hook(context: H, next?: NextFunction): void | Promise<void> {
-    if (context.params._stashable) {
-      if (next) return next()
-      return
+  async function hook(context: H, next?: NextFunction): Promise<H | void> {
+    if (shouldSkip('checkMulti')(context)) {
+      return context
     }
 
-    checkContext(context, {
-      type: ['before', 'around'],
-      method: ['update', 'patch', 'remove'],
-      label: 'stashable',
-    })
+    if (context.type === 'before' || context.type === 'around') {
+      await stashBefore(context, options)
+    }
 
-    const promise = stashFunc(context).catch(() => undefined)
+    if (next) {
+      await next()
+    }
 
-    context.params[propName] = () => promise
+    if (context.type === 'after' || context.type === 'around') {
+      const stash = await stashAfter<H, T>(context, options)
+      if (stash && cb) {
+        await cb(stash as Record<Id, Change<T>>, context)
+      }
+    }
 
-    if (next) return next()
-
-    return
+    return context
   }
   return hook
 }
