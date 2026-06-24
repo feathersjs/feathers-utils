@@ -225,4 +225,71 @@ describe('softDelete', () => {
       }),
     ).toExtend<AroundHookFunction<App, MemoryService<Item>>>()
   })
+
+  describe('allowQueryOverride', () => {
+    async function setupWith(extra: { allowQueryOverride?: boolean } = {}) {
+      const app = feathers().use(
+        '/users',
+        new MemoryService({ multi: true, id: 'id' }),
+      )
+      const userService: any = app.service('users')
+      userService.hooks({
+        around: {
+          all: [
+            softDelete({
+              deletedQuery: { deletedAt: null },
+              removeData: { deletedAt: new Date() },
+              ...extra,
+            }),
+          ],
+        },
+      })
+      await userService.create([
+        { name: 'active', key: 'a', deletedAt: null },
+        { name: 'deleted', key: 'a', deletedAt: new Date() },
+      ])
+      return userService
+    }
+
+    it('returns deleted items when the query references the field (opt-out default)', async () => {
+      const userService = await setupWith()
+
+      const users = await userService.find({
+        query: { deletedAt: { $ne: null } },
+      })
+
+      assert.strictEqual(users.length, 1)
+      assert.strictEqual(users[0].name, 'deleted')
+    })
+
+    it('detects the field nested in $or', async () => {
+      const userService = await setupWith()
+
+      const users = await userService.find({
+        query: { $or: [{ deletedAt: { $ne: null } }] },
+      })
+
+      assert.strictEqual(users.length, 1)
+      assert.strictEqual(users[0].name, 'deleted')
+    })
+
+    it('keeps enforcing the default filter when the query omits the field', async () => {
+      const userService = await setupWith()
+
+      const users = await userService.find({ query: { key: 'a' } })
+
+      assert.strictEqual(users.length, 1)
+      assert.strictEqual(users[0].name, 'active')
+    })
+
+    it('allowQueryOverride: false always enforces the default filter', async () => {
+      const userService = await setupWith({ allowQueryOverride: false })
+
+      const users = await userService.find({
+        query: { deletedAt: { $ne: null } },
+      })
+
+      assert.strictEqual(users.length, 0)
+    })
+  })
 })
