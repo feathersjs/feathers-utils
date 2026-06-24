@@ -138,4 +138,49 @@ describe('walkQuery', () => {
     })
     expect(query).toBe(result)
   })
+
+  it('stops the traversal when stop() is called', () => {
+    const query = { a: 1, b: 2, c: 3 }
+
+    const visited: string[] = []
+    walkQuery(query, ({ property, stop }) => {
+      visited.push(property)
+      if (property === 'b') {
+        stop()
+      }
+    })
+
+    expect(visited).toEqual(['a', 'b'])
+  })
+
+  it('stops the traversal inside nested $and/$or', () => {
+    const query = {
+      $and: [{ a: 1 }, { $or: [{ b: 2 }, { c: 3 }] }],
+      d: 4,
+    }
+
+    const visited: string[] = []
+    walkQuery(query, ({ property, stop }) => {
+      visited.push(property)
+      if (property === 'b') {
+        stop()
+      }
+    })
+
+    expect(visited).toEqual(['a', 'b'])
+  })
+
+  it('applies the replacement of the stopping call, then halts', () => {
+    const query = { a: 1, b: 2 }
+
+    const result = walkQuery(query, ({ property, value, stop }) => {
+      if (property === 'a') {
+        stop()
+        return value * 10
+      }
+      return value
+    })
+
+    expect(result).toEqual({ a: 10, b: 2 })
+  })
 })
