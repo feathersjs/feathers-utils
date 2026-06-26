@@ -4,7 +4,9 @@ import { dequal as deepEqual } from 'dequal'
 /**
  * Safely merges properties into a Feathers query object. If a property already exists
  * with a different value, it wraps both in a `$and` array to preserve both conditions.
- * If the exact same key-value pair already exists, no changes are made.
+ * If the exact same key-value pair already exists, no changes are made. When the added
+ * query is itself a pure `$and` (`{ $and: [...] }`), its branches are flattened into the
+ * target's `$and` rather than nested.
  *
  * @example
  * ```ts
@@ -44,6 +46,22 @@ export function addToQuery<Q extends Query>(targetQuery: Q, query: Q): Q {
   if (isAlreadyInQuery(targetQuery, entries)) {
     // if all properties already exist with the exact same value, do nothing
     return targetQuery
+  }
+
+  // when the added query is itself a pure `$and`, flatten its branches into the
+  // target's `$and` instead of nesting another `$and` inside it
+  if (entries.length === 1 && Array.isArray(query.$and)) {
+    const existing = (targetQuery.$and as any[]) ?? []
+    const newBranches = (query.$and as any[]).filter(
+      (branch) => !existing.some((q) => deepEqual(q, branch)),
+    )
+    if (newBranches.length === 0) {
+      return targetQuery
+    }
+    return {
+      ...targetQuery,
+      $and: [...existing, ...newBranches],
+    }
   }
 
   if (!targetQuery.$and) {

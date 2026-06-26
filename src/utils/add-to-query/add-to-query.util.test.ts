@@ -69,4 +69,43 @@ describe('addToQuery', () => {
 
     expect(result).toEqual({ id: 1, $and: [{ id: 2, age: 30 }] })
   })
+
+  it('flattens a pure $and query into the existing $and instead of nesting', () => {
+    const result = addToQuery(
+      { $and: [{ id: 1 }, { id: 2 }] },
+      { $and: [{ id: 3 }] },
+    )
+
+    expect(result).toEqual({ $and: [{ id: 1 }, { id: 2 }, { id: 3 }] })
+  })
+
+  it('flattens and dedupes $and branches', () => {
+    const result = addToQuery(
+      { $and: [{ id: 1 }, { id: 2 }] },
+      { $and: [{ id: 2 }, { id: 3 }] },
+    )
+
+    expect(result).toEqual({ $and: [{ id: 1 }, { id: 2 }, { id: 3 }] })
+  })
+
+  it('flattens a $and query alongside other target keys', () => {
+    const result = addToQuery(
+      { id: 1, $and: [{ id: 2 }] },
+      { $and: [{ id: 3 }] },
+    )
+
+    expect(result).toEqual({ id: 1, $and: [{ id: 2 }, { id: 3 }] })
+  })
+
+  it('is a no-op when the added $and branches already exist', () => {
+    const result = addToQuery({ $and: [{ id: 1 }] }, { $and: [{ id: 1 }] })
+
+    expect(result).toEqual({ $and: [{ id: 1 }] })
+  })
+
+  it('merges a pure $and into a target without $and directly', () => {
+    const result = addToQuery({ id: 1 }, { $and: [{ id: 2 }] })
+
+    expect(result).toEqual({ id: 1, $and: [{ id: 2 }] })
+  })
 })

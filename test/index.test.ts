@@ -57,6 +57,7 @@ const utils = [
   'getPaginate',
   'getResultIsArray',
   'iterateFind',
+  'mergeQuery',
   'mutateData',
   'mutateResult',
   'patchBatch',

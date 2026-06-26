@@ -15,3 +15,4 @@ export function isPromise(p: any): p is Promise<any> {
 
 export { traverse } from './traverse.js'
 export { clone } from './clone.js'
+export { isEmptyObject } from './is-empty-object.js'
