@@ -229,6 +229,19 @@ describe('mergeQuery', () => {
         options: { mode: 'intersect' },
         expected: { $and: [{ price: { $gt: 5 } }, { price: { $gt: 8 } }] },
       },
+      // e.g. a user $or merged with a CASL rule that carries its own $and ($nor)
+      'hoists the source $and instead of nesting it': {
+        target: { $or: [{ a: 1 }] },
+        source: { $or: [{ b: 2 }], $and: [{ $nor: [{ c: 3 }] }] },
+        options: { mode: 'intersect' },
+        expected: {
+          $and: [
+            { $or: [{ a: 1 }] },
+            { $or: [{ b: 2 }] },
+            { $nor: [{ c: 3 }] },
+          ],
+        },
+      },
     })
   })
 

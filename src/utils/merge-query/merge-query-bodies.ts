@@ -2,6 +2,7 @@ import type { MergeQueryMode } from './merge-query.util.js'
 import { isEmptyObject } from '../../common/is-empty-object.js'
 import { logicalBranches } from './logical-branches.js'
 import { dedupeBranches } from './dedupe-branches.js'
+import { flattenAndBranches } from './flatten-and-branches.js'
 import { hasConflict } from './has-conflict.js'
 
 type QueryRecord = Record<string, any>
@@ -54,10 +55,15 @@ export function mergeQueryBodies(
     return { ...target, ...source }
   }
 
-  const branches = dedupeBranches([
+  const collected = [
     ...(targetBranches ?? [target]),
     ...(sourceBranches ?? [source]),
-  ])
+  ]
+
+  // under `$and`, hoist any nested `$and` so the result never nests `$and` in `$and`
+  const branches = dedupeBranches(
+    op === '$and' ? flattenAndBranches(collected) : collected,
+  )
 
   if (branches.length === 0) {
     return {}
@@ -131,6 +137,16 @@ if (import.meta.vitest) {
           'intersect',
         ),
       ).toEqual({ $and: [{ id: 1 }, { id: 2 }, { id: 3 }] })
+    })
+
+    it('intersect hoists a nested $and instead of nesting it', () => {
+      expect(
+        mergeQueryBodies(
+          { $or: ['u'] },
+          { $or: ['c'], $and: [{ $nor: ['n'] }] },
+          'intersect',
+        ),
+      ).toEqual({ $and: [{ $or: ['u'] }, { $or: ['c'] }, { $nor: ['n'] }] })
     })
   })
 }
