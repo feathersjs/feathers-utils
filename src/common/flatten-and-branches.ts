@@ -5,7 +5,7 @@ type QueryRecord = Record<string, any>
  * another `$and` branch. `$and` is associative, so a branch like
  * `{ $or: [...], $and: [n] }` is split into the two conjuncts `{ $or: [...] }`
  * and `n`. A pure `{ $and: [...] }` branch contributes only its inner branches.
- * Internal helper for {@link mergeQuery} (intersect).
+ * Internal query-AST helper.
  */
 export function flattenAndBranches(branches: QueryRecord[]): QueryRecord[] {
   const result: QueryRecord[] = []

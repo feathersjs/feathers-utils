@@ -1,8 +1,8 @@
-import type { HookContext } from "@feathersjs/feathers";
-import { copy } from "fast-copy";
-import { getResultIsArray } from "../get-result-is-array/get-result-is-array.util.js";
-import type { DispatchOption } from "../../types.js";
-import type { ResultSingleHookContext } from "../../utility-types/hook-context.js";
+import type { HookContext } from '@feathersjs/feathers'
+import { copy } from 'fast-copy'
+import { getResultIsArray } from '../get-result-is-array/get-result-is-array.util.js'
+import type { DispatchOption } from '../../types.js'
+import type { ResultSingleHookContext } from '../../utility-types/hook-context.js'
 
 export type ReplaceResultOptions = {
   /**
@@ -10,8 +10,8 @@ export type ReplaceResultOptions = {
    * writes both `result` and `dispatch`. When dispatch is requested and not yet
    * present, it is seeded from a clone of `context.result`.
    */
-  dispatch?: DispatchOption;
-};
+  dispatch?: DispatchOption
+}
 
 /**
  * Replaces `context.result` (and/or `context.dispatch`) wholesale with the given
@@ -34,27 +34,27 @@ export function replaceResult<H extends HookContext = HookContext>(
   options?: ReplaceResultOptions,
 ): H {
   if (!!options?.dispatch && !context.dispatch) {
-    context.dispatch = copy(context.result);
+    context.dispatch = copy(context.result)
   }
 
   const write = (dispatch: boolean) => {
-    const { isArray, key } = getResultIsArray(context, { dispatch });
+    const { isArray, key } = getResultIsArray(context, { dispatch })
 
     if (!isArray) {
-      context[key] = result[0];
+      context[key] = result[0]
     } else if (!Array.isArray(context[key]) && context[key]?.data) {
-      context[key].data = result;
+      context[key].data = result
     } else {
-      context[key] = result;
+      context[key] = result
     }
-  };
-
-  if (options?.dispatch === "both") {
-    write(true);
-    write(false);
-  } else {
-    write(!!options?.dispatch);
   }
 
-  return context;
+  if (options?.dispatch === 'both') {
+    write(true)
+    write(false)
+  } else {
+    write(!!options?.dispatch)
+  }
+
+  return context
 }

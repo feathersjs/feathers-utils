@@ -1,8 +1,8 @@
 import type { MergeQueryMode } from './merge-query.util.js'
 import { isEmptyObject } from '../../common/is-empty-object.js'
+import { dedupeBranches } from '../../common/dedupe-branches.js'
+import { flattenAndBranches } from '../../common/flatten-and-branches.js'
 import { logicalBranches } from './logical-branches.js'
-import { dedupeBranches } from './dedupe-branches.js'
-import { flattenAndBranches } from './flatten-and-branches.js'
 import { hasConflict } from './has-conflict.js'
 
 type QueryRecord = Record<string, any>

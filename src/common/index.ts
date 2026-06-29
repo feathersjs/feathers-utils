@@ -16,3 +16,6 @@ export function isPromise(p: any): p is Promise<any> {
 export { traverse } from './traverse.js'
 export { clone } from './clone.js'
 export { isEmptyObject } from './is-empty-object.js'
+export { dedupeBranches } from './dedupe-branches.js'
+export { flattenAndBranches } from './flatten-and-branches.js'
+export { flattenOrBranches } from './flatten-or-branches.js'
