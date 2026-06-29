@@ -59,14 +59,16 @@ function typeDefinition(node: Node, name: string) {
     const jsDocComments = ts.getJSDocCommentsAndTags(node)
 
     jsDocComments.forEach((doc) => {
-      if (doc.comment) {
-        descriptions.push(doc.comment)
+      const comment = ts.getTextOfJSDocComment(doc.comment)
+      if (comment) {
+        descriptions.push(comment)
       }
     })
 
     jsDocTags.forEach((tag) => {
-      if (tag.tagName.text === 'example' && tag.comment) {
-        examples.push(tag.comment)
+      const comment = ts.getTextOfJSDocComment(tag.comment)
+      if (tag.tagName.text === 'example' && comment) {
+        examples.push(comment)
       }
     })
 
@@ -96,14 +98,16 @@ function typeDefinition(node: Node, name: string) {
       const jsDocComments = ts.getJSDocCommentsAndTags(decl)
 
       jsDocComments.forEach((doc) => {
-        if (doc.comment) {
-          descriptions.push(doc.comment)
+        const comment = ts.getTextOfJSDocComment(doc.comment)
+        if (comment) {
+          descriptions.push(comment)
         }
       })
 
       jsDocTags.forEach((tag) => {
-        if (tag.tagName.text === 'example' && tag.comment) {
-          examples.push(tag.comment)
+        const comment = ts.getTextOfJSDocComment(tag.comment)
+        if (tag.tagName.text === 'example' && comment) {
+          examples.push(comment)
         }
       })
 

@@ -14,6 +14,18 @@ const arr = (value: any[]) => {
   return `[${val}]`
 }
 
+// Resolve JSDoc inline `{@link target}` / `{@link target label}` tags into
+// markdown links (to a matching utility) or inline code as a fallback.
+const resolveLinks = (text: string, utilities: Utility[]) =>
+  text.replace(
+    /\{@link\s+([^\s|}]+)(?:\s*\|?\s*([^}]+))?\}/g,
+    (_match, target: string, label?: string) => {
+      const text = (label ?? target).trim()
+      const found = utilities.find((u) => u.name === target)
+      return found ? `[\`${text}\`](${found.path})` : `\`${text}\``
+    },
+  )
+
 export default (utility: Utility, utilities: Utility[]) => {
   const code = [
     `# ${utility.title}`,
@@ -46,7 +58,7 @@ export default (utility: Utility, utilities: Utility[]) => {
     )
   }
 
-  code.push(`${utility.description}
+  code.push(`${resolveLinks(utility.description, utilities)}
 
 \`\`\`ts twoslash
   import { ${utility.name} } from 'feathers-utils/${utility.category}';
@@ -56,7 +68,7 @@ export default (utility: Utility, utilities: Utility[]) => {
     code.push(`
 ## ${utility.examples.length > 1 ? 'Examples' : 'Example'}
 
-${utility.examples.join('\n\n')}
+${utility.examples.map((e) => resolveLinks(e, utilities)).join('\n\n')}
     `)
   }
 
