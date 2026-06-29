@@ -1,4 +1,5 @@
 import type { Query } from '@feathersjs/feathers'
+import { simplifyQuery } from '../simplify-query/simplify-query.util.js'
 import { extractQueryFilters } from './extract-query-filters.js'
 import { mergeQueryBodies } from './merge-query-bodies.js'
 import { mergeSelect } from './merge-select.js'
@@ -64,8 +65,10 @@ export function mergeQuery(
 ): Query {
   const mode = options?.mode ?? 'combine'
 
-  const targetFilters = extractQueryFilters(target)
-  const sourceFilters = extractQueryFilters(source)
+  // normalize inputs first: drop empty/duplicate/redundant logical wrappers and
+  // hoist nested operators, so the merge works on clean, canonical queries
+  const targetFilters = extractQueryFilters(simplifyQuery(target))
+  const sourceFilters = extractQueryFilters(simplifyQuery(source))
 
   const result: Query = mergeQueryBodies(
     targetFilters.query,

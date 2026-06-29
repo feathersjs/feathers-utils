@@ -132,10 +132,13 @@ describe('mergeQuery', () => {
       },
       '$and bodies become branches of an $or': {
         target: { $and: [{ id: 1 }, { id: 2 }] },
-        source: { $and: [{ id: 3 }] },
+        source: { $and: [{ id: 3 }, { id: 4 }] },
         options: { mode: 'combine' },
         expected: {
-          $or: [{ $and: [{ id: 1 }, { id: 2 }] }, { $and: [{ id: 3 }] }],
+          $or: [
+            { $and: [{ id: 1 }, { id: 2 }] },
+            { $and: [{ id: 3 }, { id: 4 }] },
+          ],
         },
       },
       'empty $or branches collapse to {}': {
@@ -211,10 +214,13 @@ describe('mergeQuery', () => {
       },
       '$or bodies become branches of an $and': {
         target: { $or: [{ id: 1 }, { id: 2 }] },
-        source: { $or: [{ id: 3 }] },
+        source: { $or: [{ id: 3 }, { id: 4 }] },
         options: { mode: 'intersect' },
         expected: {
-          $and: [{ $or: [{ id: 1 }, { id: 2 }] }, { $or: [{ id: 3 }] }],
+          $and: [
+            { $or: [{ id: 1 }, { id: 2 }] },
+            { $or: [{ id: 3 }, { id: 4 }] },
+          ],
         },
       },
       'subset (source ⊆ target) merges flat': {
@@ -228,6 +234,64 @@ describe('mergeQuery', () => {
         source: { price: { $gt: 8 } },
         options: { mode: 'intersect' },
         expected: { $and: [{ price: { $gt: 5 } }, { price: { $gt: 8 } }] },
+      },
+      // a user $or merged with a CASL rule that carries its own $and ($nor):
+      // single-branch wrappers collapse, the rest merges flat (no nesting)
+      'merges a user $or with a CASL rule, flat and without nesting': {
+        target: { $or: [{ a: 1 }] },
+        source: { $or: [{ b: 2 }], $and: [{ $nor: [{ c: 3 }] }] },
+        options: { mode: 'intersect' },
+        expected: { a: 1, b: 2, $nor: [{ c: 3 }] },
+      },
+      // when both sides keep multiple $or branches the $nor stays a separate
+      // (still flat) conjunct alongside them
+      'merges multi-branch $or rules without nesting the $and': {
+        target: { $or: [{ a: 1 }, { a: 2 }] },
+        source: { $or: [{ b: 1 }, { b: 2 }], $and: [{ $nor: [{ c: 3 }] }] },
+        options: { mode: 'intersect' },
+        expected: {
+          $and: [
+            { $or: [{ a: 1 }, { a: 2 }] },
+            { $or: [{ b: 1 }, { b: 2 }], $nor: [{ c: 3 }] },
+          ],
+        },
+      },
+    })
+  })
+
+  // a source with a single-branch $or collapses to its child (an $or of one is
+  // that child) and then merges correctly — i.e. `replaceOr` is not needed here
+  describe('source with a single-branch $or', () => {
+    run({
+      'intersect, conflicting child': {
+        target: { id: 1 },
+        source: { $or: [{ id: 2 }] },
+        options: { mode: 'intersect' },
+        expected: { $and: [{ id: 1 }, { id: 2 }] },
+      },
+      'intersect, disjoint child': {
+        target: { status: 'active' },
+        source: { $or: [{ role: 'admin' }] },
+        options: { mode: 'intersect' },
+        expected: { status: 'active', role: 'admin' },
+      },
+      'intersect, child with multiple keys': {
+        target: { a: 1 },
+        source: { $or: [{ b: 2, c: 3 }] },
+        options: { mode: 'intersect' },
+        expected: { a: 1, b: 2, c: 3 },
+      },
+      'combine, disjoint child': {
+        target: { a: 1 },
+        source: { $or: [{ b: 2 }] },
+        options: { mode: 'combine' },
+        expected: { $or: [{ a: 1 }, { b: 2 }] },
+      },
+      'combine, into an existing target $or': {
+        target: { $or: [{ a: 1 }, { a: 2 }] },
+        source: { $or: [{ b: 1 }] },
+        options: { mode: 'combine' },
+        expected: { $or: [{ a: 1 }, { a: 2 }, { b: 1 }] },
       },
     })
   })

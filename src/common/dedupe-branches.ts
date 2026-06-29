@@ -1,11 +1,11 @@
 import { dequal as deepEqual } from 'dequal'
-import { isEmptyObject } from '../../common/is-empty-object.js'
+import { isEmptyObject } from './is-empty-object.js'
 
 type QueryRecord = Record<string, any>
 
 /**
- * Removes empty (`{}`) and deep-equal duplicate branches, preserving order.
- * Internal helper for {@link mergeQuery}.
+ * Removes empty (`{}`) and deep-equal duplicate branches from a logical
+ * (`$and`/`$or`) branch array, preserving order. Internal query-AST helper.
  */
 export function dedupeBranches(branches: QueryRecord[]): QueryRecord[] {
   const result: QueryRecord[] = []

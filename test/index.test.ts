@@ -65,6 +65,7 @@ const utils = [
   'queryHasProperty',
   'replaceData',
   'replaceResult',
+  'simplifyQuery',
   'skipResult',
   'sortQueryProperties',
   'toPaginated',

@@ -1,5 +1,5 @@
-import type { HookContext } from "@feathersjs/feathers";
-import type { DataSingleHookContext } from "../../utility-types/hook-context.js";
+import type { HookContext } from '@feathersjs/feathers'
+import type { DataSingleHookContext } from '../../utility-types/hook-context.js'
 
 /**
  * Replaces `context.data` wholesale with the given items, preserving the original
@@ -21,6 +21,6 @@ export function replaceData<H extends HookContext = HookContext>(
   context: H,
   data: DataSingleHookContext<H>[],
 ): H {
-  context.data = Array.isArray(context.data) ? data : data[0];
-  return context;
+  context.data = Array.isArray(context.data) ? data : data[0]
+  return context
 }
