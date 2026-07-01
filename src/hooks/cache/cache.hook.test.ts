@@ -7,7 +7,7 @@ import { TTLCache } from '@isaacs/ttlcache'
 import { MemoryService } from '@feathersjs/memory'
 import { expect, expectTypeOf } from 'vitest'
 import { copy } from 'fast-copy'
-import { passParams } from '../../utils/pass-params/pass-params.util.js'
+import { gateParams } from '../../utils/gate-params/gate-params.util.js'
 
 const setup = (options: CacheOptions, serviceOptions?: { id?: string }) => {
   const app = feathers<{
@@ -1149,12 +1149,12 @@ describe('cache hook as an around hook', () => {
   })
 })
 
-describe('cache hook with passParams', () => {
+describe('cache hook with gateParams', () => {
   it('prevents false hits across users and collapses non-id user fields (whitelist)', async () => {
     const { usersService, before } = setup({
       map: new Map(),
       // `query` is included by default; only `user.id` is added explicitly.
-      transformParams: (params) => passParams(params, { 'user.id': true }),
+      transformParams: (params) => gateParams(params, { 'user.id': true }),
     })
 
     await usersService.create({ id: 1, name: 'John' })
@@ -1185,7 +1185,7 @@ describe('cache hook with passParams', () => {
     const { usersService, before } = setup({
       map: new Map(),
       // keep everything except the transient `rateLimit` metric.
-      transformParams: (params) => passParams(params, { rateLimit: false }),
+      transformParams: (params) => gateParams(params, { rateLimit: false }),
     })
 
     await usersService.create({ id: 1, name: 'John' })
@@ -1209,7 +1209,7 @@ describe('cache hook with passParams', () => {
       map: new Map(),
       // keep only `query` (default); `stashed` (a function) is dropped.
       transformParams: (params) =>
-        passParams(params, {}, { dropUnknownParams: true }),
+        gateParams(params, {}, { dropUnknownParams: true }),
     })
 
     await usersService.create({ id: 1, name: 'John' })
@@ -1235,7 +1235,7 @@ describe('cache hook with passParams', () => {
     const { usersService } = setup({
       map: new Map(),
       transformParams: (params) =>
-        passParams(params, { query: true }, { onUnknownParams }),
+        gateParams(params, { query: true }, { onUnknownParams }),
     })
 
     await usersService.create({ id: 1, name: 'John' })
