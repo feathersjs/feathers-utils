@@ -93,6 +93,37 @@ describe('hook - rateLimit', () => {
     )
   })
 
+  it('uses a static string key as a shared bucket', async () => {
+    const context: any = {
+      type: 'before',
+      method: 'find',
+      path: 'users',
+      params: {},
+    }
+    const rateLimiter = new RateLimiterMemory({ points: 1, duration: 1 })
+
+    // Both requests share the same static bucket, so the second is rejected
+    await rateLimit(rateLimiter, { key: 'global' })(context)
+    await expect(
+      rateLimit(rateLimiter, { key: 'global' })(context),
+    ).rejects.toThrow('Too many requests')
+  })
+
+  it('uses static number points', async () => {
+    const context: any = {
+      type: 'before',
+      method: 'find',
+      path: 'users',
+      params: {},
+    }
+    const rateLimiter = new RateLimiterMemory({ points: 1, duration: 1 })
+
+    // Consuming 2 points against a 1-point limit should fail immediately
+    await expect(
+      rateLimit(rateLimiter, { points: 2 })(context),
+    ).rejects.toThrow('Too many requests')
+  })
+
   it('throws when used in an after hook', async () => {
     const context: any = {
       type: 'after',

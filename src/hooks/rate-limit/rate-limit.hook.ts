@@ -5,10 +5,20 @@ import { checkContext } from '../../utils/index.js'
 import type { Promisable } from '../../internal.utils.js'
 
 export type RateLimitOptions<H extends HookContext = HookContext> = {
-  /** Generate the rate-limiting key. Defaults to `context.path`. */
-  key?: (context: H) => Promisable<string>
-  /** Number of points to consume per request. Defaults to `1`. */
-  points?: (context: H) => Promisable<number>
+  /**
+   * The rate-limiting key, or a function to derive it from the context.
+   * Defaults to `context.path`.
+   *
+   * Pass a static string to use a single shared bucket (a global rate limit
+   * across all requests), or a function to compute the key per request
+   * (e.g. per user or per IP).
+   */
+  key?: string | ((context: H) => Promisable<string>)
+  /**
+   * Number of points to consume per request, or a function to compute it from
+   * the context. Defaults to `1`.
+   */
+  points?: number | ((context: H) => Promisable<number>)
 }
 
 /**
@@ -35,13 +45,14 @@ export const rateLimit = <H extends HookContext = HookContext>(
   options?: RateLimitOptions<H>,
 ) => {
   const key = options?.key ?? ((context: HookContext) => context.path)
-  const points = options?.points ?? (() => 1)
+  const points = options?.points ?? 1
 
   return async (context: H, next?: NextFunction): Promise<void> => {
     checkContext(context, { type: ['before', 'around'], label: 'rateLimit' })
 
-    const resolvedKey = await key(context)
-    const resolvedPoints = await points(context)
+    const resolvedKey = typeof key === 'function' ? await key(context) : key
+    const resolvedPoints =
+      typeof points === 'function' ? await points(context) : points
 
     try {
       const res = await rateLimiter.consume(resolvedKey, resolvedPoints)

@@ -6,7 +6,7 @@ hook:
   method: ['find', 'get', 'create', 'update', 'patch', 'remove']
   multi: true
 see:
-  - utils/passParams
+  - utils/gateParams
 ---
 
 The `cache` hook caches `get` and `find` results based on `params`. On mutating methods (`create`, `update`, `patch`, `remove`), affected cache entries are automatically invalidated.
@@ -21,16 +21,16 @@ The `cache` hook caches `get` and `find` results based on `params`. On mutating 
 | ----------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `map`             | `Cache`              | The cache implementation. Must implement `get`, `set`, `delete`, `clear`, and `keys`.                                                                                                                                                                |
 | `id`              | `string`             | The id field to use. Defaults to `service.options.id`, then `'id'`.                                                                                                                                                                                  |
-| `transformParams` | `(params) => params` | Transform params before they are used as cache key. Compose it with [`passParams`](/utils/pass-params) to declaratively pick/drop keys and avoid false hits — see [Choosing Cache-Relevant Params](#choosing-cache-relevant-params-with-passparams). |
+| `transformParams` | `(params) => params` | Transform params before they are used as cache key. Compose it with [`gateParams`](/utils/gate-params) to declaratively pick/drop keys and avoid false hits — see [Choosing Cache-Relevant Params](#choosing-cache-relevant-params-with-gateparams). |
 
-## Choosing Cache-Relevant Params (with `passParams`)
+## Choosing Cache-Relevant Params (with `gateParams`)
 
 Deciding which `params` keys form the cache key is the trickiest part of caching, and the two failure modes are asymmetric:
 
 - **False hits (dangerous):** if a key that affects the result is left out (e.g. `user`/tenant, `provider`), two semantically different requests collapse to the same key — one user can be served another user's cached data.
 - **False misses (wasteful):** if a per-request/metrics key is included (e.g. `rateLimit`), every request produces a unique key and the cache never hits. A function-valued key (e.g. `stashed` from `stashable`) would even make serialization throw.
 
-The [`passParams`](/utils/pass-params) utility makes this explicit and safe. It takes a declarative path schema (`true` include, `false` drop, or a predicate/projection function). `query` is always included by default, and keys you never classified are **kept by default** — the safe direction, since a forgotten key causes at worst a harmless cache miss, never a false hit.
+The [`gateParams`](/utils/gate-params) utility makes this explicit and safe. It takes a declarative path schema (`true` include, `false` drop, or a predicate/projection function). `query` is always included by default, and keys you never classified are **kept by default** — the safe direction, since a forgotten key causes at worst a harmless cache miss, never a false hit.
 
 > Transient keys that feathers-utils' own hooks attach to `params` — `rateLimit` (`rateLimit`), `skipHooks` (`skippable`/`addSkip`), the `stashed` function and `_stashable` flag (`stashable`) — are never cache-relevant. Drop them with `false`, or keep only what you list via `dropUnknownParams: true`.
 
@@ -39,12 +39,12 @@ The [`passParams`](/utils/pass-params) utility makes this explicit and safe. It 
 Cache on everything except the keys you explicitly drop with `false`. This is the default direction — safe against false hits:
 
 ```ts
-import { passParams } from 'feathers-utils/utils'
+import { gateParams } from 'feathers-utils/utils'
 
 cache({
   map: new Map(),
   transformParams: (params) =>
-    passParams(params, { rateLimit: false, skipHooks: false }),
+    gateParams(params, { rateLimit: false, skipHooks: false }),
 })
 ```
 
@@ -53,12 +53,12 @@ cache({
 Set `dropUnknownParams: true` so only `query` (always) and the listed paths form the cache key. `user.id` is picked via dot-notation so different tenants never collide and per-request `user` fields don't bloat the key. Use `onUnknownParams` to log anything that was dropped:
 
 ```ts
-import { passParams } from 'feathers-utils/utils'
+import { gateParams } from 'feathers-utils/utils'
 
 cache({
   map: new Map(),
   transformParams: (params) =>
-    passParams(
+    gateParams(
       params,
       { 'user.id': true }, // `query` is included automatically
       {

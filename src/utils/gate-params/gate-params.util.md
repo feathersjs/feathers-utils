@@ -1,5 +1,5 @@
 ---
-title: passParams
+title: gateParams
 category: utils
 see:
   - hooks/cache

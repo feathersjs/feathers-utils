@@ -2,8 +2,8 @@
 title: rateLimit
 category: hooks
 hook:
-  type: ["before", "around"]
-  method: ["find", "get", "create", "update", "patch", "remove"]
+  type: ['before', 'around']
+  method: ['find', 'get', 'create', 'update', 'patch', 'remove']
   multi: true
 ---
 
@@ -13,10 +13,10 @@ Any rate limiter backend supported by `rate-limiter-flexible` can be used (Memor
 
 ## Options
 
-| Option | Type | Description |
-| --- | --- | --- |
-| `key` | `(context) => string` | Generate the rate-limiting key. Defaults to `context.path`. |
-| `points` | `(context) => number` | Number of points to consume per request. Defaults to `1`. |
+| Option   | Type                              | Description                                                                                                                                                            |
+| -------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `key`    | `string \| ((context) => string)` | The rate-limiting key, or a function to derive it from the context. Defaults to `context.path`. Pass a static string for a single shared bucket (a global rate limit). |
+| `points` | `number \| ((context) => number)` | Number of points to consume per request, or a function to compute it from the context. Defaults to `1`.                                                                |
 
 The `RateLimiterRes` is stored on `context.params.rateLimit` on both success and failure, so downstream hooks or services can inspect `remainingPoints`, `consumedPoints`, `msBeforeNext`, etc.
 
@@ -58,16 +58,40 @@ app.service('messages').hooks({
 })
 ```
 
+### Global Rate Limit
+
+Pass a static string as the `key` to share a single bucket across all requests — a global cap on an endpoint instead of one bucket per `context.path`:
+
+```ts
+const rateLimiter = new RateLimiterMemory({ points: 1000, duration: 60 })
+
+app.service('search').hooks({
+  before: {
+    find: [rateLimit(rateLimiter, { key: 'search' })],
+  },
+})
+```
+
 ### Custom Points per Request
 
-Use the `points` option to consume more points for expensive operations:
+Pass a static number to consume a fixed cost per request:
+
+```ts
+app.service('reports').hooks({
+  before: {
+    find: [rateLimit(rateLimiter, { points: 5 })],
+  },
+})
+```
+
+Or pass a function to compute the cost from the context — e.g. to charge more for expensive queries:
 
 ```ts
 app.service('reports').hooks({
   before: {
     find: [
       rateLimit(rateLimiter, {
-        points: (context) => context.params.query?.$limit > 100 ? 5 : 1,
+        points: (context) => (context.params.query?.$limit > 100 ? 5 : 1),
       }),
     ],
   },

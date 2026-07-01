@@ -8,11 +8,11 @@ import _toPath from 'lodash/toPath.js'
  * A rule for a single schema path.
  * - `true` → include the value as-is
  * - `false` → drop the path
- * - function → unified predicate/projection (see {@link PassParamsFn})
+ * - function → unified predicate/projection (see {@link GateParamsFn})
  */
-export type PassParamsRule<P extends Params = Params> =
+export type GateParamsRule<P extends Params = Params> =
   | boolean
-  | PassParamsFn<P>
+  | GateParamsFn<P>
 
 /**
  * The flexible slot — serves as BOTH predicate and projection:
@@ -23,7 +23,7 @@ export type PassParamsRule<P extends Params = Params> =
  * @example predicate: `(value) => value != null`
  * @example projection: `(user) => user?.id`
  */
-export type PassParamsFn<P extends Params = Params> = (
+export type GateParamsFn<P extends Params = Params> = (
   value: any,
   params: P,
 ) => boolean | undefined | unknown
@@ -34,12 +34,12 @@ export type PassParamsFn<P extends Params = Params> = (
  * with lodash `get`/`has`; the result is built with `set` at the same path.
  * Any custom path is allowed.
  */
-export type PassParamsSchema<P extends Params = Params> = Record<
+export type GateParamsSchema<P extends Params = Params> = Record<
   string,
-  PassParamsRule<P>
+  GateParamsRule<P>
 >
 
-export type PassParamsOptions<P extends Params = Params> = {
+export type GateParamsOptions<P extends Params = Params> = {
   /**
    * Drop top-level `params` keys that the schema does not address (neither as a
    * top-level key nor as the root of a nested path). When `false` (the default)
@@ -67,7 +67,7 @@ export type PassParamsOptions<P extends Params = Params> = {
  * Selects and/or projects `params` keys according to a declarative path `schema`,
  * returning a NEW object (never mutates `params`). General-purpose — no cache
  * knowledge. Typically composed into the cache hook's `transformParams` option
- * as `(p) => passParams(p, schema, opts)`.
+ * as `(p) => gateParams(p, schema, opts)`.
  *
  * Paths are resolved with lodash `get`/`has` and written with `set`, so nested
  * values can be picked declaratively (`'user.id': true`).
@@ -81,19 +81,19 @@ export type PassParamsOptions<P extends Params = Params> = {
  *
  * @example exclude specific params (default): everything except the listed noise
  * ```ts
- * passParams(params, { rateLimit: false })
+ * gateParams(params, { rateLimit: false })
  * ```
  * @example include only specific params
  * ```ts
- * passParams(params, { 'user.id': true }, { dropUnknownParams: true })
+ * gateParams(params, { 'user.id': true }, { dropUnknownParams: true })
  * ```
  *
- * @see https://utils.feathersjs.com/utils/pass-params.html
+ * @see https://utils.feathersjs.com/utils/gate-params.html
  */
-export function passParams<P extends Params = Params>(
+export function gateParams<P extends Params = Params>(
   params: P,
-  schema: PassParamsSchema<P>,
-  options?: PassParamsOptions<P>,
+  schema: GateParamsSchema<P>,
+  options?: GateParamsOptions<P>,
 ): Params {
   const out: Record<string, any> = {}
   const claimedTop = new Set<string>()
