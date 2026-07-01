@@ -2,3 +2,5 @@ allowBuilds:
   "@parcel/watcher": true
   esbuild: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@feathers-community/eslint-config@0.2.0'

@@ -7,6 +7,7 @@ import { TTLCache } from '@isaacs/ttlcache'
 import { MemoryService } from '@feathersjs/memory'
 import { expect, expectTypeOf } from 'vitest'
 import { copy } from 'fast-copy'
+import { passParams } from '../../utils/pass-params/pass-params.util.js'
 
 const setup = (options: CacheOptions, serviceOptions?: { id?: string }) => {
   const app = feathers<{
@@ -1145,5 +1146,101 @@ describe('cache hook as an around hook', () => {
     await usersService.get(1)
     await usersService.get(1) // served from cache, but get() facade still invoked once each
     expect(getSpy).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('cache hook with passParams', () => {
+  it('prevents false hits across users and collapses non-id user fields (whitelist)', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      // `query` is included by default; only `user.id` is added explicitly.
+      transformParams: (params) => passParams(params, { 'user.id': true }),
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+
+    // user a -> miss
+    await usersService.find({
+      query: {},
+      user: { id: 'a', updatedAt: 1 },
+    } as any)
+    expect(before.find).toHaveBeenCalledTimes(1)
+
+    // same user id, different transient timestamp -> hit (projection collapses it)
+    await usersService.find({
+      query: {},
+      user: { id: 'a', updatedAt: 999 },
+    } as any)
+    expect(before.find).toHaveBeenCalledTimes(1)
+
+    // different user id -> miss (no cross-user leak)
+    await usersService.find({
+      query: {},
+      user: { id: 'b', updatedAt: 1 },
+    } as any)
+    expect(before.find).toHaveBeenCalledTimes(2)
+  })
+
+  it('strips transient metric keys so the cache still hits (blacklist)', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      // keep everything except the transient `rateLimit` metric.
+      transformParams: (params) => passParams(params, { rateLimit: false }),
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+
+    await usersService.find({
+      query: { name: 'John' },
+      rateLimit: { remainingPoints: 9 },
+    } as any)
+    expect(before.find).toHaveBeenCalledTimes(1)
+
+    // identical query, different rate-limit metrics -> still a cache hit
+    await usersService.find({
+      query: { name: 'John' },
+      rateLimit: { remainingPoints: 8 },
+    } as any)
+    expect(before.find).toHaveBeenCalledTimes(1)
+  })
+
+  it('drops function-valued params under a whitelist so serialization never throws', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      // keep only `query` (default); `stashed` (a function) is dropped.
+      transformParams: (params) =>
+        passParams(params, {}, { dropUnknownParams: true }),
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+
+    // `stashed` is a function; if it reached stableStringify it would throw.
+    await expect(
+      usersService.find({
+        query: { name: 'John' },
+        stashed: () => Promise.resolve(),
+      } as any),
+    ).resolves.toBeDefined()
+    expect(before.find).toHaveBeenCalledTimes(1)
+
+    await usersService.find({
+      query: { name: 'John' },
+      stashed: () => Promise.resolve('other'),
+    } as any)
+    expect(before.find).toHaveBeenCalledTimes(1) // cache hit
+  })
+
+  it('reports undeclared params keys via onUnknownParams', async () => {
+    const onUnknownParams = vi.fn()
+    const { usersService } = setup({
+      map: new Map(),
+      transformParams: (params) =>
+        passParams(params, { query: true }, { onUnknownParams }),
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+    await usersService.find({ query: {}, mystery: 1 } as any)
+
+    expect(onUnknownParams).toHaveBeenCalledWith(['mystery'], expect.anything())
   })
 })
