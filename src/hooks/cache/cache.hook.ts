@@ -34,6 +34,20 @@ export type CacheOptions = {
    * params are stringified for the key-value cache.
    * There are params properties you don't want to include in the cache key.
    * You can use this function to transform the params before they are stringified.
+   *
+   * The {@link passParams} util is built for exactly this: it declaratively
+   * selects/projects `params` keys (keeping `query` by default) so noise like
+   * `rateLimit` never ends up in the cache key.
+   *
+   * @example
+   * ```ts
+   * import { passParams } from 'feathers-utils/utils'
+   *
+   * cache({
+   *   map: new Map(),
+   *   transformParams: (params) => passParams(params, { rateLimit: false }),
+   * })
+   * ```
    */
   transformParams: (params: Params) => Params
   /**
