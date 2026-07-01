@@ -60,6 +60,7 @@ const utils = [
   'mergeQuery',
   'mutateData',
   'mutateResult',
+  'passParams',
   'patchBatch',
   'queryDefaults',
   'queryHasProperty',

@@ -8,6 +8,7 @@
   "type": "module",
   "sideEffects": false,
   "packageManager": "pnpm@11.5.2",
+  "prettier": "@feathers-community/eslint-config/prettier",
   "engines": {
     "node": ">=22.0.0"
   },
@@ -97,7 +98,7 @@
     "neotraverse": "^0.6.18"
   },
   "devDependencies": {
-    "@feathers-community/eslint-config": "^0.1.0",
+    "@feathers-community/eslint-config": "^0.2.0",
     "@feathersjs/authentication": "^5.0.45",
     "@feathersjs/authentication-local": "^5.0.45",
     "@feathersjs/client": "^5.0.45",
