@@ -1,6 +1,6 @@
 {
   "name": "feathers-utils",
-  "version": "10.5.0",
+  "version": "10.6.0",
   "description": "Useful hooks and utils for use with feathers services.",
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
