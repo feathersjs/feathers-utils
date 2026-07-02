@@ -1,6 +1,6 @@
 import type { PaginationOptions } from '@feathersjs/adapter-commons'
 import type { HookContext } from '@feathersjs/feathers'
-import { hasOwnProperty } from '../../internal.utils.js'
+import { hasOwnProperty } from '../../common/index.js'
 
 /**
  * Resolves the active pagination options for the current hook context.

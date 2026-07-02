@@ -45,7 +45,7 @@
   "scripts": {
     "build": "tsdown",
     "docs:dev": "vitepress dev docs --port 5177",
-    "docs:build": "vitepress build docs",
+    "docs:build": "pnpm build && vitepress build docs",
     "docs:preview": "vitepress preview docs --port 4177",
     "version": "pnpm build",
     "lint": "eslint .",
@@ -95,7 +95,8 @@
     "dequal": "^2.0.3",
     "fast-copy": "^4.0.3",
     "lodash": "^4.18.1",
-    "neotraverse": "^0.6.18"
+    "neotraverse": "^0.6.18",
+    "safe-stable-stringify": "^2.5.0"
   },
   "devDependencies": {
     "@feathers-community/eslint-config": "^0.2.0",
@@ -115,6 +116,7 @@
     "@types/node": "^25.9.2",
     "@vitest/coverage-v8": "^4.1.8",
     "dedent": "^1.7.2",
+    "esbuild": "^0.28.1",
     "eslint": "^10.4.1",
     "gray-matter": "^4.0.3",
     "lru-cache": "^11.5.1",

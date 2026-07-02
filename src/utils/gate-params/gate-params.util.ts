@@ -65,12 +65,17 @@ export type GateParamsOptions<P extends Params = Params> = {
 
 /**
  * Selects and/or projects `params` keys according to a declarative path `schema`,
- * returning a NEW object (never mutates `params`). General-purpose — no cache
- * knowledge. Typically composed into the cache hook's `transformParams` option
- * as `(p) => gateParams(p, schema, opts)`.
+ * returning a NEW object. General-purpose — no cache knowledge. Typically composed
+ * into the cache hook's `transformParams` option as `(p) => gateParams(p, schema, opts)`.
  *
  * Paths are resolved with lodash `get`/`has` and written with `set`, so nested
  * values can be picked declaratively (`'user.id': true`).
+ *
+ * `params` is never mutated: kept values are copied over by reference into the
+ * fresh result (safe, since the result is only read/serialized). The one exception
+ * is combining a top-level rule with a nested path under the SAME parent in one
+ * schema (e.g. `{ query: true, 'query.x': ... }`) — the nested `set` would then
+ * write into the shared parent. Pick one granularity per parent to avoid it.
  *
  * `query` is included as-is by DEFAULT (it is always relevant), unless the schema
  * addresses it explicitly — either as `query` or a nested `query.*` path.

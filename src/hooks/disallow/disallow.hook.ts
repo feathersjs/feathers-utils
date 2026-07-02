@@ -3,7 +3,7 @@ import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import type { TransportName } from '../../types.js'
 import { isProvider } from '../../predicates/index.js'
 import type { MaybeArray } from '../../internal.utils.js'
-import { toArray } from '../../internal.utils.js'
+import { toArray } from '../../common/index.js'
 
 /**
  * Prevents access to a service method completely or for specific transports.

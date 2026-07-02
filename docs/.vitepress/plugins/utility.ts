@@ -26,37 +26,63 @@ const resolveLinks = (text: string, utilities: Utility[]) =>
     },
   )
 
+const formatBytes = (bytes: number) => `${(bytes / 1024).toFixed(2)} kB`
+
 export default (utility: Utility, utilities: Utility[]) => {
-  const code = [
-    `# ${utility.title}`,
-    `<Chip label="${utility.category}" class="mt-2 mr-2" /> [Source Code](${utility.sourceUrl}) | [Documentation](${utility.docsUrl})`,
-  ]
+  const code = [`# ${utility.title}`]
 
-  // see also
+  // Meta grid (VueUse-style): fixed label column + value column. Rendered as a
+  // raw HTML block, so values use HTML (<a>/<code>) — markdown isn't parsed
+  // inside HTML blocks; only Vue components like <Chip> survive.
   ;(() => {
-    const see = utility.frontmatter?.see ?? []
+    const rows: [label: string, value: string][] = []
 
-    if (see.length > 0) {
-      const seeAlso = `_See also_: ${see
-        .map((x: string) => {
-          const found = utilities.find((u) => u.name === x)
-          if (found) {
-            return `[\`${x}\`](${found.path})`
-          }
-          const parts = x.split('/')
-          return `[\`${x}\`](/${parts.map(kebabCase).join('/')}${parts.length === 1 ? '/' : '.html'})`
-        })
-        .join(' ')}`
+    rows.push([
+      'Category',
+      `<Chip label="${utility.category}" class="mr-2" /> <a href="${utility.sourceUrl}" target="_blank" rel="noreferrer">Source Code</a> | <a href="${utility.docsUrl}" target="_blank" rel="noreferrer">Documentation</a>`,
+    ])
 
-      code.push(seeAlso)
+    if (utility.bundleSize) {
+      rows.push([
+        'Export size',
+        `min ${formatBytes(utility.bundleSize.minified)} · gzip ${formatBytes(utility.bundleSize.gzip)}`,
+      ])
     }
-  })()
 
-  if (utility.aliases?.length) {
-    code.push(
-      `_Aliases_: ${utility.aliases.map((a: string) => `\`${a}\``).join(', ')}`,
-    )
-  }
+    if (utility.aliases?.length) {
+      rows.push([
+        'Aliases',
+        utility.aliases.map((a) => `<code>${a}</code>`).join(', '),
+      ])
+    }
+
+    const see: string[] = utility.frontmatter?.see ?? []
+    if (see.length > 0) {
+      rows.push([
+        'See also',
+        see
+          .map((x) => {
+            const found = utilities.find((u) => u.name === x)
+            const href = found
+              ? found.path
+              : `/${x.split('/').map(kebabCase).join('/')}${x.includes('/') ? '.html' : '/'}`
+            return `<a href="${href}"><code>${x}</code></a>`
+          })
+          .join(' '),
+      ])
+    }
+
+    const grid = [
+      `<div class="grid grid-cols-[100px_auto] gap-x-4 gap-y-2 items-center mt-4 mb-8 text-sm">`,
+      ...rows.flatMap(([label, value]) => [
+        `<div class="opacity-60">${label}</div>`,
+        `<div>${value}</div>`,
+      ]),
+      `</div>`,
+    ].join('\n')
+
+    code.push(grid)
+  })()
 
   code.push(`${resolveLinks(utility.description, utilities)}
 

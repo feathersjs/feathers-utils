@@ -1,6 +1,6 @@
 import type { HookContext } from '@feathersjs/feathers'
 import type { MaybeArray } from '../../internal.utils.js'
-import { toArray } from '../../internal.utils.js'
+import { toArray } from '../../common/index.js'
 
 export type IsContextOptions<H extends HookContext = HookContext> = {
   path?: MaybeArray<H['path']>

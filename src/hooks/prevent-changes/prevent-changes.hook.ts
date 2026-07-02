@@ -4,7 +4,7 @@ import type { FeathersError } from '@feathersjs/errors'
 import { BadRequest } from '@feathersjs/errors'
 import { transformData } from '../transform-data/transform-data.hook.js'
 import type { KeyOfOrDotNotation, MaybeArray } from '../../internal.utils.js'
-import { toArray } from '../../internal.utils.js'
+import { toArray } from '../../common/index.js'
 import type { HookContext } from '@feathersjs/feathers'
 import type { DataSingleHookContext } from '../../utility-types/hook-context.js'
 

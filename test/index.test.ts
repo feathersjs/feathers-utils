@@ -69,6 +69,7 @@ const utils = [
   'simplifyQuery',
   'skipResult',
   'sortQueryProperties',
+  'stringifyParams',
   'toPaginated',
   'transformParams',
   'waitForServiceEvent',
