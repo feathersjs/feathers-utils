@@ -8,6 +8,7 @@ import type { Node } from 'typescript'
 import ts from 'typescript'
 import prettier from 'prettier'
 import path from 'node:path'
+import { attachExportSizes, type BundleSize } from './export-size'
 
 export const utilityCategories = [
   'hooks',
@@ -37,6 +38,7 @@ export type Utility = {
   transformers?: boolean
   predicates?: boolean
   dts: string
+  bundleSize?: BundleSize
   examples?: string[]
   aliases?: string[]
   args?: {
@@ -282,6 +284,8 @@ export async function discoverUtilities() {
   }
 
   utilitiesList.sort((a, b) => a.title.localeCompare(b.title))
+
+  await attachExportSizes(utilitiesList)
 
   return utilitiesList
 }
