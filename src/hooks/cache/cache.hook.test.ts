@@ -1214,7 +1214,7 @@ describe('cache hook with gateParams', () => {
 
     await usersService.create({ id: 1, name: 'John' })
 
-    // `stashed` is a function; if it reached stableStringify it would throw.
+    // `stashed` is a function; gateParams drops it before it reaches the key.
     await expect(
       usersService.find({
         query: { name: 'John' },

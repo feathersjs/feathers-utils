@@ -129,4 +129,50 @@ describe('gateParams', () => {
 
     expect(params).toEqual(snapshot)
   })
+
+  it('never writes to the input params (deep-frozen, all code paths)', () => {
+    const deepFreeze = <T>(value: T): T => {
+      if (value && typeof value === 'object') {
+        Object.values(value).forEach(deepFreeze)
+        Object.freeze(value)
+      }
+      return value
+    }
+
+    // A frozen object throws on any write attempt in strict mode (ESM), so if
+    // gateParams tried to mutate params or any nested object this would throw.
+    const params = deepFreeze({
+      query: { name: 'John', $or: [{ a: 1 }, { b: 2 }] },
+      user: { id: 7, updatedAt: 123 },
+      provider: 'rest',
+      rateLimit: { remaining: 9 },
+      foo: 1,
+    } as any)
+
+    const onUnknownParams = vi.fn()
+
+    // nested pick + false-drop + keep-default + observer
+    expect(
+      gateParams(
+        params,
+        { 'user.id': true, rateLimit: false },
+        { onUnknownParams },
+      ),
+    ).toEqual({
+      query: { name: 'John', $or: [{ a: 1 }, { b: 2 }] },
+      user: { id: 7 },
+      provider: 'rest',
+      foo: 1,
+    })
+
+    // projection + dropUnknownParams (whitelist)
+    expect(
+      gateParams(params, { user: (u) => u.id }, { dropUnknownParams: true }),
+    ).toEqual({
+      query: { name: 'John', $or: [{ a: 1 }, { b: 2 }] },
+      user: 7,
+    })
+
+    expect(onUnknownParams).toHaveBeenCalledWith(['provider', 'foo'], params)
+  })
 })

@@ -1,5 +1,6 @@
 import type { Query } from '@feathersjs/feathers'
-import { toArray, type MaybeArray } from '../../internal.utils.js'
+import { toArray } from '../../common/index.js'
+import type { MaybeArray } from '../../internal.utils.js'
 import { walkQuery } from '../walk-query/walk-query.util.js'
 
 /**

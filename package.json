@@ -95,7 +95,8 @@
     "dequal": "^2.0.3",
     "fast-copy": "^4.0.3",
     "lodash": "^4.18.1",
-    "neotraverse": "^0.6.18"
+    "neotraverse": "^0.6.18",
+    "safe-stable-stringify": "^2.5.0"
   },
   "devDependencies": {
     "@feathers-community/eslint-config": "^0.2.0",

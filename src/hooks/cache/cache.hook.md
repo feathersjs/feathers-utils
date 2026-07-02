@@ -7,6 +7,7 @@ hook:
   multi: true
 see:
   - utils/gateParams
+  - utils/stringifyParams
 ---
 
 The `cache` hook caches `get` and `find` results based on `params`. On mutating methods (`create`, `update`, `patch`, `remove`), affected cache entries are automatically invalidated.

@@ -1,7 +1,7 @@
 import _get from 'lodash/get.js'
 import _set from 'lodash/set.js'
 import type { MaybeArray } from '../../internal.utils.js'
-import { toArray } from '../../internal.utils.js'
+import { toArray } from '../../common/index.js'
 import { BadRequest } from '@feathersjs/errors'
 import type { StringFieldKey } from '../../types.js'
 

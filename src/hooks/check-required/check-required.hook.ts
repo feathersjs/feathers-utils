@@ -5,7 +5,7 @@ import { BadRequest } from '@feathersjs/errors'
 import { checkContext, getDataIsArray } from '../../utils/index.js'
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import type { MaybeArray } from '../../internal.utils.js'
-import { toArray } from '../../internal.utils.js'
+import { toArray } from '../../common/index.js'
 
 /**
  * Validates that the specified fields exist on `context.data` and are not falsy.

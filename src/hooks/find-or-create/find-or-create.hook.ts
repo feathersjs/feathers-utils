@@ -3,11 +3,11 @@ import _set from 'lodash/set.js'
 import { BadRequest } from '@feathersjs/errors'
 import type { HookContext, NextFunction, Params } from '@feathersjs/feathers'
 import { checkContext, getDataIsArray } from '../../utils/index.js'
-import {
-  toArray,
-  type KeyOfOrDotNotation,
-  type MaybeArray,
-  type NeverFallback,
+import { toArray } from '../../common/index.js'
+import type {
+  KeyOfOrDotNotation,
+  MaybeArray,
+  NeverFallback,
 } from '../../internal.utils.js'
 import type {
   InferCreateDataSingle,

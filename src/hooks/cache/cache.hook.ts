@@ -1,5 +1,5 @@
 import type { HookContext, NextFunction, Params } from '@feathersjs/feathers'
-import { stableStringify } from './cache-utils.js'
+import { stringifyParams } from '../../utils/stringify-params/stringify-params.util.js'
 import { copy } from 'fast-copy'
 import type { Promisable } from '../../internal.utils.js'
 
@@ -52,17 +52,27 @@ export type CacheOptions = {
   transformParams: (params: Params) => Params
   /**
    * Custom serialization function for converting params into a cache key string.
-   * By default, uses `stableStringify` which sorts object keys and normalizes
+   * By default, uses {@link stringifyParams} which sorts object keys and normalizes
    * query operator arrays (`$or`, `$and`, `$in`, etc.) for order-independent caching.
    *
-   * Override this to use a custom serialization strategy.
+   * The default is crash-safe: it never throws on values that leak through
+   * `transformParams`. Circular references become `[Circular]`,
+   * functions/`undefined`/`symbol` are dropped, `BigInt` is stringified, and
+   * objects with `toJSON` (e.g. `Date`, `ObjectId`) are serialized via it.
+   *
+   * Override this to use a custom serialization strategy, e.g. to hash long keys
+   * for an external store (the id prefix stays separate, so invalidation keeps working):
    *
    * @example
    * ```ts
+   * import { createHash } from 'node:crypto'
+   * import { stringifyParams } from 'feathers-utils/utils'
+   *
    * cache({
-   *   map: new Map(),
+   *   map: redisCache,
    *   transformParams: (params) => ({ query: params.query }),
-   *   serialize: (params) => JSON.stringify(params),
+   *   serialize: (params) =>
+   *     createHash('sha256').update(stringifyParams(params)).digest('base64url'),
    * })
    * ```
    */
@@ -169,7 +179,7 @@ class ContextCacheMap {
     this.map = options.map
     this.options = options
     this.log = options.logger
-    this.serialize = options.serialize ?? stableStringify
+    this.serialize = options.serialize ?? stringifyParams
     this.clone =
       options.clone === false
         ? (value) => value

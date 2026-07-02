@@ -1,5 +1,6 @@
 import { BadRequest } from '@feathersjs/errors'
-import { toArray, type MaybeArray } from '../../internal.utils.js'
+import { toArray } from '../../common/index.js'
+import type { MaybeArray } from '../../internal.utils.js'
 import _get from 'lodash/get.js'
 import _set from 'lodash/set.js'
 import type { FieldKey } from '../../types.js'

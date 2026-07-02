@@ -1,6 +1,6 @@
 import _pick from 'lodash/pick.js'
 import type { MaybeArray } from '../../internal.utils.js'
-import { toArray } from '../../internal.utils.js'
+import { toArray } from '../../common/index.js'
 import type { FieldKey } from '../../types.js'
 
 /**

@@ -4,7 +4,7 @@ import { throwIf } from '../throw-if/throw-if.hook.js'
 import { every, isProvider } from '../../predicates/index.js'
 import type { FeathersError } from '@feathersjs/errors'
 import { MethodNotAllowed } from '@feathersjs/errors'
-import { toArray } from '../../internal.utils.js'
+import { toArray } from '../../common/index.js'
 
 const defaultError = (context: HookContext) =>
   new MethodNotAllowed(
