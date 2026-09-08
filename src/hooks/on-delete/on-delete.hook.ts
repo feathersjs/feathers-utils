@@ -1,6 +1,12 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
-import { checkContext, getResultIsArray } from '../../utils/index.js'
+import {
+  checkContext,
+  getResultIsArray,
+  patchMany,
+  removeMany,
+} from '../../utils/index.js'
 import type { MaybeArray, NeverFallback } from '../../internal.utils.js'
+import type { Multi } from '../../types.js'
 import type {
   InferFindParams,
   InferGetResult,
@@ -38,6 +44,17 @@ export interface OnDeleteOptions<
    */
   query?: InferFindParams<H['app']['services'][S]>['query']
   /**
+   * Whether the related service allows manipulating multiple items in a single
+   * `patch`/`remove` call.
+   *
+   * Defaults to the `multi` option of the related service. If multi is not
+   * allowed, the related items are fetched and manipulated with one
+   * `patch`/`remove` call per item.
+   *
+   * @default service.options.multi
+   */
+  multi?: Multi
+  /**
    * If true, the hook will wait for the service to finish before continuing
    *
    * @default false
@@ -51,6 +68,10 @@ export interface OnDeleteOptions<
   onError?: (error: any, context: H) => void
 }
 
+type OnDeleteOptionsDistributed<H extends HookContext> = {
+  [S in keyof H['app']['services'] & string]: OnDeleteOptions<H, S>
+}[keyof H['app']['services'] & string]
+
 /**
  * Manipulates related items when a record is deleted, similar to SQL foreign key actions.
  * Supports `'cascade'` (remove related records) and `'set null'` (nullify the foreign key).
@@ -60,6 +81,7 @@ export interface OnDeleteOptions<
  * ```ts
  * import { onDelete } from 'feathers-utils/hooks'
  *
+ * // remove the user's posts
  * app.service('users').hooks({
  *   after: {
  *     remove: [onDelete({ service: 'posts', keyHere: 'id', keyThere: 'userId', onDelete: 'cascade' })]
@@ -67,12 +89,28 @@ export interface OnDeleteOptions<
  * })
  * ```
  *
+ * @example
+ * ```ts
+ * import { onDelete } from 'feathers-utils/hooks'
+ *
+ * // set `posts.userId` to `null` and wait for it before returning
+ * app.service('users').hooks({
+ *   after: {
+ *     remove: [
+ *       onDelete({
+ *         service: 'posts',
+ *         keyHere: 'id',
+ *         keyThere: 'userId',
+ *         onDelete: 'set null',
+ *         blocking: true,
+ *       }),
+ *     ]
+ *   }
+ * })
+ * ```
+ *
  * @see https://utils.feathersjs.com/hooks/on-delete.html
  */
-type OnDeleteOptionsDistributed<H extends HookContext> = {
-  [S in keyof H['app']['services'] & string]: OnDeleteOptions<H, S>
-}[keyof H['app']['services'] & string]
-
 export const onDelete = <H extends HookContext = HookContext>(
   options: MaybeArray<OnDeleteOptionsDistributed<H>>,
 ) => {
@@ -104,6 +142,7 @@ export const onDelete = <H extends HookContext = HookContext>(
       service,
       blocking,
       query,
+      multi,
       onError,
     } of optionsMulti) {
       let ids = result.map((x) => x[keyHere]).filter((x) => !!x)
@@ -126,12 +165,12 @@ export const onDelete = <H extends HookContext = HookContext>(
       let promise: Promise<any> | undefined = undefined
 
       if (onDelete === 'cascade') {
-        promise = context.app.service(service as string).remove(null, params)
+        promise = removeMany(context.app, service as string, params, { multi })
       } else if (onDelete === 'set null') {
         const data = { [keyThere]: null }
-        promise = context.app
-          .service(service as string)
-          .patch(null, data, params)
+        promise = patchMany(context.app, service as string, data, params, {
+          multi,
+        })
       }
 
       if (!promise) {

@@ -830,6 +830,181 @@ describe('onDelete', function () {
     })
   })
 
+  describe('multi', function () {
+    const mockAppWithMulti = (multi: boolean) => {
+      const app = feathers()
+
+      app.use('users', new MemoryService({ startId: 1, multi: true }))
+      app.use('todos', new MemoryService({ startId: 1, multi }))
+
+      const usersService = app.service('users')
+      const todosService = app.service('todos')
+
+      const removeIds: any[] = []
+      const patchIds: any[] = []
+
+      todosService.hooks({
+        before: {
+          remove: [(context: HookContext) => void removeIds.push(context.id)],
+          patch: [(context: HookContext) => void patchIds.push(context.id)],
+        },
+      })
+
+      return { app, usersService, todosService, removeIds, patchIds }
+    }
+
+    it('cascade removes one by one if the related service disallows multi', async function () {
+      const { usersService, todosService, removeIds } = mockAppWithMulti(false)
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'cascade',
+              blocking: true,
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe' })
+
+      await todosService.create({ title: 'Buy milk', userId: user.id })
+      await todosService.create({ title: 'Buy eggs', userId: user.id })
+      await todosService.create({ title: 'Buy bread', userId: 2 })
+
+      await usersService.remove(user.id)
+
+      expect(removeIds).toStrictEqual([1, 2])
+      expect(await todosService.find({ query: {} })).toStrictEqual([
+        { id: 3, title: 'Buy bread', userId: 2 },
+      ])
+    })
+
+    it('set null patches one by one if the related service disallows multi', async function () {
+      const { usersService, todosService, patchIds } = mockAppWithMulti(false)
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'set null',
+              blocking: true,
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe' })
+
+      await todosService.create({ title: 'Buy milk', userId: user.id })
+      await todosService.create({ title: 'Buy eggs', userId: user.id })
+
+      await usersService.remove(user.id)
+
+      expect(patchIds).toStrictEqual([1, 2])
+      expect(await todosService.find({ query: {} })).toStrictEqual([
+        { id: 1, title: 'Buy milk', userId: null },
+        { id: 2, title: 'Buy eggs', userId: null },
+      ])
+    })
+
+    it('uses a single multi call if the related service allows multi', async function () {
+      const { usersService, todosService, removeIds } = mockAppWithMulti(true)
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'cascade',
+              blocking: true,
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe' })
+
+      await todosService.create({ title: 'Buy milk', userId: user.id })
+      await todosService.create({ title: 'Buy eggs', userId: user.id })
+
+      await usersService.remove(user.id)
+
+      expect(removeIds).toStrictEqual([null])
+      expect(await todosService.find({ query: {} })).toStrictEqual([])
+    })
+
+    it("an explicit 'multi: false' overrides the related service option", async function () {
+      const { usersService, todosService, removeIds } = mockAppWithMulti(true)
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'cascade',
+              blocking: true,
+              multi: false,
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe' })
+
+      await todosService.create({ title: 'Buy milk', userId: user.id })
+      await todosService.create({ title: 'Buy eggs', userId: user.id })
+
+      await usersService.remove(user.id)
+
+      expect(removeIds).toStrictEqual([1, 2])
+      expect(await todosService.find({ query: {} })).toStrictEqual([])
+    })
+
+    it("an explicit 'multi' list only covers the listed methods", async function () {
+      const { usersService, todosService, patchIds } = mockAppWithMulti(true)
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'set null',
+              blocking: true,
+              multi: ['remove'],
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe' })
+
+      await todosService.create({ title: 'Buy milk', userId: user.id })
+      await todosService.create({ title: 'Buy eggs', userId: user.id })
+
+      await usersService.remove(user.id)
+
+      expect(patchIds).toStrictEqual([1, 2])
+      expect(await todosService.find({ query: {} })).toStrictEqual([
+        { id: 1, title: 'Buy milk', userId: null },
+        { id: 2, title: 'Buy eggs', userId: null },
+      ])
+    })
+  })
+
   describe('error handling', function () {
     it('non-blocking default surfaces related errors via onError, caller still resolves', async function () {
       const { usersService, todosService } = mockApp()
