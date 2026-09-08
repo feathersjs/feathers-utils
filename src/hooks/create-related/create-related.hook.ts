@@ -1,6 +1,11 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
-import { checkContext, getResultIsArray } from '../../utils/index.js'
+import {
+  checkContext,
+  createMany,
+  getResultIsArray,
+} from '../../utils/index.js'
 import type { MaybeArray, Promisable } from '../../internal.utils.js'
+import type { Multi } from '../../types.js'
 import type { InferCreateDataSingle } from '../../utility-types/infer-service-methods.js'
 import type { ResultSingleHookContext } from '../../utility-types/hook-context.js'
 
@@ -13,12 +18,14 @@ export interface CreateRelatedOptions<
   /**
    * Is relevant when the current context result is an array.
    *
-   * If true, will create multiple related records in a single call to the related service's create method.
-   * If false or not provided, will create related records one by one.
+   * Whether the related service allows creating multiple items in a single
+   * call. Defaults to the `multi` option of the related service. If multi
+   * creating is not allowed, the related records are created with one call
+   * per item.
    *
-   * @default false
+   * @default service.options.multi
    */
-  multi?: boolean
+  multi?: Multi
   /**
    * A function that returns the data to be created in the related service.
    *
@@ -36,7 +43,8 @@ export interface CreateRelatedOptions<
 /**
  * Creates related records in other services after a successful `create` call.
  * For each result item, a `data` function produces the record to create in the target service.
- * Supports creating records one-by-one or in a single multi-create when `multi: true`.
+ * They are created in a single multi-create if the related service allows it,
+ * otherwise with one call per item.
  *
  * @example
  * ```ts
@@ -83,21 +91,9 @@ export function createRelated<H extends HookContext = HookContext>(
           return
         }
 
-        if (multi || dataToCreate.length === 1) {
-          await context.app
-            .service(service as string)
-            .create(
-              dataToCreate.length === 1
-                ? (dataToCreate[0] as any)
-                : (dataToCreate as any),
-            )
-        } else {
-          await Promise.all(
-            dataToCreate.map(async (item) =>
-              context.app.service(service as string).create(item as any),
-            ),
-          )
-        }
+        await createMany(context.app, service as string, dataToCreate as any, {
+          multi,
+        })
       }),
     )
   }

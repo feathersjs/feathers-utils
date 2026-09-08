@@ -51,6 +51,7 @@ const utils = [
   'checkContext',
   'chunkFind',
   'contextToJson',
+  'createMany',
   'defineHooks',
   'dotifyQuery',
   'gateParams',
