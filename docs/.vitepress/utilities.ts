@@ -34,6 +34,14 @@ export type Utility = {
   lastModified: Date
   sourceUrl: string
   docsUrl: string
+  /**
+   * Absolute path of the sibling `.ts` file the page's prose is generated from.
+   */
+  sourceFilePath: string
+  /**
+   * Absolute path of the `.md` file the page's frontmatter and body come from.
+   */
+  mdFilePath: string
   hook?: Record<string, any>
   transformers?: boolean
   predicates?: boolean
@@ -272,6 +280,8 @@ export async function discoverUtilities() {
         lastModified: (await fs.stat(filePath)).mtime,
         examples: examples.length > 0 ? examples : undefined,
         args,
+        sourceFilePath: path.resolve(tsFile),
+        mdFilePath: path.resolve(filePath),
         sourceUrl: `https://github.com/${repository}/blob/${mainBranch}/src/${category}/${slug}/${fileName}.ts`,
         docsUrl: `https://github.com/${repository}/blob/${mainBranch}/src/${category}/${slug}/${fileName}.md`,
       }

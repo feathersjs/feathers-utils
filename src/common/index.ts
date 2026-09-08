@@ -13,6 +13,8 @@ export function isPromise(p: any): p is Promise<any> {
   return p instanceof Promise
 }
 
+export { allowsMulti } from './allows-multi.js'
+export { changeMany } from './change-many.js'
 export { traverse } from './traverse.js'
 export { clone } from './clone.js'
 export { hasOwnProperty } from './has-own-property.js'

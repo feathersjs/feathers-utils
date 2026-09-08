@@ -14,6 +14,14 @@ export const methodNames = [
 ] as const
 export type MethodName = (typeof methodNames)[number] | ({} & string) // allow custom methods
 
+/**
+ * Whether multiple items may be changed in a single call: for every method
+ * (`true`), for none (`false`) or only for the listed methods.
+ *
+ * Mirrors the `multi` option of the feathers database adapters.
+ */
+export type Multi = boolean | MethodName[]
+
 export type TransportName = 'socketio' | 'rest' | 'external' | 'server'
 
 export type ContextFunctionSync<T, H extends HookContext = HookContext> = (

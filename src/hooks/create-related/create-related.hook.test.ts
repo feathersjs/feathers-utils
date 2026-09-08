@@ -267,6 +267,112 @@ describe('hook - createRelated', function () {
     ])
   })
 
+  it('creates with a single multi call if the related service allows multi', async function () {
+    const { app, todosService } = mockApp({ multi: true })
+
+    const calls: any[] = []
+
+    todosService.hooks({
+      before: {
+        create: [(context: HookContext) => void calls.push(context.data)],
+      },
+    })
+
+    app.service('users').hooks({
+      after: {
+        create: [
+          createRelated({
+            service: 'todos',
+            data: (item) => ({ title: item.name, userId: item.id }),
+          }),
+        ],
+      },
+    })
+
+    await app
+      .service('users')
+      .create([{ name: 'user1' }, { name: 'user2' }, { name: 'user3' }])
+
+    expect(calls).toStrictEqual([
+      [
+        { title: 'user1', userId: 1 },
+        { title: 'user2', userId: 2 },
+        { title: 'user3', userId: 3 },
+      ],
+    ])
+  })
+
+  it('creates one by one if the related service does not allow multi', async function () {
+    const { app, todosService } = mockApp({ multi: false })
+
+    const calls: any[] = []
+
+    todosService.hooks({
+      before: {
+        create: [(context: HookContext) => void calls.push(context.data)],
+      },
+    })
+
+    app.service('users').hooks({
+      after: {
+        create: [
+          createRelated({
+            service: 'todos',
+            data: (item) => ({ title: item.name, userId: item.id }),
+          }),
+        ],
+      },
+    })
+
+    await app
+      .service('users')
+      .create([{ name: 'user1' }, { name: 'user2' }, { name: 'user3' }])
+
+    expect(calls).toStrictEqual([
+      { title: 'user1', userId: 1 },
+      { title: 'user2', userId: 2 },
+      { title: 'user3', userId: 3 },
+    ])
+    expect(
+      await todosService.find({ query: { $sort: { userId: 1 } } }),
+    ).toEqual([
+      { id: 1, title: 'user1', userId: 1 },
+      { id: 2, title: 'user2', userId: 2 },
+      { id: 3, title: 'user3', userId: 3 },
+    ])
+  })
+
+  it("an explicit 'multi' list only covers the listed methods", async function () {
+    const { app, todosService } = mockApp({ multi: true })
+
+    const calls: any[] = []
+
+    todosService.hooks({
+      before: {
+        create: [(context: HookContext) => void calls.push(context.data)],
+      },
+    })
+
+    app.service('users').hooks({
+      after: {
+        create: [
+          createRelated({
+            service: 'todos',
+            data: (item) => ({ title: item.name, userId: item.id }),
+            multi: ['patch'],
+          }),
+        ],
+      },
+    })
+
+    await app.service('users').create([{ name: 'user1' }, { name: 'user2' }])
+
+    expect(calls).toStrictEqual([
+      { title: 'user1', userId: 1 },
+      { title: 'user2', userId: 2 },
+    ])
+  })
+
   it('can create multiple data for one record', async function () {
     const { app, todosService } = mockApp()
 
