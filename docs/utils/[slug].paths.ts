@@ -12,5 +12,6 @@ export default defineRoutes({
       content: utility.content,
     }))
   },
-  watch: ['src/utils/**/*.md'],
+  // relative to this file, not to the project root
+  watch: ['../../src/utils/**/*.md'],
 })

@@ -12,5 +12,6 @@ export default defineRoutes({
       content: utility.content,
     }))
   },
-  watch: ['src/guards/**/*.md'],
+  // relative to this file, not to the project root
+  watch: ['../../src/guards/**/*.md'],
 })
