@@ -11,8 +11,7 @@ import _toPath from 'lodash/toPath.js'
  * - function → unified predicate/projection (see {@link GateParamsFn})
  */
 export type GateParamsRule<P extends Params = Params> =
-  | boolean
-  | GateParamsFn<P>
+  boolean | GateParamsFn<P>
 
 /**
  * The flexible slot — serves as BOTH predicate and projection:

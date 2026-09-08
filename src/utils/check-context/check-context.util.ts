@@ -65,10 +65,7 @@ export function checkContext<
 export function checkContext<H extends HookContext = HookContext>(
   context: H,
   typeOrOptions?:
-    | HookType
-    | HookType[]
-    | CheckContextOptions<NoInfer<H>>
-    | null,
+    HookType | HookType[] | CheckContextOptions<NoInfer<H>> | null,
   methods?: MethodName | MethodName[] | null,
   label = 'anonymous',
 ): void {

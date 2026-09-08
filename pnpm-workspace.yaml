@@ -4,3 +4,4 @@ allowBuilds:
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - '@feathers-community/eslint-config@0.2.0'
+  - '@types/node@26.5.0'

@@ -2,10 +2,7 @@ import type { HookContext, HookType } from '@feathersjs/feathers'
 import type { MaybeArray } from '../../internal.utils.js'
 
 export type SkipHookName =
-  | 'all'
-  | HookType
-  | `${HookType}:${string}`
-  | (string & {})
+  'all' | HookType | `${HookType}:${string}` | (string & {})
 
 /**
  * Adds hook names to `context.params.skipHooks` so that `skippable`-wrapped hooks

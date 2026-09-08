@@ -1,4 +1,4 @@
-import { type Utility } from '../utilities'
+import { type Utility } from '../utilities.js'
 import kebabCase from 'lodash/kebabCase.js'
 
 const arr = (value: any[]) => {

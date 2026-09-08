@@ -7,11 +7,7 @@ import type { InferFindResultSingle } from '../../utility-types/infer-service-me
  * might emit.
  */
 export type ServiceEventName =
-  | 'created'
-  | 'updated'
-  | 'patched'
-  | 'removed'
-  | (string & {})
+  'created' | 'updated' | 'patched' | 'removed' | (string & {})
 
 export type WaitForServiceEventOptions<Result = unknown> = {
   /**
