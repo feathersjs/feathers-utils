@@ -1,6 +1,6 @@
 import { expect, expectTypeOf } from 'vitest'
 import { feathers } from '@feathersjs/feathers'
-import type { HookContext } from '@feathersjs/feathers'
+import type { HookContext, Params } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { Multi } from '../../types.js'
 import { patchMany } from './patch-many.util.js'
@@ -124,6 +124,86 @@ describe('utils/patchMany', function () {
       ),
     ).toEqual([])
     expect(calls).toStrictEqual([])
+  })
+
+  it('does not apply the query again for the per-item calls', async function () {
+    const { app, todosService, calls } = mockApp(false)
+    await seed(todosService)
+
+    const queries: (Params['query'] | undefined)[] = []
+
+    todosService.hooks({
+      before: {
+        patch: [
+          (context: HookContext) => {
+            queries.push(context.params.query)
+          },
+        ],
+      },
+    })
+
+    // the query is consumed by the `find` - a per-item `patch` must not
+    // re-check it, or a stale item throws `NotFound` and takes the whole
+    // call down with it
+    const patched = await patchMany(
+      app,
+      'todos',
+      { userId: null },
+      { query: { userId: 1, $sort: { id: 1 }, $limit: 10 } },
+    )
+
+    expect(patched).toStrictEqual([
+      { id: 1, title: 'one', userId: null },
+      { id: 2, title: 'two', userId: null },
+    ])
+    expect(calls).toStrictEqual([1, 2])
+    expect(queries).toStrictEqual([undefined, undefined])
+  })
+
+  it('keeps $select for the per-item calls', async function () {
+    const { app, todosService, calls } = mockApp(false)
+    await seed(todosService)
+
+    const patched = await patchMany(
+      app,
+      'todos',
+      { userId: null },
+      { query: { userId: 1, $select: ['title'] } },
+    )
+
+    // `$select` is dropped for the `find`, so the id is always there
+    expect(calls).toStrictEqual([1, 2])
+    expect(patched).toStrictEqual([
+      { id: 1, title: 'one' },
+      { id: 2, title: 'two' },
+    ])
+  })
+
+  it('only selects the id property for the find', async function () {
+    const { app, todosService } = mockApp(false)
+    await seed(todosService)
+
+    const findQueries: (Params['query'] | undefined)[] = []
+
+    todosService.hooks({
+      before: {
+        find: [
+          (context: HookContext) => {
+            findQueries.push(context.params.query)
+          },
+        ],
+      },
+    })
+
+    await patchMany(
+      app,
+      'todos',
+      { userId: null },
+      { query: { userId: 1, $select: ['title'] } },
+    )
+
+    // the `find` only collects the ids
+    expect(findQueries).toStrictEqual([{ userId: 1, $select: ['id'] }])
   })
 
   it("throws if the service has no 'patch' method", async function () {

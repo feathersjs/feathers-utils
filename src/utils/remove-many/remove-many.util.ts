@@ -25,6 +25,10 @@ export type RemoveManyOptions = {
  * removed with one call per item instead - so it works regardless of the
  * service's `multi` configuration.
  *
+ * The `params` only select which items are affected: the query is consumed by
+ * the `find` - which only collects the ids - and is not applied again for the
+ * per-item calls, except `$select`.
+ *
  * @example
  * ```ts
  * import { removeMany } from 'feathers-utils/utils'

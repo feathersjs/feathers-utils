@@ -4,26 +4,33 @@ import { allowsMulti } from './allows-multi.js'
 import { toArray } from './to-array.js'
 
 /**
- * Filters that select *which* items are affected. They are consumed by the
- * `find` of the single-call fallback and must not be forwarded to the
- * per-item calls.
+ * The query selects *which* items are affected. It is consumed by the `find`
+ * of the per-item fallback and must not be forwarded to the per-item calls -
+ * only `$select` is kept, so both paths return the same shape.
  */
-const selectionFilters = ['$limit', '$skip', '$sort'] as const
-
 const toSingleParams = (params: Params | undefined): Params => {
   const { query, ...rest } = params ?? {}
 
-  if (!query) {
+  if (!query?.$select) {
     return rest
   }
 
-  const singleQuery = { ...query }
+  return { ...rest, query: { $select: query.$select } }
+}
 
-  for (const filter of selectionFilters) {
-    delete singleQuery[filter]
+/**
+ * The `find` of the per-item fallback is only there to collect the ids, so it
+ * replaces `$select` with the id property - the per-item calls apply the
+ * caller's `$select` to shape what is returned.
+ */
+const toFindParams = (params: Params | undefined, idProperty: string) => {
+  const { $select, ...query } = params?.query ?? {}
+
+  return {
+    ...params,
+    query: { ...query, $select: [idProperty] },
+    paginate: false as const,
   }
-
-  return { ...rest, query: singleQuery }
 }
 
 /**
@@ -50,14 +57,15 @@ export const changeMany = async (
     return toArray(result)
   }
 
-  const found = await service.find(multiParams)
+  const idProperty: string = service.id ?? 'id'
+
+  const found = await service.find(toFindParams(params, idProperty))
   const items: any[] = Array.isArray(found) ? found : (found?.data ?? [])
 
   if (!items.length) {
     return []
   }
 
-  const idProperty: string = service.id ?? 'id'
   const singleParams = toSingleParams(params)
 
   return await Promise.all(
