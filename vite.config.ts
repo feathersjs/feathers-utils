@@ -3,9 +3,15 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     globals: true,
+    // scope discovery to the real source trees. Without this, `test.include`
+    // falls back to vitest's project-wide default, which only skips
+    // `node_modules` and `dist` — so stray checkouts (e.g. git worktrees under
+    // `.claude/`) would get their tests and type tests run as well.
+    include: ['{src,test}/**/*.test.ts'],
     includeSource: ['src/**/*.{js,ts}'],
     typecheck: {
       enabled: true,
+      include: ['{src,test}/**/*.test-d.ts'],
     },
     coverage: {
       provider: 'v8',
