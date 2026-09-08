@@ -1,6 +1,6 @@
 import { expect, expectTypeOf } from 'vitest'
 import { feathers } from '@feathersjs/feathers'
-import type { HookContext } from '@feathersjs/feathers'
+import type { HookContext, Params } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { Multi } from '../../types.js'
 import { removeMany } from './remove-many.util.js'
@@ -119,11 +119,22 @@ describe('utils/removeMany', function () {
     ])
   })
 
-  it('does not forward selection filters to the single calls', async function () {
-    const { app, todosService } = mockApp(false)
+  it('returns an empty array if nothing matches', async function () {
+    const { app, todosService, calls } = mockApp(false)
     await seed(todosService)
 
-    const queries: any[] = []
+    expect(await removeMany(app, 'todos', { query: { userId: 99 } })).toEqual(
+      [],
+    )
+    expect(calls).toStrictEqual([])
+    expect(await todosService.find({ query: {} })).toHaveLength(3)
+  })
+
+  it('does not apply the query again for the per-item calls', async function () {
+    const { app, todosService, calls } = mockApp(false)
+    await seed(todosService)
+
+    const queries: (Params['query'] | undefined)[] = []
 
     todosService.hooks({
       before: {
@@ -135,23 +146,58 @@ describe('utils/removeMany', function () {
       },
     })
 
+    // the query is consumed by the `find` - a per-item `remove` must not
+    // re-check it, or a stale item throws `NotFound` and takes the whole
+    // call down with it
     const removed = await removeMany(app, 'todos', {
       query: { userId: 1, $sort: { id: -1 }, $limit: 10, $skip: 0 },
     })
 
-    expect(removed.map((todo) => todo.id)).toStrictEqual([2, 1])
-    expect(queries).toStrictEqual([{ userId: 1 }, { userId: 1 }])
+    // `$sort`/`$limit`/`$skip` still shape the `find`
+    expect(removed).toStrictEqual([
+      { id: 2, title: 'two', userId: 1 },
+      { id: 1, title: 'one', userId: 1 },
+    ])
+    expect(calls).toStrictEqual([2, 1])
+    expect(queries).toStrictEqual([undefined, undefined])
   })
 
-  it('returns an empty array if nothing matches', async function () {
+  it('keeps $select for the per-item calls', async function () {
     const { app, todosService, calls } = mockApp(false)
     await seed(todosService)
 
-    expect(await removeMany(app, 'todos', { query: { userId: 99 } })).toEqual(
-      [],
-    )
-    expect(calls).toStrictEqual([])
-    expect(await todosService.find({ query: {} })).toHaveLength(3)
+    const removed = await removeMany(app, 'todos', {
+      query: { userId: 1, $select: ['title'] },
+    })
+
+    // `$select` is dropped for the `find`, so the id is always there
+    expect(calls).toStrictEqual([1, 2])
+    expect(removed).toStrictEqual([
+      { id: 1, title: 'one' },
+      { id: 2, title: 'two' },
+    ])
+  })
+
+  it('only selects the id property for the find', async function () {
+    const { app, todosService } = mockApp(false)
+    await seed(todosService)
+
+    const findQueries: (Params['query'] | undefined)[] = []
+
+    todosService.hooks({
+      before: {
+        find: [
+          (context: HookContext) => {
+            findQueries.push(context.params.query)
+          },
+        ],
+      },
+    })
+
+    await removeMany(app, 'todos', { query: { userId: 1, $select: ['title'] } })
+
+    // the `find` only collects the ids
+    expect(findQueries).toStrictEqual([{ userId: 1, $select: ['id'] }])
   })
 
   it("throws if the service has no 'remove' method", async function () {
