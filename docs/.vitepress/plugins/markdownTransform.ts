@@ -1,8 +1,8 @@
 import path from 'node:path'
 import type { Plugin } from 'vite'
 
-import { discoverUtilities, type Utility } from '../utilities'
-import md from './utility'
+import { discoverUtilities, type Utility } from '../utilities.js'
+import md from './utility.js'
 
 export type MarkdownTransformOptions = {
   vitepressDirectory: string

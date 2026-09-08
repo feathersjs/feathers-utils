@@ -6,12 +6,12 @@ import {
   ogImage,
   repository,
   mainBranch,
-} from './meta'
+} from './meta.js'
 import { version } from '../../package.json'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { discoverUtilities, utilityCategories } from './utilities'
-import { MarkdownTransform } from './plugins/markdownTransform'
+import { discoverUtilities, utilityCategories } from './utilities.js'
+import { MarkdownTransform } from './plugins/markdownTransform.js'
 import { transformerTwoslash } from '@shikijs/vitepress-twoslash'
 import tailwindcss from '@tailwindcss/vite'
 

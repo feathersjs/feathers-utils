@@ -64,8 +64,7 @@ export type TransformerInputFn<
 > = (item: T, options: { context: H; i: number }) => Promisable<any>
 
 export type FieldKey<T> =
-  | (keyof T & string)
-  | `${Extract<keyof T, string>}.${string}`
+  (keyof T & string) | `${Extract<keyof T, string>}.${string}`
 
 export type StringFieldKey<T> =
   | {

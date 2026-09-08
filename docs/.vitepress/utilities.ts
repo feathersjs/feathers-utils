@@ -1,14 +1,14 @@
 /* eslint-disable import-x/no-named-as-default-member */
 import fs from 'node:fs/promises'
-import matter from 'gray-matter'
+import matter from '@11ty/gray-matter'
 import { glob } from 'tinyglobby'
 import kebabCase from 'lodash/kebabCase.js'
-import { mainBranch, repository } from './meta'
+import { mainBranch, repository } from './meta.js'
 import type { Node } from 'typescript'
 import ts from 'typescript'
 import prettier from 'prettier'
 import path from 'node:path'
-import { attachExportSizes, type BundleSize } from './export-size'
+import { attachExportSizes, type BundleSize } from './export-size.js'
 
 export const utilityCategories = [
   'hooks',
