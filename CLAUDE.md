@@ -35,9 +35,9 @@ Auto-discovered from `src/**/*.md`; the prose body is generated from the sibling
 
 ```yaml
 ---
-title: stringifyParams   # camelCase export name
+title: stringifyParams # camelCase export name
 category: utils
-see:                     # optional cross-links
+see: # optional cross-links
   - hooks/cache
   - utils/gateParams
 ---
@@ -57,9 +57,9 @@ see:                     # optional cross-links
 
 - ESLint (`@feathers-community/eslint-config`) has **Prettier built in as a rule** —
   there is no separate prettier config; run `eslint --fix` to format.
-- **No `node:` protocol imports in `src/**/*.ts`** (lint error; allowed in tests).
+- **No `node:` protocol imports in `src/**/\*.ts`\*\* (lint error; allowed in tests).
 
 ## Commands
 
-- `npm test` — lint + typecheck + coverage (the full gate).
-- `npm run lint` · `npm run typecheck` · `npm run test:unit` · `npm run build` (tsdown).
+- `pnpm test` — lint + typecheck + coverage (the full gate).
+- `pnpm lint` · `pnpm typecheck` · `pnpm test:unit` · `pnpm build` (tsdown).
