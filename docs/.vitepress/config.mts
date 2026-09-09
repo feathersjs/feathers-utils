@@ -199,6 +199,19 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Tags',
+        items: [
+          { text: 'All tags', link: '/tags/' },
+          ...utilityTagGroups.map((group) => ({
+            text: group.label,
+            items: group.tags.map((tag) => ({
+              text: tag.name,
+              link: `/tags/${tag.name}`,
+            })),
+          })),
+        ],
+      },
+      {
         text: `v${version}`,
         items: [
           {
