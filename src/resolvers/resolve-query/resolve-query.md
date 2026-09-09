@@ -1,6 +1,8 @@
 ---
 title: resolveQuery
 category: resolvers
+tags:
+  - query
 hook:
   type: ["before", "around"]
   method: ["find", "get", "create", "update", "patch", "remove"]

@@ -1,6 +1,8 @@
 ---
 title: and
 category: predicates
+tags:
+  - control-flow
 aliases:
   - every
 see:

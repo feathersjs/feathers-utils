@@ -1,6 +1,8 @@
 ---
 title: resolve
 category: resolvers
+tags:
+  - data
 hook:
   type: ["around"]
   method: ["find", "get", "create", "update", "patch", "remove"]

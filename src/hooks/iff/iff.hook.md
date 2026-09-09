@@ -1,6 +1,8 @@
 ---
 title: iff
 category: hooks
+tags:
+  - control-flow
 hook:
   type: ["before", "after"]
   method: ["all"]

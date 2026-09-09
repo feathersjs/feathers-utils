@@ -11,6 +11,7 @@ import { version } from '../../package.json'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { discoverUtilities, utilityCategories } from './utilities.js'
+import { utilityTagGroups } from './tags.js'
 import { MarkdownTransform } from './plugins/markdownTransform.js'
 import { transformerTwoslash } from '@shikijs/vitepress-twoslash'
 import tailwindcss from '@tailwindcss/vite'
@@ -86,6 +87,17 @@ export default defineConfig({
             link: '/migrating-from-feathers-fletching',
           },
         ],
+      },
+      {
+        text: 'Tags',
+        link: '/tags/',
+        collapsed: true,
+        items: utilityTagGroups.flatMap((group) =>
+          group.tags.map((tag) => ({
+            text: tag.name,
+            link: `/tags/${tag.name}`,
+          })),
+        ),
       },
       {
         text: 'Hooks',

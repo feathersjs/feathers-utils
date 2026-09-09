@@ -3,4 +3,4 @@
 
 # Hooks
 
-<HooksTable />
+<HooksTable tag-filter />

@@ -1,6 +1,8 @@
 ---
 title: paramsForServer
 category: hooks
+tags:
+  - params
 hook:
   type: ["before", "around"]
   method: ["create", "update", "patch"]

@@ -42,6 +42,18 @@ export default (utility: Utility, utilities: Utility[]) => {
       `<Chip label="${utility.category}" class="mr-2" /> <a href="${utility.sourceUrl}" target="_blank" rel="noreferrer">Source Code</a> | <a href="${utility.docsUrl}" target="_blank" rel="noreferrer">Documentation</a>`,
     ])
 
+    if (utility.tags.length) {
+      rows.push([
+        'Tags',
+        utility.tags
+          .map(
+            (tag) =>
+              `<Chip label="${tag}" href="/tags/${tag}.html" class="mr-1" />`,
+          )
+          .join(' '),
+      ])
+    }
+
     if (utility.bundleSize) {
       rows.push([
         'Export size',

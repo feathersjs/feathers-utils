@@ -1,6 +1,9 @@
 ---
 title: cache
 category: hooks
+tags:
+  - query
+  - caching
 hook:
   type: ['before', 'after']
   method: ['find', 'get', 'create', 'update', 'patch', 'remove']

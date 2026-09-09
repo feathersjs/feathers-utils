@@ -1,6 +1,8 @@
 ---
 title: fromPredicate
 category: resolvers
+tags:
+  - control-flow
 kind: helper
 see:
   - predicates

@@ -1,6 +1,8 @@
 ---
 title: rateLimit
 category: hooks
+tags:
+  - authorization
 hook:
   type: ['before', 'around']
   method: ['find', 'get', 'create', 'update', 'patch', 'remove']

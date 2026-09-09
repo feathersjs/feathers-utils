@@ -1,6 +1,8 @@
 ---
 title: setQueryDefaults
 category: hooks
+tags:
+  - query
 hook:
   type: ["before", "around"]
   method: ["find", "get", "update", "patch", "remove"]

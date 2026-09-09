@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* VitePress toggles `.dark` on <html>, while Tailwind v4's built-in `dark:`
+   variant follows `prefers-color-scheme` — which would ignore the theme
+   switcher. Rebind it to the class instead. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /**
  * Colors
  * -------------------------------------------------------------------------- */
