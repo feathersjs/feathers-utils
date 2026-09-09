@@ -4,7 +4,8 @@ category: utils
 tags:
   - query
 see:
-  - utils/merge-query
-  - utils/add-to-query
-  - utils/walk-query
+  - utils/mergeQuery
+  - utils/addToQuery
+  - utils/walkQuery
+  - utils/eqOrIn
 ---
