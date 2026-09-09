@@ -103,6 +103,83 @@ describe('addToQuery', () => {
     expect(result).toEqual({ $and: [{ id: 1 }] })
   })
 
+  it('intersects rather than unions two conditions on the same property', () => {
+    const result = addToQuery({ something: 1 }, { something: { $in: [2] } })
+
+    expect(result).toEqual({
+      something: 1,
+      $and: [{ something: { $in: [2] } }],
+    })
+  })
+
+  // filters are split off and merged separately — they never land in the $and
+  describe('query filters', () => {
+    it('keeps a filter only one side provides', () => {
+      expect(addToQuery({ id: 1 }, { $limit: 20 })).toEqual({
+        id: 1,
+        $limit: 20,
+      })
+      expect(addToQuery({ $limit: 20 }, { id: 1 })).toEqual({
+        id: 1,
+        $limit: 20,
+      })
+    })
+
+    it('lets the added query win for $limit and $skip', () => {
+      expect(addToQuery({ $limit: 10, $skip: 5 }, { $limit: 20 })).toEqual({
+        $limit: 20,
+        $skip: 5,
+      })
+      expect(addToQuery({ $skip: 5 }, { $skip: 0 })).toEqual({ $skip: 0 })
+    })
+
+    it('merges $sort key by key', () => {
+      expect(addToQuery({ $sort: { a: 1 } }, { $sort: { b: -1 } })).toEqual({
+        $sort: { a: 1, b: -1 },
+      })
+      expect(addToQuery({ $sort: { a: 1 } }, { $sort: { a: -1 } })).toEqual({
+        $sort: { a: -1 },
+      })
+    })
+
+    it('intersects $select', () => {
+      expect(addToQuery({ $select: ['a', 'b'] }, { $select: ['b'] })).toEqual({
+        $select: ['b'],
+      })
+      expect(addToQuery({ $select: ['a'] }, { $select: ['b'] })).toEqual({
+        $select: [],
+      })
+      expect(addToQuery({ $select: ['a'] }, { id: 1 })).toEqual({
+        id: 1,
+        $select: ['a'],
+      })
+    })
+
+    it('merges the body as usual alongside the filters', () => {
+      expect(addToQuery({ id: 1, $limit: 10 }, { id: 2, $limit: 20 })).toEqual({
+        id: 1,
+        $and: [{ id: 2 }],
+        $limit: 20,
+      })
+    })
+
+    it('does not mutate its inputs', () => {
+      const targetQuery = { id: 1, $limit: 10, $sort: { a: 1 } }
+      const query = { id: 2, $limit: 20 }
+      const targetSnapshot = structuredClone(targetQuery)
+      const querySnapshot = structuredClone(query)
+
+      addToQuery(targetQuery, query)
+
+      expect(targetQuery).toEqual(targetSnapshot)
+      expect(query).toEqual(querySnapshot)
+    })
+
+    it('is a no-op for an equal filter', () => {
+      expect(addToQuery({ $limit: 10 }, { $limit: 10 })).toEqual({ $limit: 10 })
+    })
+  })
+
   it('merges a pure $and into a target without $and directly', () => {
     const result = addToQuery({ id: 1 }, { $and: [{ id: 2 }] })
 

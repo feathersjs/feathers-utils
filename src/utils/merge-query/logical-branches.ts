@@ -1,3 +1,5 @@
+import { isOnlyOperator } from '../../common/is-only-operator.js'
+
 type QueryRecord = Record<string, any>
 
 /**
@@ -9,8 +11,7 @@ export function logicalBranches(
   query: QueryRecord,
   op: '$or' | '$and',
 ): QueryRecord[] | null {
-  const keys = Object.keys(query)
-  if (keys.length === 1 && keys[0] === op && Array.isArray(query[op])) {
+  if (isOnlyOperator(query, op) && Array.isArray(query[op])) {
     return query[op] as QueryRecord[]
   }
   return null

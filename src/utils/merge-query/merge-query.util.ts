@@ -1,8 +1,8 @@
 import type { Query } from '@feathersjs/feathers'
 import { simplifyQuery } from '../simplify-query/simplify-query.util.js'
-import { extractQueryFilters } from './extract-query-filters.js'
+import { extractQueryFilters } from '../../common/extract-query-filters.js'
 import { mergeQueryBodies } from './merge-query-bodies.js'
-import { mergeSelect } from './merge-select.js'
+import { mergeSelect } from '../../common/merge-select.js'
 
 export type MergeQueryMode = 'target' | 'source' | 'combine' | 'intersect'
 
@@ -16,6 +16,13 @@ export interface MergeQueryOptions {
    * - `source`: keep the source's value on conflict.
    */
   mode?: MergeQueryMode
+  /**
+   * Collapse `$or` branches that constrain the same single property with an
+   * equality or `$in` into one `$in` over the union of their values. Only ever
+   * applies to `combine`, the mode that produces an `$or`. Turn this off when
+   * `$in` is not an option for that property. Default `true`.
+   */
+  collapseOrToIn?: boolean
 }
 
 /**
@@ -25,6 +32,10 @@ export interface MergeQueryOptions {
  * non-conflicting properties flat and wraps conflicts in `$and` (narrow). The
  * special filters `$select`, `$limit`, `$skip` and `$sort` are merged separately.
  * Inputs are never mutated.
+ *
+ * Under `combine`, branches that constrain the same single property with an equality
+ * or an `$in` are collapsed into a single `$in` over the union of their values — the
+ * same condition, without the `$or` (opt out with `collapseOrToIn: false`).
  *
  * This is well suited to merging a client-provided query with a server-side
  * restriction inside a hook.
@@ -44,6 +55,10 @@ export interface MergeQueryOptions {
  *
  * mergeQuery({ status: 'active' }, { authorId: 5 })
  * // => { $or: [{ status: 'active' }, { authorId: 5 }] }
+ *
+ * // an $or on one property is a $in over the union of its values
+ * mergeQuery({ something: { $in: ['a'] } }, { something: { $in: ['b'] } })
+ * // => { something: { $in: ['a', 'b'] } }
  * ```
  *
  * @example
@@ -64,16 +79,22 @@ export function mergeQuery(
   options?: MergeQueryOptions,
 ): Query {
   const mode = options?.mode ?? 'combine'
+  const collapseOrToIn = options?.collapseOrToIn ?? true
 
   // normalize inputs first: drop empty/duplicate/redundant logical wrappers and
   // hoist nested operators, so the merge works on clean, canonical queries
-  const targetFilters = extractQueryFilters(simplifyQuery(target))
-  const sourceFilters = extractQueryFilters(simplifyQuery(source))
+  const targetFilters = extractQueryFilters(
+    simplifyQuery(target, { collapseOrToIn }),
+  )
+  const sourceFilters = extractQueryFilters(
+    simplifyQuery(source, { collapseOrToIn }),
+  )
 
   const result: Query = mergeQueryBodies(
     targetFilters.query,
     sourceFilters.query,
     mode,
+    collapseOrToIn,
   )
 
   const $select = mergeSelect(

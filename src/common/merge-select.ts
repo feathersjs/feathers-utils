@@ -1,14 +1,16 @@
-import type { MergeQueryMode } from './merge-query.util.js'
+export type SelectMergeMode = 'target' | 'source' | 'combine' | 'intersect'
 
 /**
  * Merges two `$select` filters according to the mode: `combine` → union,
  * `intersect` → intersection, `target`/`source` → that side. When only one side
- * provides a `$select`, that one is used. Internal helper for {@link mergeQuery}.
+ * provides a `$select`, that one is used.
+ *
+ * @internal shared by `addToQuery` and `mergeQuery`.
  */
 export function mergeSelect(
   target: any,
   source: any,
-  mode: MergeQueryMode,
+  mode: SelectMergeMode,
 ): any {
   if (target === undefined) {
     return source

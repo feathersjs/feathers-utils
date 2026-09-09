@@ -10,8 +10,9 @@ export type FilterQueryResult<Q extends Query = Query> = {
 
 /**
  * Splits a query into its special filters ($select, $limit, $skip, $sort) and the
- * remaining query body. Internal helper for {@link mergeQuery} — not part of the
- * public API.
+ * remaining query body.
+ *
+ * @internal shared by `addToQuery` and `mergeQuery` — not part of the public API.
  */
 export function extractQueryFilters<Q extends Query>(
   providedQuery?: Q,

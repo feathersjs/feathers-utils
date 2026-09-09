@@ -67,8 +67,8 @@ describe('simplifyQuery', () => {
     expect(simplifyQuery({ $and: [{ id: 1 }, { id: 1 }, { id: 2 }] })).toEqual({
       $and: [{ id: 1 }, { id: 2 }],
     })
-    expect(simplifyQuery({ $or: [{ id: 1 }, { id: 1 }, { id: 2 }] })).toEqual({
-      $or: [{ id: 1 }, { id: 2 }],
+    expect(simplifyQuery({ $or: [{ a: 1 }, { a: 1 }, { b: 2 }] })).toEqual({
+      $or: [{ a: 1 }, { b: 2 }],
     })
   })
 
@@ -139,12 +139,75 @@ describe('simplifyQuery', () => {
 
   it('keeps the $and (carrying an $or) when it collides with the root $or', () => {
     const query = {
-      $or: [{ a: 1 }, { a: 2 }],
-      $and: [{ $or: [{ b: 1 }, { b: 2 }] }],
+      $or: [{ a: 1 }, { b: 2 }],
+      $and: [{ $or: [{ c: 1 }, { d: 2 }] }],
     }
     expect(simplifyQuery(query)).toEqual({
-      $or: [{ a: 1 }, { a: 2 }],
-      $and: [{ $or: [{ b: 1 }, { b: 2 }] }],
+      $or: [{ a: 1 }, { b: 2 }],
+      $and: [{ $or: [{ c: 1 }, { d: 2 }] }],
+    })
+  })
+
+  describe('collapseOrToIn', () => {
+    it('unions $or branches on the same property into one $in', () => {
+      expect(
+        simplifyQuery({
+          $or: [{ something: { $in: ['a'] } }, { something: { $in: ['b'] } }],
+        }),
+      ).toEqual({ something: { $in: ['a', 'b'] } })
+    })
+
+    it('unions equality branches into one $in', () => {
+      expect(simplifyQuery({ $or: [{ role: 'a' }, { role: 'b' }] })).toEqual({
+        role: { $in: ['a', 'b'] },
+      })
+    })
+
+    it('keeps branches on other properties alongside the $in', () => {
+      expect(
+        simplifyQuery({
+          $or: [{ role: 'a' }, { status: 'active' }, { role: 'b' }],
+        }),
+      ).toEqual({ $or: [{ role: { $in: ['a', 'b'] } }, { status: 'active' }] })
+    })
+
+    it('collapses a nested $or as well', () => {
+      expect(
+        simplifyQuery({
+          id: 1,
+          $and: [{ $or: [{ role: 'a' }, { role: 'b' }] }],
+        }),
+      ).toEqual({ id: 1, role: { $in: ['a', 'b'] } })
+    })
+
+    it('does not collapse an $and', () => {
+      const query = { $and: [{ role: 'a' }, { role: 'b' }] }
+      expect(simplifyQuery(query)).toEqual(query)
+    })
+
+    it('does not collapse branches constraining more than one property', () => {
+      const query = { $or: [{ role: 'a', status: 'x' }, { role: 'b' }] }
+      expect(simplifyQuery(query)).toEqual(query)
+    })
+
+    it('does not collapse other operators', () => {
+      const query = { $or: [{ price: { $gt: 1 } }, { price: { $lt: 9 } }] }
+      expect(simplifyQuery(query)).toEqual(query)
+    })
+
+    it('can be turned off', () => {
+      const query = { $or: [{ role: 'a' }, { role: 'b' }] }
+      expect(simplifyQuery(query, { collapseOrToIn: false })).toEqual(query)
+    })
+
+    it('is idempotent', () => {
+      const once = simplifyQuery({
+        $or: [{ role: 'a' }, { role: { $in: ['b', 'c'] } }, { status: 'x' }],
+      })
+      expect(once).toEqual({
+        $or: [{ role: { $in: ['a', 'b', 'c'] } }, { status: 'x' }],
+      })
+      expect(simplifyQuery(once)).toEqual(once)
     })
   })
 
@@ -162,10 +225,74 @@ describe('simplifyQuery', () => {
     expect(simplifyQuery(query)).toEqual(query)
   })
 
-  it('does not touch non-logical operators like $in', () => {
+  it('does not dedupe or reorder the values of a multi-value $in', () => {
     expect(simplifyQuery({ a: { $in: [1, 1, 2] }, $and: [{ b: 2 }] })).toEqual({
       a: { $in: [1, 1, 2] },
       b: 2,
+    })
+  })
+
+  describe('collapseToEqOrNe', () => {
+    it('writes a single-value $in as an equality', () => {
+      expect(simplifyQuery({ role: { $in: ['admin'] } })).toEqual({
+        role: 'admin',
+      })
+    })
+
+    it('writes a single-value $nin as a $ne', () => {
+      expect(simplifyQuery({ role: { $nin: ['admin'] } })).toEqual({
+        role: { $ne: 'admin' },
+      })
+    })
+
+    it('keeps a multi-value $nin', () => {
+      const query = { role: { $nin: ['a', 'b'] } }
+      expect(simplifyQuery(query)).toEqual(query)
+    })
+
+    it('reaches properties no logical operator touches', () => {
+      expect(
+        simplifyQuery({ a: { $in: [1] }, b: 2, c: { $in: [3, 4] } }),
+      ).toEqual({ a: 1, b: 2, c: { $in: [3, 4] } })
+    })
+
+    it('reaches into $or, $and and $nor branches', () => {
+      expect(
+        simplifyQuery({
+          $or: [{ a: { $in: [1] } }, { b: { $nin: [2] } }],
+          $nor: [{ c: { $in: [3] } }],
+        }),
+      ).toEqual({ $or: [{ a: 1 }, { b: { $ne: 2 } }], $nor: [{ c: 3 }] })
+    })
+
+    it('keeps a $in over a single array value', () => {
+      const query = { roles: { $in: [['admin']] } }
+      expect(simplifyQuery(query)).toEqual(query)
+    })
+
+    it('keeps a $in that is not the only operator', () => {
+      const query = { a: { $in: [1], $ne: 2 } }
+      expect(simplifyQuery(query)).toEqual(query)
+    })
+
+    it('lets the branches merge up once the values match', () => {
+      expect(simplifyQuery({ a: 1, $and: [{ a: { $in: [1] } }] })).toEqual({
+        a: 1,
+      })
+    })
+
+    it('can be turned off', () => {
+      const query = { a: { $in: [1] } }
+      expect(simplifyQuery(query, { collapseToEqOrNe: false })).toEqual(query)
+    })
+
+    it('is idempotent', () => {
+      const once = simplifyQuery({
+        a: { $in: [1] },
+        $or: [{ b: { $in: [2] } }],
+      })
+      expect(once).toEqual({ a: 1, b: 2 })
+      expect(simplifyQuery(once)).toEqual(once)
     })
   })
 

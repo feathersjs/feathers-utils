@@ -22,8 +22,8 @@ const run = (pairs: Record<string, Pair>) => {
 describe('mergeQuery', () => {
   describe('general', () => {
     it('defaults to combine', () => {
-      expect(mergeQuery({ id: 1 }, { id: 2 })).toEqual({
-        $or: [{ id: 1 }, { id: 2 }],
+      expect(mergeQuery({ a: 1 }, { b: 2 })).toEqual({
+        $or: [{ a: 1 }, { b: 2 }],
       })
     })
 
@@ -95,11 +95,43 @@ describe('mergeQuery', () => {
         options: { mode: 'combine' },
         expected: { $or: [{ a: 1 }, { b: 2 }] },
       },
-      'conflicting key becomes $or': {
+      'conflicting key becomes a $in on that key': {
         target: { id: 1 },
         source: { id: 2 },
         options: { mode: 'combine' },
+        expected: { id: { $in: [1, 2] } },
+      },
+      'conflicting key stays an $or when the collapse is off': {
+        target: { id: 1 },
+        source: { id: 2 },
+        options: { mode: 'combine', collapseOrToIn: false },
         expected: { $or: [{ id: 1 }, { id: 2 }] },
+      },
+      '$in values are unioned into a single $in': {
+        target: { something: { $in: ['a'] } },
+        source: { something: { $in: ['b'] } },
+        options: { mode: 'combine' },
+        expected: { something: { $in: ['a', 'b'] } },
+      },
+      'a $in and an equality on the same key are unioned': {
+        target: { something: { $in: ['a', 'b'] } },
+        source: { something: 'c' },
+        options: { mode: 'combine' },
+        expected: { something: { $in: ['a', 'b', 'c'] } },
+      },
+      'only the branches on the same key are collapsed': {
+        target: { $or: [{ role: 'a' }, { status: 'active' }] },
+        source: { role: 'b' },
+        options: { mode: 'combine' },
+        expected: {
+          $or: [{ role: { $in: ['a', 'b'] } }, { status: 'active' }],
+        },
+      },
+      'a key constrained by another operator is left alone': {
+        target: { price: { $gt: 5 } },
+        source: { price: 10 },
+        options: { mode: 'combine' },
+        expected: { $or: [{ price: { $gt: 5 } }, { price: 10 }] },
       },
       'a shared equal key still becomes $or': {
         target: { id: 1, a: 2 },
@@ -119,16 +151,16 @@ describe('mergeQuery', () => {
         expected: { id: 1 },
       },
       'unions $or branches': {
-        target: { $or: [{ id: 1 }, { id: 2 }] },
-        source: { $or: [{ id: 3 }] },
+        target: { $or: [{ a: 1 }, { b: 2 }] },
+        source: { $or: [{ c: 3 }] },
         options: { mode: 'combine' },
-        expected: { $or: [{ id: 1 }, { id: 2 }, { id: 3 }] },
+        expected: { $or: [{ a: 1 }, { b: 2 }, { c: 3 }] },
       },
       'dedupes $or branches': {
-        target: { $or: [{ id: 1 }, { id: 1 }, { id: 2 }] },
-        source: { $or: [{ id: 2 }] },
+        target: { $or: [{ a: 1 }, { a: 1 }, { b: 2 }] },
+        source: { $or: [{ b: 2 }] },
         options: { mode: 'combine' },
-        expected: { $or: [{ id: 1 }, { id: 2 }] },
+        expected: { $or: [{ a: 1 }, { b: 2 }] },
       },
       '$and bodies become branches of an $or': {
         target: { $and: [{ id: 1 }, { id: 2 }] },
@@ -153,11 +185,11 @@ describe('mergeQuery', () => {
         options: { mode: 'combine' },
         expected: { $or: [{ price: { $gt: 5 } }, { price: { $lt: 10 } }] },
       },
-      'conflicting null becomes $or': {
+      'conflicting null is unioned like any other value': {
         target: { a: null },
         source: { a: 1 },
         options: { mode: 'combine' },
-        expected: { $or: [{ a: null }, { a: 1 }] },
+        expected: { a: { $in: [null, 1] } },
       },
       'conflicting array values become $or': {
         target: { roles: ['a'] },
@@ -213,14 +245,19 @@ describe('mergeQuery', () => {
         expected: { $and: [{ id: 1 }, { id: 2 }] },
       },
       '$or bodies become branches of an $and': {
+        target: { $or: [{ a: 1 }, { b: 2 }] },
+        source: { $or: [{ c: 3 }, { d: 4 }] },
+        options: { mode: 'intersect' },
+        expected: {
+          $and: [{ $or: [{ a: 1 }, { b: 2 }] }, { $or: [{ c: 3 }, { d: 4 }] }],
+        },
+      },
+      'an $or on one key is collapsed before it is intersected': {
         target: { $or: [{ id: 1 }, { id: 2 }] },
         source: { $or: [{ id: 3 }, { id: 4 }] },
         options: { mode: 'intersect' },
         expected: {
-          $and: [
-            { $or: [{ id: 1 }, { id: 2 }] },
-            { $or: [{ id: 3 }, { id: 4 }] },
-          ],
+          $and: [{ id: { $in: [1, 2] } }, { id: { $in: [3, 4] } }],
         },
       },
       'subset (source ⊆ target) merges flat': {
@@ -246,13 +283,13 @@ describe('mergeQuery', () => {
       // when both sides keep multiple $or branches the $nor stays a separate
       // (still flat) conjunct alongside them
       'merges multi-branch $or rules without nesting the $and': {
-        target: { $or: [{ a: 1 }, { a: 2 }] },
-        source: { $or: [{ b: 1 }, { b: 2 }], $and: [{ $nor: [{ c: 3 }] }] },
+        target: { $or: [{ a: 1 }, { b: 2 }] },
+        source: { $or: [{ c: 1 }, { d: 2 }], $and: [{ $nor: [{ e: 3 }] }] },
         options: { mode: 'intersect' },
         expected: {
           $and: [
-            { $or: [{ a: 1 }, { a: 2 }] },
-            { $or: [{ b: 1 }, { b: 2 }], $nor: [{ c: 3 }] },
+            { $or: [{ a: 1 }, { b: 2 }] },
+            { $or: [{ c: 1 }, { d: 2 }], $nor: [{ e: 3 }] },
           ],
         },
       },
@@ -288,10 +325,10 @@ describe('mergeQuery', () => {
         expected: { $or: [{ a: 1 }, { b: 2 }] },
       },
       'combine, into an existing target $or': {
-        target: { $or: [{ a: 1 }, { a: 2 }] },
-        source: { $or: [{ b: 1 }] },
+        target: { $or: [{ a: 1 }, { b: 2 }] },
+        source: { $or: [{ c: 1 }] },
         options: { mode: 'combine' },
-        expected: { $or: [{ a: 1 }, { a: 2 }, { b: 1 }] },
+        expected: { $or: [{ a: 1 }, { b: 2 }, { c: 1 }] },
       },
     })
   })

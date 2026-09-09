@@ -2,6 +2,7 @@ import type { MergeQueryMode } from './merge-query.util.js'
 import { isEmptyObject } from '../../common/is-empty-object.js'
 import { dedupeBranches } from '../../common/dedupe-branches.js'
 import { flattenAndBranches } from '../../common/flatten-and-branches.js'
+import { collapseOrBranches } from '../../common/collapse-or-branches.js'
 import { logicalBranches } from './logical-branches.js'
 import { hasConflict } from './has-conflict.js'
 
@@ -17,12 +18,15 @@ type QueryRecord = Record<string, any>
  *   branches of a single `$and`.
  *
  * Logical-only bodies (`{ $or: [...] }` for combine, `{ $and: [...] }` for
- * intersect) are flattened into the result and their branches de-duplicated.
+ * intersect) are flattened into the result and their branches de-duplicated. Under
+ * `$or`, branches constraining the same single property additionally collapse into
+ * one `$in` unless `collapseOrToIn` is off.
  */
 export function mergeQueryBodies(
   target: QueryRecord,
   source: QueryRecord,
   mode: MergeQueryMode,
+  collapseOrToIn = true,
 ): QueryRecord {
   if (mode === 'target') {
     return { ...source, ...target }
@@ -61,9 +65,13 @@ export function mergeQueryBodies(
   ]
 
   // under `$and`, hoist any nested `$and` so the result never nests `$and` in `$and`
-  const branches = dedupeBranches(
+  const deduped = dedupeBranches(
     op === '$and' ? flattenAndBranches(collected) : collected,
   )
+
+  // under `$or`, an equality/`$in` disjunction on one property is a single `$in`
+  const branches =
+    op === '$or' && collapseOrToIn ? collapseOrBranches(deduped) : deduped
 
   if (branches.length === 0) {
     return {}
@@ -103,11 +111,33 @@ if (import.meta.vitest) {
     it('combine flattens and dedupes $or branches', () => {
       expect(
         mergeQueryBodies(
-          { $or: [{ id: 1 }, { id: 2 }] },
-          { $or: [{ id: 2 }, { id: 3 }] },
+          { $or: [{ id: 1 }, { a: 2 }] },
+          { $or: [{ a: 2 }, { b: 3 }] },
           'combine',
         ),
-      ).toEqual({ $or: [{ id: 1 }, { id: 2 }, { id: 3 }] })
+      ).toEqual({ $or: [{ id: 1 }, { a: 2 }, { b: 3 }] })
+    })
+
+    it('combine collapses an $or on the same property into a $in', () => {
+      expect(
+        mergeQueryBodies(
+          { something: { $in: ['a'] } },
+          { something: { $in: ['b'] } },
+          'combine',
+        ),
+      ).toEqual({ something: { $in: ['a', 'b'] } })
+    })
+
+    it('combine keeps the $or when the collapse is off', () => {
+      expect(mergeQueryBodies({ id: 1 }, { id: 2 }, 'combine', false)).toEqual({
+        $or: [{ id: 1 }, { id: 2 }],
+      })
+    })
+
+    it('intersect never collapses branches into a $in', () => {
+      expect(mergeQueryBodies({ id: 1 }, { id: 2 }, 'intersect')).toEqual({
+        $and: [{ id: 1 }, { id: 2 }],
+      })
     })
 
     it('combine collapses to a single body', () => {
