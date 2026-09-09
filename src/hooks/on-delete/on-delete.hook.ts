@@ -1,6 +1,7 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import {
   checkContext,
+  eqOrIn,
   getResultIsArray,
   patchMany,
   removeMany,
@@ -145,19 +146,16 @@ export const onDelete = <H extends HookContext = HookContext>(
       multi,
       onError,
     } of optionsMulti) {
-      let ids = result.map((x) => x[keyHere]).filter((x) => !!x)
-      ids = [...new Set(ids)]
+      const ids = result.map((x) => x[keyHere]).filter((x) => !!x)
 
-      if (!ids || ids.length <= 0) {
+      if (ids.length <= 0) {
         continue
       }
 
       const params = {
         query: {
           ...query,
-          ...(ids.length === 1
-            ? { [keyThere]: ids[0] }
-            : { [keyThere]: { $in: ids } }),
+          [keyThere]: eqOrIn(ids),
         },
         paginate: false,
       }
