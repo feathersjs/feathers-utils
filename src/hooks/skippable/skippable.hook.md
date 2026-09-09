@@ -1,6 +1,8 @@
 ---
 title: skippable
 category: hooks
+tags:
+  - control-flow
 hook:
   type: ["before", "after", "around"]
   method: ["all"]

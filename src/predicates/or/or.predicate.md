@@ -1,6 +1,8 @@
 ---
 title: or
 category: predicates
+tags:
+  - control-flow
 aliases:
   - some
 see:

@@ -1,6 +1,8 @@
 ---
 title: transformQuery
 category: hooks
+tags:
+  - query
 hook:
   type: ["before", "after", "around"]
   method: ["all"]

@@ -1,6 +1,8 @@
 ---
 title: resolveData
 category: resolvers
+tags:
+  - data
 hook:
   type: ["before", "around"]
   method: ["create", "update", "patch"]

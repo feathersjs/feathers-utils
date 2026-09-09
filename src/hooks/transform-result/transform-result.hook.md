@@ -1,6 +1,8 @@
 ---
 title: transformResult
 category: hooks
+tags:
+  - result
 hook:
   type: ["before", "after", "around"]
   method: ["find", "get", "create", "update", "patch", "remove"]

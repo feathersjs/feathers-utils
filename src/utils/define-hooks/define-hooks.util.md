@@ -1,6 +1,8 @@
 ---
 title: defineHooks
 category: utils
+tags:
+  - control-flow
 ---
 
 When you define hooks in feathers like this:

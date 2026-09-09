@@ -13,6 +13,9 @@ import UtilsTable from './components/UtilsTable.vue'
 import ResolversTable from './components/ResolversTable.vue'
 import ConditionsTable from './components/ConditionsTable.vue'
 import Chip from './components/Chip.vue'
+import TagFilter from './components/TagFilter.vue'
+import TaggedUtilities from './components/TaggedUtilities.vue'
+import TagsOverview from './components/TagsOverview.vue'
 
 import '../style/main.css'
 import '@shikijs/vitepress-twoslash/style.css'
@@ -33,5 +36,8 @@ export default {
     app.component('ConditionsTable', ConditionsTable)
 
     app.component('Chip', Chip)
+    app.component('TagFilter', TagFilter)
+    app.component('TaggedUtilities', TaggedUtilities)
+    app.component('TagsOverview', TagsOverview)
   },
 } satisfies Theme

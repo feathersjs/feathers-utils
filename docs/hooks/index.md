@@ -1,6 +1,7 @@
 ---
+aside: false
 ---
 
 # Hooks
 
-<HooksTable />
+<HooksTable tag-filter />

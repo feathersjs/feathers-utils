@@ -1,6 +1,8 @@
 ---
 title: stashable
 category: hooks
+tags:
+  - params
 hook:
   type: ["before", "around"]
   method: ["update", "patch", "remove"]

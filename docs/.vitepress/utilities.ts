@@ -9,6 +9,7 @@ import ts from 'typescript'
 import prettier from 'prettier'
 import path from 'node:path'
 import { attachExportSizes, type BundleSize } from './export-size.js'
+import { isUtilityTag, utilityTags, type UtilityTag } from './tags.js'
 
 export const utilityCategories = [
   'hooks',
@@ -26,6 +27,12 @@ export type Utility = {
   title: string
   description: string
   category: UtilityCategory
+  /**
+   * The page's `tags` frontmatter, narrowed to the closed vocabulary in
+   * `tags.ts` and ordered by it. Unknown tags are dropped here; `test/tags.test.ts`
+   * is what keeps them from being written in the first place.
+   */
+  tags: UtilityTag[]
   slug: string
   path: string
   pathMd: string
@@ -214,6 +221,10 @@ export async function discoverUtilities() {
 
       const { title = '', category, hook, aliases } = frontmatter
 
+      const tags = (Array.isArray(frontmatter.tags) ? frontmatter.tags : [])
+        .filter(isUtilityTag)
+        .sort((a, b) => utilityTags.indexOf(a) - utilityTags.indexOf(b))
+
       if (
         !title ||
         [
@@ -267,6 +278,7 @@ export async function discoverUtilities() {
         title,
         description: descriptions.join(' '),
         category,
+        tags,
         slug,
         path: `/${category}/${slug}`,
         pathMd: `/${category}/${slug}.md`,
