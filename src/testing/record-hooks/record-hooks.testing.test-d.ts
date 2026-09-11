@@ -16,23 +16,51 @@ it('indexes plain context lists per hook type and method', () => {
   expectTypeOf(calls.around.aCustomMethod).toEqualTypeOf<HookContext[]>()
 })
 
-it('reset() takes a predicate on the recorded contexts', () => {
+it('reset() takes the same criteria or predicate as waitFor()', () => {
   expectTypeOf(calls.reset()).toEqualTypeOf<void>()
   expectTypeOf(
-    calls.reset(isContext({ path: 'users', method: ['create', 'patch'] })),
+    calls.reset({ path: 'users', method: ['create', 'patch'] }),
   ).toEqualTypeOf<void>()
+  expectTypeOf(calls.reset(isContext({ path: 'users' }))).toEqualTypeOf<void>()
   expectTypeOf(
     calls.reset((context) => context.method === 'find'),
   ).toEqualTypeOf<void>()
 
-  // @ts-expect-error criteria are not a predicate — wrap them in `isContext`
-  calls.reset({ path: 'users' })
+  // @ts-expect-error "service" is not a criterion — it is called `path`
+  calls.reset({ service: 'users' })
+})
+
+it('waitFor() resolves with the matching contexts', () => {
+  expectTypeOf(calls.waitFor()).toEqualTypeOf<Promise<HookContext[]>>()
+  expectTypeOf(
+    calls.waitFor({ context: { method: 'create' }, timeout: false }),
+  ).toEqualTypeOf<Promise<HookContext[]>>()
+  expectTypeOf(
+    calls.waitFor({ context: { path: 'users' }, count: 0, timeout: 20 }),
+  ).toEqualTypeOf<Promise<HookContext[]>>()
+  expectTypeOf(
+    calls.waitFor({ context: isContext({ id: null }) }),
+  ).toEqualTypeOf<Promise<HookContext[]>>()
+  expectTypeOf(
+    calls.waitFor({ context: (context) => context.method === 'find' }),
+  ).toEqualTypeOf<Promise<HookContext[]>>()
+
+  expectTypeOf(
+    calls.waitFor({ resetBefore: true, resetAfter: true }),
+  ).toEqualTypeOf<Promise<HookContext[]>>()
+
+  // @ts-expect-error `count` is a number of calls, not a flag
+  calls.waitFor({ count: true })
+  // @ts-expect-error the criteria are not spread into the options
+  calls.waitFor({ path: 'users' })
 })
 
 it('the options narrow by the same criteria as reset()', () => {
   recordHooks(app, { type: 'around' })
   recordHooks(app, { type: ['before', 'after', 'error', 'around'] })
   recordHooks(app, { path: 'users', method: ['create', 'patch'] })
+  recordHooks(app, { id: 1 })
+  recordHooks(app, { id: [1, '2', null] })
   recordHooks(app, { path: ['users', 'todos'], snapshot: true })
 
   // @ts-expect-error "middle" is not a hook type

@@ -42,6 +42,11 @@ export type RecordHooksOptions = {
    */
   method?: IsContextOptions['method']
   /**
+   * Only record calls addressing this record — `null` for the multi variants
+   * of `update`/`patch`/`remove`. Defaults to every call.
+   */
+  id?: IsContextOptions['id']
+  /**
    * Record a snapshot instead of the live context, so later hooks cannot
    * rewrite what was recorded. `data`, `result` and `params.query` are copied;
    * `app`, `service` and the rest of `params` stay by reference, because deep
@@ -59,6 +64,63 @@ export type RecordHooksOptions = {
  */
 export type RecordedMethods = Record<MethodName, HookContext[]>
 
+/**
+ * What to match a recorded call against: the same criteria as {@link isContext}
+ * — `path`, `method`, `type`, `id` — or any predicate, for the conditions
+ * criteria cannot express.
+ */
+export type RecordedHooksMatch = IsContextOptions | PredicateContextSync
+
+export type RecordedHooksWaitOptions = {
+  /**
+   * Which calls to wait for. Omitted, every recorded call counts.
+   */
+  context?: RecordedHooksMatch
+  /**
+   * How many matching calls to wait for.
+   *
+   * `0` inverts the wait: it resolves once the window has passed *without* a
+   * matching call, and rejects as soon as one is recorded.
+   *
+   * @default 1
+   */
+  count?: number
+  /**
+   * Reject after this many milliseconds. Pass `false` to wait indefinitely.
+   *
+   * Waiting for calls resolves as soon as they arrive, so a generous window
+   * costs a passing test nothing. `count: 0` is the other way round — it
+   * always waits the window out — so it defaults to a short one, and `false`
+   * is refused there because it could never settle.
+   *
+   * @default 5000 — with `count: 0`, 50
+   */
+  timeout?: number | false
+  /**
+   * Forget the matching calls before waiting, so that only what happens from
+   * here on counts — for waiting on the *next* call while earlier ones are
+   * still in the record. Like `reset`, it forgets only what the criteria
+   * match.
+   *
+   * Mind the order: the window starts when `waitFor` is called, so this
+   * belongs to "start the wait, act, then await it". In the other shape — act
+   * first, then check the record — it would forget the very call in question,
+   * and a plain `reset()` before acting is what you want.
+   *
+   * @default false
+   */
+  resetBefore?: boolean
+  /**
+   * Forget the matching calls once the wait has resolved — the contexts it
+   * resolves with are yours either way, so a test can wait through several
+   * phases without a `reset()` in between. A wait that *failed* keeps the
+   * record, since that is the evidence for what went wrong.
+   *
+   * @default false
+   */
+  resetAfter?: boolean
+}
+
 export type RecordedHooks = {
   /** What the `before` hook recorded, per method. */
   before: RecordedMethods
@@ -74,13 +136,28 @@ export type RecordedHooks = {
    */
   all: HookContext[]
   /**
-   * Forget the recorded calls the predicate matches — without one,
-   * everything recorded so far. Recording continues either way.
+   * Forget the matching recorded calls — without criteria, everything
+   * recorded so far. Recording continues either way.
    *
-   * Any predicate will do, `isContext` included:
-   * `reset(isContext({ path: 'users' }))`.
+   * Takes what `waitFor` takes: `reset({ path: 'users' })`, or a predicate.
    */
-  reset: (predicate?: PredicateContextSync) => void
+  reset: (match?: RecordedHooksMatch) => void
+  /**
+   * Resolve with the matching recorded calls, as soon as there are `count` of
+   * them — counting the ones already in the record. Rejects on timeout. This
+   * is what replaces a `sleep` before reading the record:
+   *
+   * ```ts
+   * const [context] = await calls.waitFor({ context: { method: 'create' } })
+   * ```
+   *
+   * With `count: 0` it waits for the opposite and resolves with `[]`: nothing
+   * matching within the window, rejecting the moment something does — so a
+   * test that proves a call did *not* happen fails immediately instead of
+   * sleeping and asserting afterwards. A match that is already in the record
+   * rejects right away; pair it with `reset()` to watch only what comes next.
+   */
+  waitFor: (options?: RecordedHooksWaitOptions) => Promise<HookContext[]>
   /**
    * Stop recording. The hook stays registered — Feathers has no way to
    * unregister one — it just stops collecting, so what was recorded before
@@ -191,6 +268,18 @@ const withType = (context: HookContext, type: HookType): HookContext => {
   return recorded
 }
 
+/** Criteria become the predicate they describe; a predicate is already one. */
+const toPredicate = (match?: RecordedHooksMatch) =>
+  match === undefined || typeof match === 'function' ? match : isContext(match)
+
+/**
+ * How a recorded call reads in an error message: `before users.find`, or
+ * `before users.patch(3)` when the call addressed a record.
+ */
+const describeCall = (context: HookContext) =>
+  `${context.type} ${String(context.path)}.${context.method}` +
+  (context.id !== undefined ? `(${String(context.id)})` : '')
+
 /**
  * Record every call that passes through a service or an application, so a test
  * can assert what was requested — and how often — without standing up a spy per
@@ -203,7 +292,7 @@ const withType = (context: HookContext, type: HookType): HookContext => {
  *
  * The record is indexed by hook type and method — `calls.before.get` — and
  * every entry is a plain array, so it composes with any predicate, `isContext`
- * included. So does `reset()`.
+ * included. So do `reset()` and `waitFor()`.
  *
  * By default the live `HookContext` is recorded. That object keeps mutating as
  * the call travels through the remaining hooks, so if you assert on `data` or
@@ -231,7 +320,29 @@ const withType = (context: HookContext, type: HookType): HookContext => {
  * expect(calls.all.filter(isContext({ path: 'users' }))).toHaveLength(1)
  *
  * // and forget one service's calls without forgetting the rest
- * calls.reset(isContext({ path: 'users' }))
+ * calls.reset({ path: 'users' })
+ * ```
+ *
+ * @example
+ * ```ts
+ * // wait for a call instead of sleeping and then reading the record
+ * const [context] = await calls.waitFor({ context: { method: 'create' } })
+ * expect(context.data).toEqual({ name: 'jane' })
+ *
+ * // or bracket something asynchronous: the wait forgets the creates recorded
+ * // so far, then resolves with the one the job makes
+ * const pending = calls.waitFor({
+ *   context: { method: 'create' },
+ *   resetBefore: true,
+ * })
+ * startBackgroundJob()
+ * const [created] = await pending
+ *
+ * // or prove nothing reached the service — this rejects the moment one does,
+ * // rather than sleeping and asserting afterwards
+ * calls.reset()
+ * await readThroughCache()
+ * await calls.waitFor({ context: { path: 'users' }, count: 0 })
  * ```
  *
  * @example
@@ -272,7 +383,11 @@ export function recordHooks(
 
   let recording = true
 
-  const collect = (context: HookContext) => {
+  // notified on every newly recorded call, never on a reindex — a `reset()`
+  // that keeps calls must not look like those calls happening again
+  const waiters = new Set<(context: HookContext) => void>()
+
+  const index = (context: HookContext) => {
     all.push(context)
     indexed[context.type].push(context.method, context)
   }
@@ -282,7 +397,73 @@ export function recordHooks(
       return
     }
 
-    collect(withType(snapshot ? snapshotContext(context) : context, hookType))
+    const recorded = withType(
+      snapshot ? snapshotContext(context) : context,
+      hookType,
+    )
+
+    index(recorded)
+
+    // a copy: a waiter detaches itself as it settles
+    for (const waiter of [...waiters]) {
+      waiter(recorded)
+    }
+  }
+
+  const matching = (predicate?: PredicateContextSync) =>
+    predicate ? all.filter((context) => predicate(context)) : [...all]
+
+  /** Drops the matching calls and rebuilds the index from what is left. */
+  const forget = (predicate?: PredicateContextSync) => {
+    // without a predicate there is nothing to spare, so nothing is kept
+    const kept = predicate ? all.filter((context) => !predicate(context)) : []
+
+    all.length = 0
+    for (const methods of Object.values(indexed)) {
+      methods.clear()
+    }
+
+    for (const context of kept) {
+      index(context)
+    }
+  }
+
+  /**
+   * Reports every matching call to `onCall` until it calls `stop`, or until the
+   * window passes and `onTimeout` runs instead.
+   */
+  const watch = (
+    predicate: PredicateContextSync | undefined,
+    timeout: number | false,
+    onCall: (context: HookContext, stop: () => void) => void,
+    onTimeout: (recordedWhileWaiting: number) => void,
+  ) => {
+    const recordedBefore = all.length
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const waiter = (context: HookContext) => {
+      if (predicate && !predicate(context)) {
+        return
+      }
+      onCall(context, stop)
+    }
+
+    function stop() {
+      if (timer) {
+        clearTimeout(timer)
+        timer = undefined
+      }
+      waiters.delete(waiter)
+    }
+
+    if (timeout !== false) {
+      timer = setTimeout(() => {
+        stop()
+        onTimeout(Math.max(0, all.length - recordedBefore))
+      }, timeout)
+    }
+
+    waiters.add(waiter)
   }
 
   target.hooks(
@@ -311,18 +492,96 @@ export function recordHooks(
     error: indexed.error.methods,
     around: indexed.around.methods,
     all,
-    reset: (predicate) => {
-      // without a predicate there is nothing to spare, so `reset()` keeps none
-      const kept = predicate ? all.filter((context) => !predicate(context)) : []
+    reset: (match) => {
+      forget(toPredicate(match))
+    },
+    waitFor: (options) => {
+      const predicate = toPredicate(options?.context)
+      const count = options?.count ?? 1
+      const timeout = options?.timeout ?? (count === 0 ? 50 : 5000)
 
-      all.length = 0
-      for (const methods of Object.values(indexed)) {
-        methods.clear()
+      if (!Number.isInteger(count) || count < 0) {
+        return Promise.reject(
+          new TypeError(
+            `\`count\` must be a non-negative integer, got ${count}`,
+          ),
+        )
       }
 
-      for (const context of kept) {
-        collect(context)
+      if (count === 0 && timeout === false) {
+        return Promise.reject(
+          new TypeError(
+            '`count: 0` needs a window to pass, so `timeout: false` would never settle',
+          ),
+        )
       }
+
+      if (options?.resetBefore) {
+        forget(predicate)
+      }
+
+      /** The contexts to resolve with, and the record tidied up if asked. */
+      const settle = (contexts: HookContext[]) => {
+        if (options?.resetAfter) {
+          forget(predicate)
+        }
+        return contexts
+      }
+
+      const recorded = matching(predicate)
+
+      if (count === 0) {
+        if (recorded.length > 0) {
+          return Promise.reject(
+            new Error(
+              `Expected no matching call, but \`${describeCall(recorded[0])}\` was already recorded`,
+            ),
+          )
+        }
+
+        return new Promise<HookContext[]>((resolve, reject) => {
+          watch(
+            predicate,
+            timeout,
+            (context, stop) => {
+              stop()
+              reject(
+                new Error(
+                  `Expected no matching call within ${timeout}ms, but \`${describeCall(context)}\` was recorded`,
+                ),
+              )
+            },
+            () => resolve(settle([])),
+          )
+        })
+      }
+
+      if (recorded.length >= count) {
+        return Promise.resolve(settle(recorded.slice(0, count)))
+      }
+
+      return new Promise<HookContext[]>((resolve, reject) => {
+        const matched = [...recorded]
+
+        watch(
+          predicate,
+          timeout,
+          (context, stop) => {
+            matched.push(context)
+            if (matched.length >= count) {
+              stop()
+              resolve(settle(matched))
+            }
+          },
+          (recordedWhileWaiting) => {
+            reject(
+              new Error(
+                `Timeout after ${timeout}ms waiting for ${count} matching call${count === 1 ? '' : 's'}: ${matched.length} matched, ${recordedWhileWaiting} recorded while waiting`,
+              ),
+            )
+          },
+        )
+      })
     },
     stop: () => {
       recording = false
