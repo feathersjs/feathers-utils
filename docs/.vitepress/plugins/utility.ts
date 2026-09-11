@@ -103,10 +103,23 @@ export default (utility: Utility, utilities: Utility[]) => {
 \`\`\` `)
 
   if (utility.examples?.length) {
-    code.push(`
-## ${utility.examples.length > 1 ? 'Examples' : 'Example'}
+    const examples = utility.examples.map((example) =>
+      resolveLinks(example, utilities),
+    )
 
-${utility.examples.map((e) => resolveLinks(e, utilities)).join('\n\n')}
+    // several examples get numbered subheadings, so each one is addressable by
+    // its own anchor — a single example is already addressable by the `##` one
+    const body =
+      examples.length > 1
+        ? examples
+            .map((example, index) => `### Example ${index + 1}\n\n${example}`)
+            .join('\n\n')
+        : examples[0]
+
+    code.push(`
+## ${examples.length > 1 ? 'Examples' : 'Example'}
+
+${body}
     `)
   }
 
