@@ -301,6 +301,73 @@ describe('recordHooks', function () {
     ])
   })
 
+  it('waitFor() counts calls, not the entries they were recorded in', async function () {
+    const { app, users } = setup()
+    // `before` and `after` are both recorded, so one call is two entries
+    const calls = recordHooks(app)
+
+    const pending = calls.waitFor({
+      context: { method: 'create' },
+      count: 2,
+      timeout: 500,
+    })
+
+    await users.create({ name: 'jane' })
+
+    expect(calls.all).toHaveLength(2)
+
+    // ...and two entries of one call are not two calls
+    expect(
+      await Promise.race([
+        pending.then(() => 'resolved'),
+        new Promise((resolve) => setTimeout(() => resolve('waiting'), 30)),
+      ]),
+    ).toBe('waiting')
+
+    await users.create({ name: 'john' })
+
+    const contexts = await pending
+
+    expect(contexts).toHaveLength(2)
+    // one context per call, the first one recorded for it
+    expect(contexts.map((context) => context.type)).toEqual([
+      'before',
+      'before',
+    ])
+    expect(contexts.map((context) => context.data)).toEqual([
+      { name: 'jane' },
+      { name: 'john' },
+    ])
+  })
+
+  it('waitFor() resolves with the single entry a failed call left', async function () {
+    const { app, users } = setup()
+
+    // this throws before the recorder's `before` hook runs, so the call is in
+    // the record as an `error` entry and nothing else
+    app.hooks({
+      before: {
+        all: [
+          () => {
+            throw new Error('nope')
+          },
+        ],
+      },
+    })
+
+    const calls = recordHooks(app)
+
+    const pending = calls.waitFor({ context: { path: 'users' } })
+
+    await expect(users.create({ name: 'jane' })).rejects.toThrow('nope')
+
+    const [context] = await pending
+
+    expect(context.type).toBe('error')
+    expect(calls.before.create).toHaveLength(0)
+    expect(calls.error.create).toHaveLength(1)
+  })
+
   it('waitFor() rejects on timeout, counting what it saw', async function () {
     const { app, users } = setup()
     const calls = recordHooks(app)
@@ -314,7 +381,7 @@ describe('recordHooks', function () {
     await users.find({})
 
     await expect(pending).rejects.toThrow(
-      'Timeout after 30ms waiting for 1 matching call: 0 matched, 4 recorded while waiting',
+      'Timeout after 30ms waiting for 1 matching call: 0 matched, 2 calls recorded while waiting',
     )
   })
 
@@ -331,7 +398,7 @@ describe('recordHooks', function () {
     await users.create({ name: 'jane' })
 
     await expect(pending).rejects.toThrow(
-      'Timeout after 30ms waiting for 3 matching calls: 1 matched, 2 recorded while waiting',
+      'Timeout after 30ms waiting for 3 matching calls: 1 matched, 1 call recorded while waiting',
     )
   })
 
@@ -564,6 +631,56 @@ describe('recordHooks', function () {
     expect(await pending).toHaveLength(2)
   })
 
+  it('waitFor() with `quietFor` resolves with one context per call', async function () {
+    const { app, users } = setup()
+    // both sides recorded, so counting entries would double every call
+    const calls = recordHooks(app)
+
+    const pending = calls.waitFor({
+      context: { method: 'find' },
+      quietFor: 30,
+    })
+
+    await users.find({})
+    await users.find({})
+
+    const finds = await pending
+
+    expect(finds).toHaveLength(2)
+    expect(finds).toEqual(calls.before.find)
+    expect(calls.all).toHaveLength(4)
+  })
+
+  it('waitFor() with `quietFor` keeps waiting while a call comes back', async function () {
+    const { app, users } = setup()
+    const calls = recordHooks(app)
+
+    // the call returns inside the silence window
+    app.hooks({
+      before: {
+        all: [
+          async () => {
+            await new Promise((resolve) => setTimeout(resolve, 20))
+          },
+        ],
+      },
+    })
+
+    const started = Date.now()
+    const pending = calls.waitFor({
+      context: { method: 'find' },
+      quietFor: 40,
+      timeout: 1000,
+    })
+
+    await users.find({})
+
+    expect(await pending).toHaveLength(1)
+    // the `after` entry pushed the silence out, so this took the 20ms the call
+    // needed plus the window — not the window alone from the `before` entry
+    expect(Date.now() - started).toBeGreaterThanOrEqual(50)
+  })
+
   it('waitFor() with `quietFor` gives up when the calls never stop', async function () {
     vi.useFakeTimers()
 
@@ -580,7 +697,7 @@ describe('recordHooks', function () {
       // the deadline passes inside the loop, so the expectation is attached
       // before it: a rejection nobody is waiting on yet is an unhandled one
       const rejected = expect(pending).rejects.toThrow(
-        'Timeout after 200ms waiting for 50ms without a matching call: 5 matched, 5 recorded while waiting',
+        'Timeout after 200ms waiting for 50ms without a matching call: 5 matched, 5 calls recorded while waiting',
       )
 
       // a call every 40ms keeps pushing the silence out, so the deadline is
@@ -637,6 +754,49 @@ describe('recordHooks', function () {
       '`quietFor` (1000ms) must be shorter than `timeout` (30ms), or the silence could never pass',
     )
     await expect(calls.waitFor({ count: -1 })).rejects.toThrow(TypeError)
+  })
+
+  it("waitFor() with `since: 'now'` is not tripped by a call already out", async function () {
+    const { app, users } = setup()
+    const calls = recordHooks(app)
+
+    // the call is out, but not back yet when the baseline is taken
+    app.hooks({
+      before: {
+        all: [
+          async () => {
+            await new Promise((resolve) => setTimeout(resolve, 20))
+          },
+        ],
+      },
+    })
+
+    const find = users.find({})
+    await vi.waitUntil(() => calls.before.find.length === 1)
+
+    const quiet = calls.waitFor({
+      context: { path: 'users' },
+      count: 0,
+      since: 'now',
+      timeout: 80,
+    })
+
+    await find
+
+    // that call coming back is not a further call
+    await expect(quiet).resolves.toEqual([])
+    expect(calls.after.find).toHaveLength(1)
+  })
+
+  it("waitFor() refuses `resetAfter` together with `since: 'now'`", async function () {
+    const { app } = setup()
+    const calls = recordHooks(app)
+
+    await expect(
+      calls.waitFor({ count: 0, since: 'now', resetAfter: true, timeout: 20 }),
+    ).rejects.toThrow(
+      "`since: 'now'` keeps what is already recorded and `resetAfter` forgets it, so the two contradict each other",
+    )
   })
 
   it('waitFor() after reset() watches only what comes next', async function () {
