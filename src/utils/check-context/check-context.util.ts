@@ -34,6 +34,10 @@ export type CheckContextOptions<H extends HookContext = HookContext> =
  * unsupported configurations. Typically used internally by other hooks.
  * Also narrows the context type based on the passed options.
  *
+ * The options form takes the same criteria as `isContext` — `type`, `method`,
+ * `path` and `id` — and reports every one of them that did not match. Only
+ * `type`, `method` and `path` narrow the context type.
+ *
  * @example
  * ```ts
  * import { checkContext } from 'feathers-utils/utils'
@@ -104,6 +108,11 @@ export function checkContext<H extends HookContext = HookContext>(
     if (options.path != null) {
       details.push(
         `path: expected '${Array.isArray(options.path) ? options.path.join("' | '") : options.path}' but got '${context.path}'`,
+      )
+    }
+    if (options.id !== undefined) {
+      details.push(
+        `id: expected '${Array.isArray(options.id) ? options.id.join("' | '") : options.id}' but got '${context.id}'`,
       )
     }
 

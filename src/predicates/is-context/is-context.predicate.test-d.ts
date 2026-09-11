@@ -64,6 +64,20 @@ it('accepts valid method', () => {
   isContext({ method: ['create', 'patch'] })
 })
 
+it('accepts ids, null included', () => {
+  isContext({ id: 1 })
+  isContext({ id: '1' })
+  isContext({ id: null })
+  isContext({ id: [1, '2', null] })
+})
+
+it('rejects an id that could not be one', () => {
+  // @ts-expect-error an id is a string or a number
+  isContext({ id: true })
+  // @ts-expect-error an id is a string or a number
+  isContext({ id: [1, {}] })
+})
+
 it('accepts combined options', () => {
   isContext<UserCtx>({ path: 'users', type: 'before', method: 'create' })
 })

@@ -177,6 +177,17 @@ describe('util checkContext', () => {
       )
     })
 
+    it('shows a mismatching id in error message', () => {
+      expect(() =>
+        checkContext({ ...make('before', 'patch'), id: 1 } as HookContext, {
+          id: 2,
+          label: 'myHook',
+        }),
+      ).toThrow(
+        "The 'myHook' hook has invalid context (id: expected '2' but got '1').",
+      )
+    })
+
     it('shows multiple mismatches in error message', () => {
       expect(() =>
         checkContext(make('after', 'patch'), {
