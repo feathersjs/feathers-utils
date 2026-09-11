@@ -49,8 +49,17 @@ it('waitFor() resolves with the matching contexts', () => {
     calls.waitFor({ resetBefore: true, resetAfter: true }),
   ).toEqualTypeOf<Promise<HookContext[]>>()
 
+  expectTypeOf(calls.waitFor({ count: 0, since: 'now' })).toEqualTypeOf<
+    Promise<HookContext[]>
+  >()
+  expectTypeOf(calls.waitFor({ quietFor: 250, timeout: 2000 })).toEqualTypeOf<
+    Promise<HookContext[]>
+  >()
+
   // @ts-expect-error `count` is a number of calls, not a flag
   calls.waitFor({ count: true })
+  // @ts-expect-error a baseline is either the record or now
+  calls.waitFor({ since: 'later' })
   // @ts-expect-error the criteria are not spread into the options
   calls.waitFor({ path: 'users' })
 })

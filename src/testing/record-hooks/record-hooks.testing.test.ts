@@ -37,9 +37,11 @@ describe('recordHooks', function () {
     expect(calls.before.remove).toHaveLength(0)
     expect(calls.before.find[0].params.query).toEqual({ name: 'jane' })
 
-    // only the type that was recorded in fills up
-    expect(calls.after.create).toHaveLength(0)
+    // both sides of a call are recorded by default, and nothing failed
+    expect(calls.after.create).toHaveLength(1)
+    expect(calls.after.find).toHaveLength(2)
     expect(calls.error.create).toHaveLength(0)
+    // `around` is only recorded when asked for
     expect(calls.around.create).toHaveLength(0)
   })
 
@@ -51,13 +53,14 @@ describe('recordHooks', function () {
 
     expect(calls.before.get).toEqual([])
     expect(calls.before.aCustomMethod).toEqual([])
-    expect(calls.after.create).toEqual([])
+    expect(calls.error.create).toEqual([])
 
     expect(Object.keys(calls.before)).toEqual(['create'])
-    expect(Object.keys(calls.after)).toEqual([])
+    expect(Object.keys(calls.after)).toEqual(['create'])
+    expect(Object.keys(calls.error)).toEqual([])
   })
 
-  it('collects every call in order in `all`', async function () {
+  it('collects every recorded hook in order in `all`', async function () {
     const { app, users } = setup()
     const calls = recordHooks(app)
 
@@ -65,10 +68,16 @@ describe('recordHooks', function () {
     await users.patch(user.id, { name: 'changed' })
     await users.remove(user.id)
 
-    expect(calls.all.map((context) => context.method)).toEqual([
-      'create',
-      'patch',
-      'remove',
+    // one entry per call and recorded type, in the order they ran
+    expect(
+      calls.all.map((context) => `${context.type} ${context.method}`),
+    ).toEqual([
+      'before create',
+      'after create',
+      'before patch',
+      'after patch',
+      'before remove',
+      'after remove',
     ])
   })
 
@@ -104,7 +113,7 @@ describe('recordHooks', function () {
     await (app as any).service('late').create({ name: 'late' })
 
     expect(calls.before.create).toHaveLength(3)
-    expect(calls.all.map((context) => context.path)).toEqual([
+    expect(calls.before.create.map((context) => context.path)).toEqual([
       'users',
       'todos',
       'late',
@@ -127,7 +136,7 @@ describe('recordHooks', function () {
     const calls = recordHooks(app)
 
     await users.create({ name: 'jane' })
-    expect(calls.all).toHaveLength(1)
+    expect(calls.all).toHaveLength(2)
 
     calls.reset()
 
@@ -274,7 +283,10 @@ describe('recordHooks', function () {
 
     await users.create({ name: 'jane' })
 
-    const pending = calls.waitFor({ context: { method: 'create' }, count: 3 })
+    const pending = calls.waitFor({
+      context: { method: 'create', type: 'before' },
+      count: 3,
+    })
 
     await users.create({ name: 'john' })
     await users.create({ name: 'jim' })
@@ -302,7 +314,7 @@ describe('recordHooks', function () {
     await users.find({})
 
     await expect(pending).rejects.toThrow(
-      'Timeout after 30ms waiting for 1 matching call: 0 matched, 2 recorded while waiting',
+      'Timeout after 30ms waiting for 1 matching call: 0 matched, 4 recorded while waiting',
     )
   })
 
@@ -311,7 +323,7 @@ describe('recordHooks', function () {
     const calls = recordHooks(app)
 
     const pending = calls.waitFor({
-      context: { method: 'create' },
+      context: { method: 'create', type: 'before' },
       count: 3,
       timeout: 30,
     })
@@ -319,7 +331,7 @@ describe('recordHooks', function () {
     await users.create({ name: 'jane' })
 
     await expect(pending).rejects.toThrow(
-      'Timeout after 30ms waiting for 3 matching calls: 1 matched, 1 recorded while waiting',
+      'Timeout after 30ms waiting for 3 matching calls: 1 matched, 2 recorded while waiting',
     )
   })
 
@@ -401,7 +413,7 @@ describe('recordHooks', function () {
     ).resolves.toEqual([])
 
     // and it forgot only what it matched
-    expect(calls.all).toHaveLength(1)
+    expect(calls.all).toHaveLength(2)
     expect(calls.before.find[0].path).toBe('todos')
   })
 
@@ -418,7 +430,7 @@ describe('recordHooks', function () {
     })
 
     expect(context.data).toEqual({ name: 'jane' })
-    expect(calls.all).toHaveLength(1)
+    expect(calls.all).toHaveLength(2)
     expect(calls.before.find[0].path).toBe('todos')
     expect(calls.before.create).toHaveLength(0)
   })
@@ -440,6 +452,174 @@ describe('recordHooks', function () {
     expect(calls.before.create).toHaveLength(1)
   })
 
+  it("waitFor() with `since: 'now'` proves no further call, evidence intact", async function () {
+    const { app, users } = setup()
+    const calls = recordHooks(app, { type: 'before' })
+
+    await users.find({})
+
+    await expect(
+      calls.waitFor({
+        context: { path: 'users' },
+        count: 0,
+        since: 'now',
+        timeout: 20,
+      }),
+    ).resolves.toEqual([])
+
+    // unlike `resetBefore`, the call that was already out is still there
+    expect(calls.before.find).toHaveLength(1)
+  })
+
+  it("waitFor() with `since: 'now'` rejects when a further call arrives", async function () {
+    const { app, users } = setup()
+    const calls = recordHooks(app, { type: 'before' })
+
+    await users.find({})
+
+    const quiet = calls.waitFor({
+      context: { path: 'users' },
+      count: 0,
+      since: 'now',
+      timeout: 5000,
+    })
+
+    await users.find({})
+
+    await expect(quiet).rejects.toThrow(
+      'Expected no matching call within 5000ms, but `before users.find` was recorded',
+    )
+    expect(calls.before.find).toHaveLength(2)
+  })
+
+  it("waitFor() with `since: 'now'` does not count what is already recorded", async function () {
+    const { app, users } = setup()
+    const calls = recordHooks(app, { type: 'before' })
+
+    await users.create({ name: 'jane' })
+
+    const pending = calls.waitFor({
+      context: { method: 'create' },
+      since: 'now',
+    })
+
+    await users.create({ name: 'john' })
+
+    const [context] = await pending
+
+    expect(context.data).toEqual({ name: 'john' })
+  })
+
+  it('waitFor() with `quietFor` settles once the calls stop, exactly', async function () {
+    const { app, users } = setup()
+    const calls = recordHooks(app, { type: 'before' })
+
+    const pending = calls.waitFor({
+      context: { method: 'find' },
+      quietFor: 30,
+    })
+
+    await users.find({})
+    await users.find({})
+
+    const finds = await pending
+
+    // every match, not just the first `count` of them
+    expect(finds).toHaveLength(2)
+    expect(finds).toEqual(calls.before.find)
+  })
+
+  it('waitFor() with `quietFor` counts what is already recorded', async function () {
+    const { app, users } = setup()
+    const calls = recordHooks(app, { type: 'before' })
+
+    // the call is out before the wait starts — checking after the fact
+    await users.find({})
+
+    expect(
+      await calls.waitFor({ context: { method: 'find' }, quietFor: 20 }),
+    ).toHaveLength(1)
+
+    // and a further call still pushes the silence out
+    const pending = calls.waitFor({ context: { method: 'find' }, quietFor: 20 })
+    await users.find({})
+
+    expect(await pending).toHaveLength(2)
+  })
+
+  it('waitFor() with `quietFor` waits for `count` before watching the silence', async function () {
+    const { app, users } = setup()
+    const calls = recordHooks(app, { type: 'before' })
+
+    const pending = calls.waitFor({
+      context: { method: 'find' },
+      count: 2,
+      quietFor: 20,
+      timeout: 500,
+    })
+
+    await users.find({})
+    await users.find({})
+
+    expect(await pending).toHaveLength(2)
+  })
+
+  it('waitFor() with `quietFor` gives up when the calls never stop', async function () {
+    vi.useFakeTimers()
+
+    try {
+      const { app, users } = setup()
+      const calls = recordHooks(app, { type: 'before' })
+
+      const pending = calls.waitFor({
+        context: { method: 'find' },
+        quietFor: 50,
+        timeout: 200,
+      })
+
+      // the deadline passes inside the loop, so the expectation is attached
+      // before it: a rejection nobody is waiting on yet is an unhandled one
+      const rejected = expect(pending).rejects.toThrow(
+        'Timeout after 200ms waiting for 50ms without a matching call: 5 matched, 5 recorded while waiting',
+      )
+
+      // a call every 40ms keeps pushing the silence out, so the deadline is
+      // what settles this — five calls at 0, 40, 80, 120 and 160ms
+      for (let call = 0; call < 5; call++) {
+        await users.find({})
+        await vi.advanceTimersByTimeAsync(40)
+      }
+
+      await rejected
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('waitFor() says so when it waits for a type that is not recorded', async function () {
+    const { app } = setup()
+    const calls = recordHooks(app, { type: 'before' })
+
+    await expect(calls.waitFor({ context: { type: 'after' } })).rejects.toThrow(
+      "Waiting for the `after` hook, but this recorder records `before` — pass `type: ['before', 'after']` to recordHooks",
+    )
+  })
+
+  it('waitFor() accepts a type union the recorder partly covers', async function () {
+    const { app, users } = setup()
+    const calls = recordHooks(app, { type: 'before' })
+
+    const pending = calls.waitFor({
+      context: { type: ['before', 'after'], method: 'find' },
+    })
+
+    await users.find({})
+
+    const [context] = await pending
+
+    expect(context.type).toBe('before')
+  })
+
   it('waitFor() refuses options that could never settle', async function () {
     const { app } = setup()
     const calls = recordHooks(app)
@@ -447,7 +627,15 @@ describe('recordHooks', function () {
     await expect(calls.waitFor({ count: 0, timeout: false })).rejects.toThrow(
       TypeError,
     )
-
+    await expect(calls.waitFor({ count: 0, quietFor: 20 })).rejects.toThrow(
+      TypeError,
+    )
+    await expect(calls.waitFor({ quietFor: 0 })).rejects.toThrow(TypeError)
+    await expect(
+      calls.waitFor({ quietFor: 1000, timeout: 30 }),
+    ).rejects.toThrow(
+      '`quietFor` (1000ms) must be shorter than `timeout` (30ms), or the silence could never pass',
+    )
     await expect(calls.waitFor({ count: -1 })).rejects.toThrow(TypeError)
   })
 
@@ -480,7 +668,7 @@ describe('recordHooks', function () {
     calls.reset(isContext({ path: 'nope' }))
 
     await expect(quiet).resolves.toEqual([])
-    expect(calls.all).toHaveLength(1)
+    expect(calls.all).toHaveLength(2)
   })
 
   it('only records the given methods', async function () {
@@ -491,8 +679,8 @@ describe('recordHooks', function () {
     await users.find({})
 
     expect(calls.before.create).toHaveLength(0)
-    expect(calls.all).toHaveLength(1)
-    expect(calls.all[0].method).toBe('find')
+    expect(calls.before.find).toHaveLength(1)
+    expect(calls.all.every((context) => context.method === 'find')).toBe(true)
   })
 
   it('only records the given services', async function () {

@@ -22,14 +22,19 @@ export type RecordHooksTarget = {
  */
 export type RecordHooksOptions = {
   /**
-   * Which hook type to record in, which is also what gets registered. Pass an
-   * array to record in several — each call is then recorded once per type. An
-   * `around` hook records on the way in, before the `before` hooks run.
+   * Which hook types to record in, which is also what gets registered. Each
+   * call is recorded once per type, so by default a successful call shows up
+   * in `before` and in `after`, and a failed one in `before` and in `error`.
+   *
+   * `around` is not recorded unless asked for: at the moment it records it
+   * sees exactly what `before` sees, so it would only add another entry per
+   * call. Narrow this to a single type when one entry per call matters.
    *
    * Recording in more than one type without `snapshot` records the *same*
-   * context object twice, because Feathers reuses one context per call.
+   * context object more than once, because Feathers reuses one context per
+   * call — each entry keeps the type it was recorded in, nothing else differs.
    *
-   * @default 'before'
+   * @default ['before', 'after', 'error']
    */
   type?: IsContextOptions['type']
   /**
@@ -77,7 +82,9 @@ export type RecordedHooksWaitOptions = {
    */
   context?: RecordedHooksMatch
   /**
-   * How many matching calls to wait for.
+   * How many matching calls to wait for — a lower bound: the wait resolves as
+   * soon as that many are there, and says nothing about further ones. For an
+   * exact assertion, add `quietFor` and assert on what it resolves with.
    *
    * `0` inverts the wait: it resolves once the window has passed *without* a
    * matching call, and rejects as soon as one is recorded.
@@ -85,6 +92,34 @@ export type RecordedHooksWaitOptions = {
    * @default 1
    */
   count?: number
+  /**
+   * What `count` counts: every matching call in the record (`'record'`), or
+   * only the ones recorded from this `waitFor` call onwards (`'now'`).
+   *
+   * `'now'` is how "no *further* call" is expressed — `{ count: 0, since:
+   * 'now' }` ignores what is already recorded instead of rejecting on it, and
+   * unlike `resetBefore` it leaves that evidence in place for the assertions
+   * that follow.
+   *
+   * Mind the order, as with `resetBefore`: the baseline is taken when
+   * `waitFor` is called, so this belongs to "act, start the wait, act again,
+   * then await it". To check after the fact instead, use `quietFor` and assert
+   * on how many calls it resolves with — that counts the ones already
+   * recorded.
+   *
+   * @default 'record'
+   */
+  since?: 'record' | 'now'
+  /**
+   * Resolve only after this many milliseconds without a new matching call, and
+   * resolve with *every* match seen — the debounce-shaped wait: trigger
+   * something, let it settle, then assert the exact number of calls.
+   *
+   * The silence is only watched once `count` is reached, and `timeout` stays
+   * the hard deadline: a stream of calls that never goes quiet rejects there.
+   * It therefore has to be shorter than `timeout`.
+   */
+  quietFor?: number
   /**
    * Reject after this many milliseconds. Pass `false` to wait indefinitely.
    *
@@ -131,8 +166,13 @@ export type RecordedHooks = {
   /** What the `around` hook recorded, per method. */
   around: RecordedMethods
   /**
-   * Every recorded context, in call order, across all services, methods and
-   * hook types — narrow it with any predicate, `isContext` included.
+   * Every recorded context, in the order it was recorded, across all services,
+   * methods and hook types — narrow it with any predicate, `isContext`
+   * included.
+   *
+   * One *call* appears once per recorded hook type, so with the default types
+   * a successful call is two entries here. `before`/`after`/`error` are the
+   * per-call view.
    */
   all: HookContext[]
   /**
@@ -155,7 +195,12 @@ export type RecordedHooks = {
    * matching within the window, rejecting the moment something does — so a
    * test that proves a call did *not* happen fails immediately instead of
    * sleeping and asserting afterwards. A match that is already in the record
-   * rejects right away; pair it with `reset()` to watch only what comes next.
+   * rejects right away; `since: 'now'` is how to ignore it.
+   *
+   * A wait started *before* the action it watches can reject while that action
+   * is still running, and node logs an unhandled rejection for the moment
+   * between the rejection and your `await`. It is harmless — attach the
+   * expectation before the action to keep the log quiet.
    */
   waitFor: (options?: RecordedHooksWaitOptions) => Promise<HookContext[]>
   /**
@@ -268,9 +313,20 @@ const withType = (context: HookContext, type: HookType): HookContext => {
   return recorded
 }
 
+/**
+ * The hook types a recorder registers unless told otherwise: the three phases
+ * of a call — it went out, it came back, it failed. `around` is left out; see
+ * `RecordHooksOptions.type`.
+ */
+const recordedByDefault = ['before', 'after', 'error'] as const
+
 /** Criteria become the predicate they describe; a predicate is already one. */
 const toPredicate = (match?: RecordedHooksMatch) =>
   match === undefined || typeof match === 'function' ? match : isContext(match)
+
+/** `\`before\`, \`after\`` — a readable list for an error message. */
+const list = (items: readonly string[]) =>
+  items.map((item) => `\`${item}\``).join(', ')
 
 /**
  * How a recorded call reads in an error message: `before users.find`, or
@@ -329,20 +385,39 @@ const describeCall = (context: HookContext) =>
  * const [context] = await calls.waitFor({ context: { method: 'create' } })
  * expect(context.data).toEqual({ name: 'jane' })
  *
- * // or bracket something asynchronous: the wait forgets the creates recorded
- * // so far, then resolves with the one the job makes
- * const pending = calls.waitFor({
- *   context: { method: 'create' },
- *   resetBefore: true,
- * })
- * startBackgroundJob()
- * const [created] = await pending
- *
- * // or prove nothing reached the service — this rejects the moment one does,
- * // rather than sleeping and asserting afterwards
+ * // prove nothing reaches the service at all, failing the moment one does
  * calls.reset()
  * await readThroughCache()
  * await calls.waitFor({ context: { path: 'users' }, count: 0 })
+ * ```
+ *
+ * @example
+ * ```ts
+ * // "one request went out, prove no second one follows" — the baseline is
+ * // taken here, so the first call stays in the record as evidence
+ * await app.service('users').find({})
+ * const quiet = calls.waitFor({
+ *   context: { path: 'users' },
+ *   count: 0,
+ *   since: 'now',
+ * })
+ * await readThroughCache()
+ * await quiet
+ * expect(calls.before.find).toHaveLength(1)
+ * ```
+ *
+ * @example
+ * ```ts
+ * // the same thing after the fact: let a debounce settle, then assert the
+ * // exact number of calls — no `sleep`, and it returns them
+ * await store.load()
+ * await store.load()
+ *
+ * const finds = await calls.waitFor({
+ *   context: { path: 'users' },
+ *   quietFor: 250,
+ * })
+ * expect(finds).toHaveLength(1)
  * ```
  *
  * @example
@@ -367,7 +442,11 @@ export function recordHooks(
   target: RecordHooksTarget,
   options?: RecordHooksOptions,
 ): RecordedHooks {
-  const { type = 'before', snapshot = false, ...criteria } = options ?? {}
+  const {
+    type = recordedByDefault,
+    snapshot = false,
+    ...criteria
+  } = options ?? {}
 
   const types = [...new Set(toArray(type))]
   // `type` is not part of the gate: it decided which hooks were registered
@@ -429,13 +508,13 @@ export function recordHooks(
   }
 
   /**
-   * Reports every matching call to `onCall` until it calls `stop`, or until the
-   * window passes and `onTimeout` runs instead.
+   * Reports every matching call to `onCall` until the returned `stop` is
+   * called, or until the window passes and `onTimeout` runs instead.
    */
   const watch = (
     predicate: PredicateContextSync | undefined,
     timeout: number | false,
-    onCall: (context: HookContext, stop: () => void) => void,
+    onCall: (context: HookContext) => void,
     onTimeout: (recordedWhileWaiting: number) => void,
   ) => {
     const recordedBefore = all.length
@@ -445,7 +524,7 @@ export function recordHooks(
       if (predicate && !predicate(context)) {
         return
       }
-      onCall(context, stop)
+      onCall(context)
     }
 
     function stop() {
@@ -464,6 +543,28 @@ export function recordHooks(
     }
 
     waiters.add(waiter)
+
+    return stop
+  }
+
+  /**
+   * The hook types a wait asks for that are not recorded here. A wait for one
+   * of those could only ever time out, so `waitFor` says so straight away.
+   */
+  const unrecordedTypes = (match?: RecordedHooksMatch) => {
+    if (
+      match === undefined ||
+      typeof match === 'function' ||
+      match.type == null
+    ) {
+      return undefined
+    }
+
+    const requested = toArray(match.type)
+
+    return requested.some((requestedType) => types.includes(requestedType))
+      ? undefined
+      : requested
   }
 
   target.hooks(
@@ -498,6 +599,8 @@ export function recordHooks(
     waitFor: (options) => {
       const predicate = toPredicate(options?.context)
       const count = options?.count ?? 1
+      const since = options?.since ?? 'record'
+      const quietFor = options?.quietFor
       const timeout = options?.timeout ?? (count === 0 ? 50 : 5000)
 
       if (!Number.isInteger(count) || count < 0) {
@@ -516,6 +619,39 @@ export function recordHooks(
         )
       }
 
+      if (count === 0 && quietFor !== undefined) {
+        return Promise.reject(
+          new TypeError(
+            '`count: 0` rejects on the first match, so there is no quiet period to wait for',
+          ),
+        )
+      }
+
+      if (quietFor !== undefined && !(quietFor > 0)) {
+        return Promise.reject(
+          new TypeError(
+            `\`quietFor\` must be a positive number of milliseconds, got ${quietFor}`,
+          ),
+        )
+      }
+
+      if (quietFor !== undefined && timeout !== false && quietFor >= timeout) {
+        return Promise.reject(
+          new TypeError(
+            `\`quietFor\` (${quietFor}ms) must be shorter than \`timeout\` (${timeout}ms), or the silence could never pass`,
+          ),
+        )
+      }
+
+      const unrecorded = unrecordedTypes(options?.context)
+      if (unrecorded) {
+        return Promise.reject(
+          new Error(
+            `Waiting for the ${list(unrecorded)} hook, but this recorder records ${list(types)} — pass \`type: [${[...new Set([...types, ...unrecorded])].map((hookType) => `'${hookType}'`).join(', ')}]\` to recordHooks`,
+          ),
+        )
+      }
+
       if (options?.resetBefore) {
         forget(predicate)
       }
@@ -528,7 +664,8 @@ export function recordHooks(
         return contexts
       }
 
-      const recorded = matching(predicate)
+      // `since: 'now'` starts from an empty baseline, leaving the record be
+      const recorded = since === 'now' ? [] : matching(predicate)
 
       if (count === 0) {
         if (recorded.length > 0) {
@@ -540,10 +677,10 @@ export function recordHooks(
         }
 
         return new Promise<HookContext[]>((resolve, reject) => {
-          watch(
+          const stop = watch(
             predicate,
             timeout,
-            (context, stop) => {
+            (context) => {
               stop()
               reject(
                 new Error(
@@ -556,31 +693,67 @@ export function recordHooks(
         })
       }
 
-      if (recorded.length >= count) {
+      if (quietFor === undefined && recorded.length >= count) {
         return Promise.resolve(settle(recorded.slice(0, count)))
       }
 
       return new Promise<HookContext[]>((resolve, reject) => {
         const matched = [...recorded]
+        let quiet: ReturnType<typeof setTimeout> | undefined
 
-        watch(
+        const clearQuiet = () => {
+          if (quiet) {
+            clearTimeout(quiet)
+            quiet = undefined
+          }
+        }
+
+        const finish = () => {
+          clearQuiet()
+          stop()
+          resolve(settle(matched))
+        }
+
+        // every further match pushes the silence out again
+        const waitForQuiet = () => {
+          clearQuiet()
+          quiet = setTimeout(finish, quietFor)
+        }
+
+        const stop = watch(
           predicate,
           timeout,
-          (context, stop) => {
+          (context) => {
             matched.push(context)
-            if (matched.length >= count) {
-              stop()
-              resolve(settle(matched))
+
+            if (matched.length < count) {
+              return
+            }
+
+            if (quietFor === undefined) {
+              finish()
+            } else {
+              waitForQuiet()
             }
           },
           (recordedWhileWaiting) => {
+            clearQuiet()
             reject(
               new Error(
-                `Timeout after ${timeout}ms waiting for ${count} matching call${count === 1 ? '' : 's'}: ${matched.length} matched, ${recordedWhileWaiting} recorded while waiting`,
+                `Timeout after ${timeout}ms waiting for ${
+                  quietFor !== undefined && matched.length >= count
+                    ? `${quietFor}ms without a matching call`
+                    : `${count} matching call${count === 1 ? '' : 's'}`
+                }: ${matched.length} matched, ${recordedWhileWaiting} recorded while waiting`,
               ),
             )
           },
         )
+
+        // the count can be met already, in which case the silence starts here
+        if (quietFor !== undefined && matched.length >= count) {
+          waitForQuiet()
+        }
       })
     },
     stop: () => {
