@@ -29,7 +29,7 @@
 import Markdown from "markdown-it";
 import { computed } from "vue";
 import { data as utilities } from "../all.data";
-import { utilityCategories } from "../../utilities";
+import { utilityCategories } from "../../categories";
 import Chip from "./Chip.vue";
 
 const props = defineProps<{ tag: string }>();

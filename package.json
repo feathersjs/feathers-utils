@@ -40,6 +40,10 @@
     "./guards": {
       "types": "./dist/guards.d.mts",
       "import": "./dist/guards.mjs"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.mts",
+      "import": "./dist/testing.mjs"
     }
   },
   "scripts": {

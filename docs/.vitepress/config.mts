@@ -10,7 +10,8 @@ import {
 import { version } from '../../package.json'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { discoverUtilities, utilityCategories } from './utilities.js'
+import { discoverUtilities } from './utilities.js'
+import { utilityCategories } from './categories.js'
 import { utilityTagGroups } from './tags.js'
 import { MarkdownTransform } from './plugins/markdownTransform.js'
 import { transformerTwoslash } from '@shikijs/vitepress-twoslash'
@@ -183,6 +184,17 @@ export default defineConfig({
             link: x.path,
           })),
       },
+      {
+        text: 'Testing',
+        link: '/testing',
+        collapsed: false,
+        items: utilities
+          .filter((x) => x.category === 'testing')
+          .map((x) => ({
+            text: x.title,
+            link: x.path,
+          })),
+      },
       { text: 'Utility Types', link: '/utility-types' },
     ],
     nav: [
@@ -195,6 +207,7 @@ export default defineConfig({
           { text: 'Predicates', link: '/predicates' },
           { text: 'Transformers', link: '/transformers' },
           { text: 'Type Guards', link: '/guards' },
+          { text: 'Testing', link: '/testing' },
           { text: 'Utility Types', link: '/utility-types' },
         ],
       },

@@ -2,6 +2,7 @@
 title: debug
 category: hooks
 tags:
+  - context
   - debugging
 hook:
   type: ["before", "after"]

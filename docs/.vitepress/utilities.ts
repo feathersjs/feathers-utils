@@ -10,17 +10,7 @@ import prettier from 'prettier'
 import path from 'node:path'
 import { attachExportSizes, type BundleSize } from './export-size.js'
 import { isUtilityTag, utilityTags, type UtilityTag } from './tags.js'
-
-export const utilityCategories = [
-  'hooks',
-  'utils',
-  'resolvers',
-  'predicates',
-  'transformers',
-  'guards',
-] as const
-
-export type UtilityCategory = (typeof utilityCategories)[number]
+import { utilityCategories, type UtilityCategory } from './categories.js'
 
 export type Utility = {
   name: string
@@ -225,17 +215,7 @@ export async function discoverUtilities() {
         .filter(isUtilityTag)
         .sort((a, b) => utilityTags.indexOf(a) - utilityTags.indexOf(b))
 
-      if (
-        !title ||
-        [
-          'hooks',
-          'utils',
-          'resolvers',
-          'predicates',
-          'transformers',
-          'guards',
-        ].indexOf(category) === -1
-      ) {
+      if (!title || !utilityCategories.includes(category)) {
         continue
       }
 

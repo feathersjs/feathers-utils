@@ -3,6 +3,7 @@ import * as exportedHooks from '../src/hooks/index.js'
 import * as exportedUtils from '../src/utils/index.js'
 import * as exportedPredicates from '../src/predicates/index.js'
 import * as exportedTransformers from '../src/transformers/index.js'
+import * as exportedTesting from '../src/testing/index.js'
 
 const hooks = [
   'cache',
@@ -121,6 +122,10 @@ const transformers = [
   'mutateResult',
 ] satisfies (keyof typeof exportedTransformers)[]
 
+// `testing` is deliberately absent from the root barrel — it is test-only code
+// and should not ride along in a production bundle.
+const testing = ['recordHooks'] satisfies (keyof typeof exportedTesting)[]
+
 describe('expose', () => {
   it('expose all hooks', () => {
     assert.deepEqual(Object.keys(exportedHooks).sort(), hooks.sort())
@@ -136,6 +141,9 @@ describe('expose', () => {
       Object.keys(exportedTransformers).sort(),
       transformers.sort(),
     )
+  })
+  it('expose all testing utilities', () => {
+    assert.deepEqual(Object.keys(exportedTesting).sort(), testing.sort())
   })
 
   it('expose all members', () => {

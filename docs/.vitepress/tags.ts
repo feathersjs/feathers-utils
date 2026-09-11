@@ -35,6 +35,11 @@ export const utilityTagGroups = [
       'Which part of the service call the utility reads or changes. Reflects the primary target — a few utilities legitimately touch more than one.',
     tags: [
       {
+        name: 'context',
+        description:
+          'Reads the call itself — `method`, `type`, `path`, `id`, `service` — or the context as a whole, rather than one of its payloads.',
+      },
+      {
         name: 'query',
         description: 'Reads or rewrites `params.query`.',
       },
@@ -102,6 +107,11 @@ export const utilityTagGroups = [
         name: 'debugging',
         description:
           'Makes a call observable — logging, serializing, inspecting context.',
+      },
+      {
+        name: 'testing',
+        description:
+          'Written for test code — asserting what a service was asked to do, or awaiting what it does.',
       },
     ],
   },

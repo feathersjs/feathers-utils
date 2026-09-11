@@ -36,6 +36,34 @@ describe('isContext', () => {
     expect(isContext({ method: 'create' })({ method: 'remove' })).toBe(false)
   })
 
+  it('returns correct for id', () => {
+    expect(isContext({ id: 1 })({ id: 1 })).toBe(true)
+    expect(isContext({ id: [1, 2] })({ id: 2 })).toBe(true)
+
+    expect(isContext({ id: 1 })({ id: 2 })).toBe(false)
+    expect(isContext({ id: 1 })({})).toBe(false)
+  })
+
+  it("compares ids strictly, so `1` is not `'1'`", () => {
+    expect(isContext({ id: 1 })({ id: '1' })).toBe(false)
+    expect(isContext({ id: '1' })({ id: 1 })).toBe(false)
+  })
+
+  it('matches the multi variants with `id: null`', () => {
+    expect(isContext({ id: null })({ id: null })).toBe(true)
+    expect(isContext({ id: [1, null] })({ id: null })).toBe(true)
+
+    expect(isContext({ id: null })({ id: 1 })).toBe(false)
+    // an absent id is not the same as a null one
+    expect(isContext({ id: null })({})).toBe(false)
+  })
+
+  it('treats an omitted id as no criterion at all', () => {
+    expect(isContext({})({ id: 1 })).toBe(true)
+    expect(isContext({ id: undefined })({ id: 1 })).toBe(true)
+    expect(isContext({ id: undefined })({})).toBe(true)
+  })
+
   it('combines all options', () => {
     expect(
       isContext({ path: 'users', type: 'before', method: 'create' })({

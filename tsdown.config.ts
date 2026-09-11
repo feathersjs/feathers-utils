@@ -21,6 +21,7 @@ export default defineConfig({
     resolvers: 'src/resolvers/index.ts',
     transformers: 'src/transformers/index.ts',
     guards: 'src/guards/index.ts',
+    testing: 'src/testing/index.ts',
   },
   define: {
     'import.meta.vitest': 'undefined',

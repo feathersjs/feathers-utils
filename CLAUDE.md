@@ -5,16 +5,17 @@ ESM-only (`type: module`) Feathers utility library. All relative imports use the
 
 ## Entrypoints
 
-Seven barrels, each a package export and a tsdown build entry:
-`.` · `./hooks` · `./utils` · `./predicates` · `./resolvers` · `./transformers` · `./guards`
+Eight barrels, each a package export and a tsdown build entry:
+`.` · `./hooks` · `./utils` · `./predicates` · `./resolvers` · `./transformers` · `./guards` · `./testing`
 → `src/<category>/index.ts`. A new public feature must be re-exported from its
-category barrel.
+category barrel. `./testing` is test-only code and is deliberately **not** part
+of the root barrel, so it cannot end up in a production bundle.
 
 ## Feature folder convention
 
 Each public feature is its own **kebab-case** folder under its category, holding
 sibling files named `<name>.<kind>.*` where `kind` ∈
-`util|hook|predicate|resolver|transformer|guard`:
+`util|hook|predicate|resolver|transformer|guard|testing`:
 
 - `<name>.<kind>.ts` — implementation; the main export is **camelCase**.
 - `<name>.<kind>.test.ts` — runtime tests (vitest).
