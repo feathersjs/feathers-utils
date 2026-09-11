@@ -10,18 +10,7 @@ import prettier from 'prettier'
 import path from 'node:path'
 import { attachExportSizes, type BundleSize } from './export-size.js'
 import { isUtilityTag, utilityTags, type UtilityTag } from './tags.js'
-
-export const utilityCategories = [
-  'hooks',
-  'utils',
-  'resolvers',
-  'predicates',
-  'transformers',
-  'guards',
-  'testing',
-] as const
-
-export type UtilityCategory = (typeof utilityCategories)[number]
+import { utilityCategories, type UtilityCategory } from './categories.js'
 
 export type Utility = {
   name: string

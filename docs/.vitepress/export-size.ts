@@ -2,7 +2,8 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import zlib from 'node:zlib'
 import { build } from 'esbuild'
-import type { Utility, UtilityCategory } from './utilities.js'
+import type { Utility } from './utilities.js'
+import type { UtilityCategory } from './categories.js'
 
 export type BundleSize = {
   /** Minified byte size of the export's own code (deps excluded). */
