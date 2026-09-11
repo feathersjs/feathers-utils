@@ -18,6 +18,7 @@ export const utilityCategories = [
   'predicates',
   'transformers',
   'guards',
+  'testing',
 ] as const
 
 export type UtilityCategory = (typeof utilityCategories)[number]
@@ -225,17 +226,7 @@ export async function discoverUtilities() {
         .filter(isUtilityTag)
         .sort((a, b) => utilityTags.indexOf(a) - utilityTags.indexOf(b))
 
-      if (
-        !title ||
-        [
-          'hooks',
-          'utils',
-          'resolvers',
-          'predicates',
-          'transformers',
-          'guards',
-        ].indexOf(category) === -1
-      ) {
+      if (!title || !utilityCategories.includes(category)) {
         continue
       }
 

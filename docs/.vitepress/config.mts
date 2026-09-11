@@ -183,6 +183,17 @@ export default defineConfig({
             link: x.path,
           })),
       },
+      {
+        text: 'Testing',
+        link: '/testing',
+        collapsed: false,
+        items: utilities
+          .filter((x) => x.category === 'testing')
+          .map((x) => ({
+            text: x.title,
+            link: x.path,
+          })),
+      },
       { text: 'Utility Types', link: '/utility-types' },
     ],
     nav: [
@@ -195,6 +206,7 @@ export default defineConfig({
           { text: 'Predicates', link: '/predicates' },
           { text: 'Transformers', link: '/transformers' },
           { text: 'Type Guards', link: '/guards' },
+          { text: 'Testing', link: '/testing' },
           { text: 'Utility Types', link: '/utility-types' },
         ],
       },

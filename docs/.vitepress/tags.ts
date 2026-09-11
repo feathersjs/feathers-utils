@@ -103,6 +103,11 @@ export const utilityTagGroups = [
         description:
           'Makes a call observable — logging, serializing, inspecting context.',
       },
+      {
+        name: 'testing',
+        description:
+          'Written for test code — asserting what a service was asked to do, or awaiting what it does.',
+      },
     ],
   },
 ] as const satisfies readonly UtilityTagGroupDefinition[]
