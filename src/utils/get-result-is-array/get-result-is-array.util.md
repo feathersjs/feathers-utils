@@ -4,4 +4,5 @@ category: utils
 tags:
   - result
   - multi
+  - pagination
 ---

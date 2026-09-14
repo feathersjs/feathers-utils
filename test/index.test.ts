@@ -80,6 +80,7 @@ const utils = [
   'stringifyParams',
   'toPaginated',
   'transformParams',
+  'unpaginate',
   'waitForServiceEvent',
   'walkQuery',
   'zipDataResult',

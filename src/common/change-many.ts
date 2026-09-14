@@ -2,6 +2,7 @@ import type { Params } from '@feathersjs/feathers'
 import type { Multi } from '../types.js'
 import { allowsMulti } from './allows-multi.js'
 import { toArray } from './to-array.js'
+import { unpaginate } from '../utils/unpaginate/unpaginate.util.js'
 
 /**
  * The query selects *which* items are affected. It is consumed by the `find`
@@ -60,7 +61,7 @@ export const changeMany = async (
   const idProperty: string = service.id ?? 'id'
 
   const found = await service.find(toFindParams(params, idProperty))
-  const items: any[] = Array.isArray(found) ? found : (found?.data ?? [])
+  const items: any[] = unpaginate(found)
 
   if (!items.length) {
     return []

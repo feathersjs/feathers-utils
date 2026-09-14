@@ -1,10 +1,11 @@
 ---
-title: toPaginated
+title: unpaginate
 category: utils
 tags:
   - result
   - pagination
 see:
-  - utils/unpaginate
+  - utils/toPaginated
+  - utils/getResultIsArray
   - predicates/isPaginated
 ---
