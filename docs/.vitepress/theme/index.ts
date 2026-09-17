@@ -14,6 +14,7 @@ import UtilsTable from './components/UtilsTable.vue'
 import ResolversTable from './components/ResolversTable.vue'
 import ConditionsTable from './components/ConditionsTable.vue'
 import Chip from './components/Chip.vue'
+import UtilityMeta from './components/UtilityMeta.vue'
 import TagFilter from './components/TagFilter.vue'
 import TaggedUtilities from './components/TaggedUtilities.vue'
 import TagsOverview from './components/TagsOverview.vue'
@@ -38,6 +39,7 @@ export default {
     app.component('ConditionsTable', ConditionsTable)
 
     app.component('Chip', Chip)
+    app.component('UtilityMeta', UtilityMeta)
     app.component('TagFilter', TagFilter)
     app.component('TaggedUtilities', TaggedUtilities)
     app.component('TagsOverview', TagsOverview)
