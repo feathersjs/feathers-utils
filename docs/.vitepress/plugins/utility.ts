@@ -1,6 +1,22 @@
 import { type Utility } from '../utilities.js'
 import kebabCase from 'lodash/kebabCase.js'
 
+/**
+ * What the generated markdown is for.
+ *
+ * - `page` — the rendered doc page: meta grid, Vue component tables, twoslash.
+ * - `search` — the same prose, reduced to what belongs in the search index.
+ *   Component tables carry no text of their own, the meta grid would index
+ *   labels like "Source Code" on every page, and twoslash would type-check ~100
+ *   pages just to build an index. Headings are kept verbatim, so a hit still
+ *   links to the anchor it was found under.
+ */
+export type UtilityMarkdownTarget = 'page' | 'search'
+
+export type UtilityMarkdownOptions = {
+  target?: UtilityMarkdownTarget
+}
+
 const arr = (value: any[]) => {
   if (!value || !value.length) return '[]'
   const val = value
@@ -26,79 +42,73 @@ const resolveLinks = (text: string, utilities: Utility[]) =>
     },
   )
 
-const formatBytes = (bytes: number) => `${(bytes / 1024).toFixed(2)} kB`
+// twoslash type-checks the block it annotates — worth it on the page, pure cost
+// when the output is thrown away and only the text is kept.
+const stripTwoslash = (markdown: string) =>
+  markdown.replace(/^(\s*```\S+)[^\S\n]+twoslash\b/gm, '$1')
 
-export default (utility: Utility, utilities: Utility[]) => {
+export default (
+  utility: Utility,
+  utilities: Utility[],
+  options: UtilityMarkdownOptions = {},
+) => {
+  const { target = 'page' } = options
+  const isSearch = target === 'search'
+
   const code = [`# ${utility.title}`]
 
-  // Meta grid (VueUse-style): fixed label column + value column. Rendered as a
-  // raw HTML block, so values use HTML (<a>/<code>) — markdown isn't parsed
-  // inside HTML blocks; only Vue components like <Chip> survive.
-  ;(() => {
-    const rows: [label: string, value: string][] = []
+  if (isSearch) {
+    // The facets a reader types into the search box instead of the page's
+    // title — an alias, the category, a tag. Kept to one line so it stays out
+    // of the way in the detailed view.
+    code.push(
+      [utility.category, ...utility.tags, ...(utility.aliases ?? [])].join(
+        ' · ',
+      ),
+    )
+  } else {
+    const see: string[] = utility.frontmatter?.see ?? []
 
-    rows.push([
-      'Category',
-      `<Chip label="${utility.category}" class="mr-2" /> <a href="${utility.sourceUrl}" target="_blank" rel="noreferrer">Source Code</a> | <a href="${utility.docsUrl}" target="_blank" rel="noreferrer">Documentation</a>`,
-    ])
+    const props: [name: string, value: string][] = [
+      ['category', `"${utility.category}"`],
+      ['source-url', `"${utility.sourceUrl}"`],
+      ['docs-url', `"${utility.docsUrl}"`],
+    ]
 
     if (utility.tags.length) {
-      rows.push([
-        'Tags',
-        utility.tags
-          .map(
-            (tag) =>
-              `<Chip label="${tag}" href="/tags/${tag}.html" class="mr-1" />`,
-          )
-          .join(' '),
-      ])
+      props.push([':tags', `'${JSON.stringify(utility.tags)}'`])
     }
 
     if (utility.bundleSize) {
-      rows.push([
-        'Export size',
-        `min ${formatBytes(utility.bundleSize.minified)} · gzip ${formatBytes(utility.bundleSize.gzip)}`,
-      ])
+      props.push([':size', `'${JSON.stringify(utility.bundleSize)}'`])
     }
 
     if (utility.aliases?.length) {
-      rows.push([
-        'Aliases',
-        utility.aliases.map((a) => `<code>${a}</code>`).join(', '),
-      ])
+      props.push([':aliases', `'${JSON.stringify(utility.aliases)}'`])
     }
 
-    const see: string[] = utility.frontmatter?.see ?? []
-    if (see.length > 0) {
-      rows.push([
-        'See also',
-        see
-          .map((x) => {
-            const found = utilities.find((u) => u.name === x)
-            const href = found
-              ? found.path
-              : `/${x.split('/').map(kebabCase).join('/')}${x.includes('/') ? '.html' : '/'}`
-            return `<a href="${href}"><code>${x}</code></a>`
-          })
-          .join(' '),
-      ])
+    if (see.length) {
+      const links = see.map((x) => {
+        const found = utilities.find((u) => u.name === x)
+        const href = found
+          ? found.path
+          : `/${x.split('/').map(kebabCase).join('/')}${x.includes('/') ? '.html' : '/'}`
+        return { label: x, href }
+      })
+
+      props.push([':see', `'${JSON.stringify(links)}'`])
     }
 
-    const grid = [
-      `<div class="grid grid-cols-[100px_auto] gap-x-4 gap-y-2 items-center mt-4 mb-8 text-sm">`,
-      ...rows.flatMap(([label, value]) => [
-        `<div class="opacity-60">${label}</div>`,
-        `<div>${value}</div>`,
-      ]),
-      `</div>`,
-    ].join('\n')
-
-    code.push(grid)
-  })()
+    // One line: markdown ends an HTML block at a blank line, and the tag has to
+    // survive as a whole for Vue to compile it.
+    code.push(
+      `<UtilityMeta ${props.map(([name, value]) => `${name}=${value}`).join(' ')} />`,
+    )
+  }
 
   code.push(`${resolveLinks(utility.description, utilities)}
 
-\`\`\`ts twoslash
+\`\`\`ts${isSearch ? '' : ' twoslash'}
   import { ${utility.name} } from 'feathers-utils/${utility.category}';
 \`\`\` `)
 
@@ -119,11 +129,11 @@ export default (utility: Utility, utilities: Utility[]) => {
     code.push(`
 ## ${examples.length > 1 ? 'Examples' : 'Example'}
 
-${body}
+${isSearch ? stripTwoslash(body) : body}
     `)
   }
 
-  if (utility.category === 'transformers') {
+  if (utility.category === 'transformers' && !isSearch) {
     code.push(`
 ## Hooks for transformers
 
@@ -135,7 +145,7 @@ ${body}
     `)
   }
 
-  if (utility.category === 'predicates') {
+  if (utility.category === 'predicates' && !isSearch) {
     code.push(`
 ## Hooks for predicates
 
@@ -144,7 +154,15 @@ ${body}
   }
 
   if (utility.dts) {
-    code.push(`## Type declaration
+    code.push(
+      isSearch
+        ? `## Type declaration
+
+\`\`\`ts
+${utility.dts}
+\`\`\`
+`
+        : `## Type declaration
 <details>
 <summary class="opacity-50 italic cursor-pointer select-none">Show Type Declarations</summary>
 
@@ -153,22 +171,31 @@ ${utility.dts}
 \`\`\`
 
 </details>
-`)
+`,
+    )
   }
 
   if (utility.args?.length) {
-    code.push(`
+    // `<ArgsTable>` renders from a prop, so its text is invisible to the
+    // indexer — the search build gets the same rows as plain markdown.
+    code.push(
+      isSearch
+        ? utility.args
+            .map((arg) => `- \`${arg.name}\`: \`${arg.type}\``)
+            .join('\n')
+        : `
 <ArgsTable :args='${JSON.stringify(utility.args)}' />
-    `)
+    `,
+    )
   }
 
-  if (utility.hook) {
+  if (utility.hook && !isSearch) {
     code.push(`
 <HookTable :type="${arr(utility.hook.type)}" :method="${arr(utility.hook.method)}" :multi="${utility.hook.multi}" />
     `)
   }
 
-  code.push(utility.content)
+  code.push(isSearch ? stripTwoslash(utility.content) : utility.content)
 
   return code.join('\n\n')
 }

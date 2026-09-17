@@ -140,3 +140,15 @@ export const utilityTagGroupOf = Object.fromEntries(
 export const isUtilityTag = (value: unknown): value is UtilityTag =>
   typeof value === 'string' &&
   (utilityTags as readonly string[]).includes(value)
+
+/**
+ * The body of `/tags/<tag>`. Shared by the route loader that renders the page
+ * and by the search index, which cannot see a dynamic route's content.
+ */
+export const utilityTagPageContent = (tag: UtilityTagDefinition) =>
+  [
+    `# ${tag.name}`,
+    tag.description,
+    `<TaggedUtilities tag="${tag.name}" />`,
+    `See [all tags](/tags/) for the full vocabulary.`,
+  ].join('\n\n')

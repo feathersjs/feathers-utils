@@ -1,17 +1,12 @@
 import { defineRoutes } from 'vitepress'
-import { utilityTagGroups } from '../.vitepress/tags'
+import { utilityTagGroups, utilityTagPageContent } from '../.vitepress/tags'
 
 export default defineRoutes({
   paths() {
     return utilityTagGroups.flatMap((group) =>
       group.tags.map((tag) => ({
         params: { tag: tag.name, description: tag.description },
-        content: [
-          `# ${tag.name}`,
-          tag.description,
-          `<TaggedUtilities tag="${tag.name}" />`,
-          `See [all tags](/tags/) for the full vocabulary.`,
-        ].join('\n\n'),
+        content: utilityTagPageContent(tag),
       })),
     )
   },

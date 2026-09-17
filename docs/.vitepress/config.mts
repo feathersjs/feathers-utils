@@ -14,6 +14,7 @@ import { discoverUtilities } from './utilities.js'
 import { utilityCategories } from './categories.js'
 import { utilityTagGroups } from './tags.js'
 import { MarkdownTransform } from './plugins/markdownTransform.js'
+import { searchOptions } from './search.js'
 import { transformerTwoslash } from '@shikijs/vitepress-twoslash'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -244,6 +245,7 @@ export default defineConfig({
     },
     search: {
       provider: 'local',
+      options: searchOptions,
     },
   },
   markdown: {
