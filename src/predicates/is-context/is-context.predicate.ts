@@ -3,8 +3,17 @@ import type { MaybeArray } from '../../internal.utils.js'
 import { toArray } from '../../common/index.js'
 
 export type IsContextOptions<H extends HookContext = HookContext> = {
+  /**
+   * The service path(s) to match, as registered with `app.use()`.
+   */
   path?: MaybeArray<H['path']>
+  /**
+   * The hook type(s) to match: `'before'`, `'after'`, `'around'` or `'error'`.
+   */
   type?: MaybeArray<H['type']>
+  /**
+   * The service method(s) to match, including custom methods.
+   */
   method?: MaybeArray<H['method']>
   /**
    * The `id` of a `get`, `update`, `patch` or `remove` call. `null` matches the

@@ -3,6 +3,7 @@ title: rateLimit
 category: hooks
 tags:
   - authorization
+options: RateLimitOptions
 hook:
   type: ['before', 'around']
   method: ['find', 'get', 'create', 'update', 'patch', 'remove']
@@ -13,12 +14,7 @@ The `rateLimit` hook limits how many times a service method can be called within
 
 Any rate limiter backend supported by `rate-limiter-flexible` can be used (Memory, Redis, Mongo, Postgres, etc.).
 
-## Options
-
-| Option   | Type                              | Description                                                                                                                                                            |
-| -------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `key`    | `string \| ((context) => string)` | The rate-limiting key, or a function to derive it from the context. Defaults to `context.path`. Pass a static string for a single shared bucket (a global rate limit). |
-| `points` | `number \| ((context) => number)` | Number of points to consume per request, or a function to compute it from the context. Defaults to `1`.                                                                |
+<!-- options -->
 
 The `RateLimiterRes` is stored on `context.params.rateLimit` on both success and failure, so downstream hooks or services can inspect `remainingPoints`, `consumedPoints`, `msBeforeNext`, etc.
 

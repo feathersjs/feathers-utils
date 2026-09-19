@@ -4,6 +4,7 @@ category: hooks
 tags:
   - data
   - relations
+options: CreateRelatedOptions
 hook:
   type: ['before', 'around']
   method: ['create']

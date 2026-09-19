@@ -14,6 +14,9 @@ export interface CreateRelatedOptions<
   Services extends H['app']['services'] = H['app']['services'],
   S extends keyof Services = keyof Services,
 > {
+  /**
+   * The service the related records are created in — a key of `app.services`.
+   */
   service: S
   /**
    * Is relevant when the current context result is an array.

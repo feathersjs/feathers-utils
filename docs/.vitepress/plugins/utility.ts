@@ -1,4 +1,8 @@
-import { type Utility } from '../utilities.js'
+import {
+  type Utility,
+  type UtilityOption,
+  type UtilityOptionGroup,
+} from '../utilities.js'
 import kebabCase from 'lodash/kebabCase.js'
 
 /**
@@ -16,6 +20,11 @@ export type UtilityMarkdownTarget = 'page' | 'search'
 export type UtilityMarkdownOptions = {
   target?: UtilityMarkdownTarget
 }
+
+/**
+ * Where a page wants the generated `## Options` section to land in its body.
+ */
+const OPTIONS_MARKER = '<!-- options -->'
 
 const arr = (value: any[]) => {
   if (!value || !value.length) return '[]'
@@ -41,6 +50,92 @@ const resolveLinks = (text: string, utilities: Utility[]) =>
       return found ? `[\`${text}\`](${found.path})` : `\`${text}\``
     },
   )
+
+const escapeHtml = (text: string) =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+const exampleBlocks = (option: UtilityOption, utilities: Utility[]) =>
+  (option.examples ?? []).map((example, index, all) => {
+    const label = all.length > 1 ? `Example ${index + 1}` : 'Example'
+    return `::: details ${label}\n${resolveLinks(example, utilities)}\n:::`
+  })
+
+/**
+ * One option: a signature line (name · type · default, `required` when the
+ * member has no `?`) with the description and any `@example` below it, so a
+ * long description gets the full column width instead of a table cell.
+ *
+ * The blank lines matter — they end each HTML block, which is what lets
+ * markdown-it render the description and the fenced examples as markdown
+ * inside the wrapper.
+ */
+const optionBlock = (option: UtilityOption, utilities: Utility[]) => {
+  const signature = [
+    `<span class="option-name">${escapeHtml(option.name)}</span>`,
+    `<span class="option-type">${escapeHtml(option.type)}</span>`,
+    option.default
+      ? `<span class="option-default"><span class="option-label">default</span>${escapeHtml(option.default)}</span>`
+      : '',
+    option.optional ? '' : '<span class="option-required">required</span>',
+  ].join('')
+
+  const body = [
+    resolveLinks(option.description, utilities),
+    ...exampleBlocks(option, utilities),
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+
+  return [
+    `<div class="option" id="option-${kebabCase(option.name)}">`,
+    `<div class="option-signature">${signature}</div>`,
+    ...(body ? ['<div class="option-body">', body, '</div>'] : []),
+    '</div>',
+  ].join('\n\n')
+}
+
+/**
+ * The `## Options` section, generated from the type(s) named in the page's
+ * `options` frontmatter — so what is documented can never drift from the type.
+ *
+ * A page that documents more than one type gets a sub-heading per type, which
+ * also gives each one its own anchor in the outline.
+ */
+const optionsSection = (
+  groups: UtilityOptionGroup[],
+  utilities: Utility[],
+  isSearch: boolean,
+) => {
+  // the wrapper markup carries no text of its own, and the index is after prose
+  const render = (option: UtilityOption) =>
+    isSearch
+      ? [
+          [
+            `\`${option.name}\``,
+            `\`${option.type}\``,
+            option.default ? `default \`${option.default}\`` : '',
+            option.optional ? '' : 'required',
+          ]
+            .filter(Boolean)
+            .join(' · '),
+          resolveLinks(option.description, utilities),
+          ...(option.examples ?? []).map((example) =>
+            resolveLinks(example, utilities),
+          ),
+        ]
+          .filter(Boolean)
+          .join('\n\n')
+      : optionBlock(option, utilities)
+
+  const blocks = groups.flatMap((group) => [
+    ...(groups.length > 1 ? [`### \`${group.type}\``] : []),
+    ...(isSearch
+      ? group.members.map(render)
+      : ['<div class="options">', ...group.members.map(render), '</div>']),
+  ])
+
+  return ['## Options', ...blocks].join('\n\n')
+}
 
 // twoslash type-checks the block it annotates — worth it on the page, pure cost
 // when the output is thrown away and only the text is kept.
@@ -133,6 +228,23 @@ ${isSearch ? stripTwoslash(body) : body}
     `)
   }
 
+  const optionsMarkdown = utility.options?.length
+    ? optionsSection(utility.options, utilities, isSearch)
+    : undefined
+
+  // a page can place the generated table itself with an `<!-- options -->`
+  // marker in its body; without one the table follows the examples
+  let content = isSearch ? stripTwoslash(utility.content) : utility.content
+
+  if (optionsMarkdown && content.includes(OPTIONS_MARKER)) {
+    content = content.replace(OPTIONS_MARKER, optionsMarkdown)
+  } else {
+    content = content.replace(OPTIONS_MARKER, '')
+    if (optionsMarkdown) {
+      code.push(optionsMarkdown)
+    }
+  }
+
   if (utility.category === 'transformers' && !isSearch) {
     code.push(`
 ## Hooks for transformers
@@ -195,7 +307,7 @@ ${utility.dts}
     `)
   }
 
-  code.push(isSearch ? stripTwoslash(utility.content) : utility.content)
+  code.push(content)
 
   return code.join('\n\n')
 }

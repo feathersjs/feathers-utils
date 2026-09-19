@@ -4,6 +4,7 @@ category: hooks
 tags:
   - query
   - caching
+options: CacheOptions
 hook:
   type: ['before', 'after']
   method: ['find', 'get', 'create', 'update', 'patch', 'remove']
@@ -19,13 +20,7 @@ The `cache` hook caches `get` and `find` results based on `params`. On mutating 
 - Cached `find` entries are invalidated on any mutation, since any change could affect query results.
 - `create` does not invalidate cached `get` entries (only `find`).
 
-## Options
-
-| Option            | Type                 | Description                                                                                                                                                                                                                                          |
-| ----------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `map`             | `Cache`              | The cache implementation. Must implement `get`, `set`, `delete`, `clear`, and `keys`.                                                                                                                                                                |
-| `id`              | `string`             | The id field to use. Defaults to `service.options.id`, then `'id'`.                                                                                                                                                                                  |
-| `transformParams` | `(params) => params` | Transform params before they are used as cache key. Compose it with [`gateParams`](/utils/gate-params) to declaratively pick/drop keys and avoid false hits — see [Choosing Cache-Relevant Params](#choosing-cache-relevant-params-with-gateparams). |
+<!-- options -->
 
 ## Choosing Cache-Relevant Params (with `gateParams`)
 

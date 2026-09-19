@@ -14,12 +14,19 @@ import type { DispatchOption, PredicateItemWithContext } from '../../types.js'
 
 export interface SetResultOptions {
   /**
-   * Wether to throw if the context[from] is undefined.
+   * Whether a missing `from` on the context is allowed. With `false`, an
+   * external call (one with a `params.provider`) that misses it is rejected —
+   * an internal call never is.
    *
    * @default false
    */
   allowUndefined?: boolean
   /**
+   * Whether a value already present at `to` is overwritten.
+   *
+   * Pass a `(item, context) => boolean` predicate to decide per item — items it
+   * returns `false` for keep the value they came in with.
+   *
    * @default true
    */
   overwrite?: boolean | PredicateItemWithContext
@@ -28,6 +35,13 @@ export interface SetResultOptions {
    * If not provided, throws a `Forbidden` error with a message indicating the missing field.
    */
   error?: (context: HookContext, from: PropertyPath) => FeathersError
+  /**
+   * Which of `context.result` and `context.dispatch` the property is set on.
+   * `true` targets `dispatch` (seeded from `result` when it is still empty),
+   * `'both'` targets each of them.
+   *
+   * @default false
+   */
   dispatch?: DispatchOption
 }
 

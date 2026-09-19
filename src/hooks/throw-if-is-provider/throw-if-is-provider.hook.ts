@@ -12,6 +12,11 @@ const defaultError = (context: HookContext) =>
   )
 
 export type ThrowIfIsIsProviderOptions = {
+  /**
+   * An additional predicate that has to match as well before the error is
+   * thrown — e.g. to let one role through a transport that is otherwise
+   * disallowed.
+   */
   filter?: PredicateFn
   /**
    * Customize the error that is thrown if the context is a provider and the service does not allow it.

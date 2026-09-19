@@ -11,10 +11,22 @@ export type SoftDeleteOptionFunction<H extends HookContext = HookContext> = (
 
 export interface SoftDeleteOptions<H extends HookContext = HookContext> {
   /**
+   * The query that filters out soft-deleted items. It is appended to
+   * `params.query` on every method but `remove`.
+   *
+   * A function receives the hook context, for a query that depends on the
+   * request, and may return a promise.
+   *
    * @example { deletedAt: null }
    */
   deletedQuery: { [key: string]: any } | SoftDeleteOptionFunction<H>
   /**
+   * The data a `remove` patches the records with instead of deleting them.
+   *
+   * A function receives the hook context and may return a promise — which is
+   * what you want for a timestamp, so it is taken per request rather than once
+   * when the hook is created.
+   *
    * @example { deletedAt: new Date() }
    */
   removeData: { [key: string]: any } | SoftDeleteOptionFunction<H>

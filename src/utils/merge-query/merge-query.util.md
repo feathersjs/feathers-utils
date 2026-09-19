@@ -3,6 +3,7 @@ title: mergeQuery
 category: utils
 tags:
   - query
+options: MergeQueryOptions
 see:
   - utils/addToQuery
   - utils/queryDefaults

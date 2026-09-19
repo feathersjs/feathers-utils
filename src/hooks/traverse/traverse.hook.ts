@@ -2,7 +2,17 @@ import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { traverse as _traverse } from '../../common/index.js'
 
 export type TraverseOptions = {
+  /**
+   * Called for every node of the traversal, with `neotraverse`'s context as
+   * `this` — so `this.key`, `this.update(value)` and `this.remove()` are what
+   * the transformation is written in terms of.
+   */
   transformer: (transformContext: any) => any
+  /**
+   * Picks what is walked out of the hook context, e.g. `context.data`,
+   * `context.params.query` or `context.result`. The returned object is
+   * traversed in place.
+   */
   getObject: (
     context: HookContext,
   ) => Record<string, any> | Record<string, any>[]

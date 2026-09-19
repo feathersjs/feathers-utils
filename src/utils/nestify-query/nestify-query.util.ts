@@ -9,11 +9,11 @@ import {
 } from '../dotify-query/dotify-keys.js'
 
 export type NestifyQueryPredicateOptions = {
-  /** the current — possibly dotted — key, e.g. `'owner.name'` */
+  /** The current — possibly dotted — key, e.g. `'owner.name'` */
   key: string
-  /** the full dotted path including the key, e.g. `'company.owner.name'` */
+  /** The full dotted path including the key, e.g. `'company.owner.name'` */
   path: string
-  /** the value at that key */
+  /** The value at that key. */
   value: any
 }
 

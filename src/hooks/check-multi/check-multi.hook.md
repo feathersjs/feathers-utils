@@ -4,6 +4,7 @@ category: hooks
 tags:
   - validation
   - multi
+options: CheckMultiOptions
 hook:
   type: ["before", "around"]
   method: ["create", "patch", "remove"]
