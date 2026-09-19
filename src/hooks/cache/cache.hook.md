@@ -12,6 +12,7 @@ hook:
 see:
   - utils/gateParams
   - utils/stringifyParams
+  - predicates/isProvider
 ---
 
 The `cache` hook caches `get` and `find` results based on `params`. On mutating methods (`create`, `update`, `patch`, `remove`), affected cache entries are automatically invalidated.
@@ -19,8 +20,39 @@ The `cache` hook caches `get` and `find` results based on `params`. On mutating 
 - Cached `get` entries are invalidated when the same id is updated, patched, or removed.
 - Cached `find` entries are invalidated on any mutation, since any change could affect query results.
 - `create` does not invalidate cached `get` entries (only `find`).
+- The `iff` option restricts *which calls are cached* (e.g. internal ones only); invalidation always runs.
 
 <!-- options -->
+
+## Caching Only Some Calls (`iff`)
+
+`iff` gates the cache for `get` and `find`: when it is falsy for a call, the call is neither served from the cache nor stored in it. It takes a boolean or a (possibly async) predicate over the `HookContext`, so any [predicate](/predicates/) composes — e.g. [`isProvider`](/predicates/is-provider), [`isContext`](/predicates/is-context), or a combination via [`and`](/predicates/and) / [`or`](/predicates/or) / [`not`](/predicates/not).
+
+```ts
+import { cache } from 'feathers-utils/hooks'
+import { isProvider } from 'feathers-utils/predicates'
+
+app.service('users').hooks({
+  around: {
+    all: [
+      cache({
+        map: new Map(),
+        transformParams: (params) => ({ query: params.query }),
+        // only internal calls are served from / written to the cache
+        iff: isProvider('server'),
+      }),
+    ],
+  },
+})
+```
+
+::: tip Invalidation is not gated
+`iff` deliberately applies to `get`/`find` only. `create`, `update`, `patch` and `remove` always invalidate the affected entries, no matter who made the call — an external `patch` still clears the entries an internal `get` put there. Gating invalidation too would let external writes leave stale data behind.
+:::
+
+A gated-out call emits a `skip` event to the `logger`, so a cache that never fills shows up in your logs instead of failing silently. The event carries no `key` — computing one is exactly the work the gate skips.
+
+The predicate is evaluated on every hook run it gates — with a `before`/`after` or `around` registration that is twice per `get`/`find` call (and therefore two `skip` events) — so keep it cheap and side-effect free.
 
 ## Choosing Cache-Relevant Params (with `gateParams`)
 
