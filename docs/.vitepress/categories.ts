@@ -16,6 +16,7 @@ export const utilityCategories = [
   'predicates',
   'transformers',
   'guards',
+  'channels',
   'testing',
 ] as const
 
