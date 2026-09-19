@@ -1,5 +1,6 @@
 import type { HookContext, NextFunction, Params } from '@feathersjs/feathers'
 import { stringifyParams } from '../../utils/stringify-params/stringify-params.util.js'
+import { getResultIsArray } from '../../utils/get-result-is-array/get-result-is-array.util.js'
 import { copy } from 'fast-copy'
 import type { Promisable } from '../../internal.utils.js'
 
@@ -27,13 +28,15 @@ export type CacheOptions = {
    */
   map: Cache
   /**
-   * The id field to use for caching. Defaults to `service.options.id` and if not found, then 'id'.
+   * The id field to use for caching.
+   *
+   * @default service.options.id ?? 'id'
    */
   id?: string
   /**
-   * params are stringified for the key-value cache.
-   * There are params properties you don't want to include in the cache key.
-   * You can use this function to transform the params before they are stringified.
+   * Params are stringified for the key-value cache, and there are params
+   * properties you don't want in the cache key. Use this function to transform
+   * the params before they are stringified.
    *
    * The {@link gateParams} util is built for exactly this: it declaratively
    * selects/projects `params` keys (keeping `query` by default) so noise like
@@ -52,7 +55,7 @@ export type CacheOptions = {
   transformParams: (params: Params) => Params
   /**
    * Custom serialization function for converting params into a cache key string.
-   * By default, uses {@link stringifyParams} which sorts object keys and normalizes
+   * Uses {@link stringifyParams} by default, which sorts object keys and normalizes
    * query operator arrays (`$or`, `$and`, `$in`, etc.) for order-independent caching.
    *
    * The default is crash-safe: it never throws on values that leak through
@@ -61,7 +64,8 @@ export type CacheOptions = {
    * objects with `toJSON` (e.g. `Date`, `ObjectId`) are serialized via it.
    *
    * Override this to use a custom serialization strategy, e.g. to hash long keys
-   * for an external store (the id prefix stays separate, so invalidation keeps working):
+   * for an external store — the id prefix stays separate, so invalidation keeps
+   * working.
    *
    * @example
    * ```ts
@@ -93,7 +97,7 @@ export type CacheOptions = {
   logger?: (event: CacheEvent) => void
   /**
    * How to clone results on store and on hit so callers can't mutate the shared
-   * cached object. Defaults to a `fast-copy` deep clone.
+   * cached object. The default is a `fast-copy` deep clone.
    *
    * Set to `false` to skip cloning entirely (fastest, but the caller MUST treat
    * results as immutable), or pass a custom clone function (e.g. `structuredClone`).
@@ -247,9 +251,7 @@ class ContextCacheMap {
 
   // Called after create(), update(), patch(), and remove()
   async clear<H extends HookContext>(context: H): Promise<H> {
-    const results = Array.isArray(context.result)
-      ? context.result
-      : [context.result]
+    const { result: results } = getResultIsArray(context)
 
     const promises: Promise<any>[] = []
 

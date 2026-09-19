@@ -4,6 +4,7 @@ category: hooks
 tags:
   - validation
   - authorization
+options: ThrowIfIsIsProviderOptions
 hook:
   type: ["before", "after", "around"]
   method: ["create", "update", "patch"]

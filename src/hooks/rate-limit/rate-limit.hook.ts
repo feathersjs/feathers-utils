@@ -7,16 +7,19 @@ import type { Promisable } from '../../internal.utils.js'
 export type RateLimitOptions<H extends HookContext = HookContext> = {
   /**
    * The rate-limiting key, or a function to derive it from the context.
-   * Defaults to `context.path`.
    *
    * Pass a static string to use a single shared bucket (a global rate limit
    * across all requests), or a function to compute the key per request
    * (e.g. per user or per IP).
+   *
+   * @default context.path
    */
   key?: string | ((context: H) => Promisable<string>)
   /**
    * Number of points to consume per request, or a function to compute it from
-   * the context. Defaults to `1`.
+   * the context.
+   *
+   * @default 1
    */
   points?: number | ((context: H) => Promisable<number>)
 }

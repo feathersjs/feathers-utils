@@ -18,7 +18,7 @@ const stableKey = (value: any): string =>
   )
 
 export type PatchBatchOptions<IdKey extends string> = {
-  /** the key of the id property */
+  /** The key of the id property. */
   id?: IdKey
 }
 

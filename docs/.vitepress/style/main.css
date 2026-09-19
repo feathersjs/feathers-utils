@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* VitePress toggles `.dark` on <html>, while Tailwind v4's built-in `dark:`
    variant follows `prefers-color-scheme` — which would ignore the theme
@@ -64,4 +64,97 @@
 
 .DocSearch {
   --docsearch-primary-color: var(--vp-c-brand) !important;
+}
+
+/**
+ * Component: Options
+ * --------------------------------------------------------------------------
+ * The generated `## Options` section (`plugins/utility.ts`). One card per
+ * option: a signature line — name · type · default, `required` pushed to the
+ * end — and the description below it at full width, which a fourth table
+ * column never had room for.
+ */
+
+.options {
+  margin: 1rem 0 2rem;
+}
+
+.option {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 0.75rem;
+  transition: border-color 0.25s;
+}
+
+.option:target,
+.option:hover {
+  border-color: var(--vp-c-brand-light);
+}
+
+.option-signature {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.75rem;
+  row-gap: 0.25rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--vp-c-bg-soft);
+  border-bottom: 1px solid var(--vp-c-divider);
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.85em;
+  line-height: 1.7;
+}
+
+.option-name {
+  font-weight: 600;
+  color: var(--vp-c-brand-light);
+}
+
+.option-type,
+.option-default {
+  color: var(--vp-c-text-2);
+  /* a long function type wraps instead of stretching the card */
+  overflow-wrap: anywhere;
+}
+
+.option-label {
+  margin-right: 0.35rem;
+  font-family: var(--vp-font-family-base);
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.55;
+}
+
+.option-required {
+  /* stays on the right of the line, and wraps last on a narrow screen */
+  margin-left: auto;
+  padding: 0 0.4rem;
+  border-radius: 4px;
+  background-color: var(--vp-c-default-soft);
+  color: var(--vp-c-text-2);
+  font-family: var(--vp-font-family-base);
+  font-size: 0.8em;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.option-body {
+  padding: 0.75rem 1rem;
+  font-size: 0.95em;
+}
+
+.option-body > :first-child {
+  margin-top: 0;
+}
+
+.option-body > :last-child {
+  margin-bottom: 0;
+}
+
+/* the details container brings its own margins, which double up in a card */
+.option-body .custom-block.details {
+  margin: 0.75rem 0 0;
 }

@@ -3,11 +3,11 @@ import { branchOperators, isPlainObject } from '../../common/index.js'
 import { assignPath, dotifySortKeys, mergeAndBranches } from './dotify-keys.js'
 
 export type DotifyQueryPredicateOptions = {
-  /** the current key, e.g. `'owner'` */
+  /** The current key, e.g. `'owner'` */
   key: string
-  /** the full dotted path including the key, e.g. `'company.owner'` */
+  /** The full dotted path including the key, e.g. `'company.owner'` */
   path: string
-  /** the value at that key */
+  /** The value at that key. */
   value: any
 }
 

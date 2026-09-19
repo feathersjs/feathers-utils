@@ -38,6 +38,7 @@ Auto-discovered from `src/**/*.md`; the prose body is generated from the sibling
 ---
 title: stringifyParams # camelCase export name
 category: utils
+options: CacheOptions # optional: generates the `## Options` table
 see: # optional cross-links
   - hooks/cache
   - utils/gateParams
@@ -46,6 +47,16 @@ see: # optional cross-links
 
 - **`see:` references use `category/camelCaseName`** — the camelCase export name,
   NOT the kebab folder/slug (`utils/gateParams`, never `utils/gate-params`).
+- **`options:` names an options type** (`type X = { … }` or `interface X { … }`)
+  declared in the sibling `.ts` file, or a list of them for a page that documents
+  several (each gets a `### TypeName` sub-heading). Every member becomes a card in
+  the generated `## Options` section — signature line (name, type, `@default`,
+  `required` when the member has no `?`) with the JSDoc description below it, and
+  each `@example` in a collapsed details container. **So document options in the
+  type, never by hand in the `.md`.** Placement: an `<!-- options -->` marker in the
+  body, otherwise after `## Example`. `test/options.test.ts` guards that every
+  declared type resolves and that every member reaches the page; the cards are
+  styled under `Component: Options` in `docs/.vitepress/style/main.css`.
 
 ## Tests
 

@@ -4,6 +4,7 @@ category: utils
 tags:
   - data
   - batching
+options: CreateManyOptions
 see:
   - utils/patchMany
   - utils/removeMany

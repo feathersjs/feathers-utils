@@ -51,6 +51,31 @@ export type Utility = {
     type: string
     description: string
   }[]
+  /**
+   * The options type(s) named in the page's `options` frontmatter, read from the
+   * sibling `.ts` file — so what a page documents is generated from the type
+   * instead of being hand-maintained beside it.
+   */
+  options?: UtilityOptionGroup[]
+}
+
+export type UtilityOptionGroup = {
+  /** The name of the type the members were read from. */
+  type: string
+  members: UtilityOption[]
+}
+
+export type UtilityOption = {
+  name: string
+  /** The member's type, as written in the source. */
+  type: string
+  optional: boolean
+  /** The `@default` tag's value, if the member documents one. */
+  default?: string
+  /** The member's JSDoc description, paragraphs kept as blank lines. */
+  description: string
+  /** The member's `@example` blocks. */
+  examples?: string[]
 }
 
 const utilities = new Map<string, Utility>()
@@ -142,6 +167,94 @@ function typeDefinition(node: Node, name: string) {
   return undefined
 }
 
+/**
+ * Reads the members of an options type (`type X = { … }` or `interface X { … }`)
+ * declared in `sourceFile`, so a page can document its options straight from
+ * the type. Returns `undefined` when no such type is declared in the file.
+ */
+function optionsFromType(
+  sourceFile: ts.SourceFile,
+  typeName: string,
+): UtilityOption[] | undefined {
+  let members: ts.NodeArray<ts.TypeElement> | undefined
+
+  sourceFile.forEachChild((node) => {
+    if (members) {
+      return
+    }
+
+    if (ts.isInterfaceDeclaration(node) && node.name.text === typeName) {
+      members = node.members
+    } else if (
+      ts.isTypeAliasDeclaration(node) &&
+      node.name.text === typeName &&
+      ts.isTypeLiteralNode(node.type)
+    ) {
+      members = node.type.members
+    }
+  })
+
+  if (!members) {
+    return undefined
+  }
+
+  const options: UtilityOption[] = []
+
+  for (const member of members) {
+    if (!ts.isPropertySignature(member)) {
+      continue
+    }
+
+    const descriptions: string[] = []
+    const examples: string[] = []
+    let defaultValue: string | undefined
+
+    ts.getJSDocCommentsAndTags(member).forEach((doc) => {
+      if (!ts.isJSDoc(doc)) {
+        return
+      }
+      const comment = ts.getTextOfJSDocComment(doc.comment)
+      if (comment) {
+        descriptions.push(comment)
+      }
+    })
+
+    ts.getJSDocTags(member).forEach((tag) => {
+      const comment = ts.getTextOfJSDocComment(tag.comment)
+      if (!comment) {
+        return
+      }
+      if (tag.tagName.text === 'example') {
+        examples.push(comment)
+      } else if (
+        tag.tagName.text === 'default' ||
+        tag.tagName.text === 'defaultValue'
+      ) {
+        defaultValue = comment.trim()
+      }
+    })
+
+    options.push({
+      name: member.name.getText(),
+      // a multi-line type (a long function signature, an inline object) is
+      // collapsed onto the signature line it is rendered into
+      type: (member.type?.getText() ?? 'any')
+        .replace(/\s+/g, ' ')
+        .replace(/([([{])\s+/g, '$1')
+        .replace(/\s+([)\]}])/g, '$1')
+        .replace(/\s+([,;])/g, '$1')
+        // a trailing comma prettier wrapped onto its own line
+        .replace(/,([)\]}])/g, '$1'),
+      optional: !!member.questionToken,
+      default: defaultValue,
+      description: descriptions.join('\n\n'),
+      examples: examples.length > 0 ? examples : undefined,
+    })
+  }
+
+  return options
+}
+
 function getDts2(mdFilePaths: string[]) {
   const tsFilePaths = mdFilePaths.map((filePath) =>
     filePath.replace(/\.md$/, '.ts'),
@@ -209,7 +322,13 @@ export async function discoverUtilities() {
       const fileName = path.basename(filePath, '.md')
       const { data: frontmatter, content: body } = matter(content)
 
-      const { title = '', category, hook, aliases } = frontmatter
+      const {
+        title = '',
+        category,
+        hook,
+        aliases,
+        options: optionsType,
+      } = frontmatter
 
       const tags = (Array.isArray(frontmatter.tags) ? frontmatter.tags : [])
         .filter(isUtilityTag)
@@ -253,6 +372,27 @@ export async function discoverUtilities() {
 
       visit(sourceFile)
 
+      // `options:` takes one type name or a list of them, for a page that
+      // documents more than one (e.g. a util and the predicate beside it)
+      const optionTypeNames: string[] = Array.isArray(optionsType)
+        ? optionsType
+        : optionsType
+          ? [optionsType]
+          : []
+
+      const options = optionTypeNames.flatMap((typeName) => {
+        const members = optionsFromType(sourceFile, typeName)
+
+        if (!members?.length) {
+          console.warn(
+            `${filePath}: frontmatter \`options: ${typeName}\` does not match a type in ${path.basename(tsFile)}`,
+          )
+          return []
+        }
+
+        return [{ type: typeName, members }]
+      })
+
       const utility: Utility = {
         name: title,
         title,
@@ -272,6 +412,7 @@ export async function discoverUtilities() {
         lastModified: (await fs.stat(filePath)).mtime,
         examples: examples.length > 0 ? examples : undefined,
         args,
+        options: options?.length ? options : undefined,
         sourceFilePath: path.resolve(tsFile),
         mdFilePath: path.resolve(filePath),
         sourceUrl: `https://github.com/${repository}/blob/${mainBranch}/src/${category}/${slug}/${fileName}.ts`,
