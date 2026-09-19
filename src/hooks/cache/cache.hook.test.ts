@@ -8,6 +8,7 @@ import { MemoryService } from '@feathersjs/memory'
 import { expect, expectTypeOf } from 'vitest'
 import { copy } from 'fast-copy'
 import { gateParams } from '../../utils/gate-params/gate-params.util.js'
+import { isProvider } from '../../predicates/is-provider/is-provider.predicate.js'
 
 const setup = (options: CacheOptions, serviceOptions?: { id?: string }) => {
   const app = feathers<{
@@ -1242,5 +1243,199 @@ describe('cache hook with gateParams', () => {
     await usersService.find({ query: {}, mystery: 1 } as any)
 
     expect(onUnknownParams).toHaveBeenCalledWith(['mystery'], expect.anything())
+  })
+})
+
+describe('cache hook iff option', () => {
+  it('disables caching of get/find with `iff: false`', async () => {
+    const { usersService, before, cacheMap } = setup({
+      map: new Map(),
+      transformParams: (params) => params,
+      iff: false,
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+
+    await usersService.get(1)
+    await usersService.get(1)
+    await usersService.find()
+    await usersService.find()
+
+    expect(before.get).toHaveBeenCalledTimes(2) // never served from cache
+    expect(before.find).toHaveBeenCalledTimes(2)
+    expect((cacheMap as Map<string, any>).size).toBe(0) // nothing stored either
+  })
+
+  it('caches only internal calls with `iff: isProvider("server")`', async () => {
+    const { usersService, before, cacheMap } = setup({
+      map: new Map(),
+      // `provider` must not be part of the key, otherwise internal and external
+      // calls would never collide in the first place
+      transformParams: ({ query }) => ({ query }),
+      iff: isProvider('server'),
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+
+    // internal -> miss, then hit
+    await usersService.get(1)
+    expect(before.get).toHaveBeenCalledTimes(1)
+    await usersService.get(1)
+    expect(before.get).toHaveBeenCalledTimes(1)
+
+    // external -> not served from the internal entry, and nothing added
+    const sizeAfterInternal = (cacheMap as Map<string, any>).size
+    await usersService.get(1, { provider: 'rest' })
+    expect(before.get).toHaveBeenCalledTimes(2)
+    await usersService.get(1, { provider: 'rest' })
+    expect(before.get).toHaveBeenCalledTimes(3)
+    expect((cacheMap as Map<string, any>).size).toBe(sizeAfterInternal)
+
+    // the internal entry is still intact
+    await usersService.get(1)
+    expect(before.get).toHaveBeenCalledTimes(3)
+  })
+
+  it('invalidates on mutations even when the predicate is falsy for them', async () => {
+    const iff = vi.fn(isProvider('server'))
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      iff,
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+
+    await usersService.get(1)
+    await usersService.find()
+    expect(before.get).toHaveBeenCalledTimes(1)
+    expect(before.find).toHaveBeenCalledTimes(1)
+
+    // an external mutation must still clear the cached internal entries
+    await usersService.patch(1, { name: 'John Doe' }, { provider: 'rest' })
+
+    expect(await usersService.get(1)).toEqual({ id: 1, name: 'John Doe' })
+    expect(before.get).toHaveBeenCalledTimes(2)
+    await usersService.find()
+    expect(before.find).toHaveBeenCalledTimes(2)
+
+    // the predicate is never consulted for mutating methods
+    expect(
+      iff.mock.calls.every(({ 0: context }) =>
+        ['get', 'find'].includes(context.method),
+      ),
+    ).toBe(true)
+  })
+
+  it('supports an async predicate, evaluated per hook run', async () => {
+    const iff = vi.fn(async (context: HookContext) => !context.params.provider)
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      iff,
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+    iff.mockClear()
+
+    // miss -> the before and the after run each evaluate the predicate
+    await usersService.find()
+    expect(iff).toHaveBeenCalledTimes(2)
+
+    // hit -> still served from the cache
+    await usersService.find()
+    expect(before.find).toHaveBeenCalledTimes(1)
+  })
+
+  it('caches as usual with `iff: true`', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: (params) => params,
+      iff: true,
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+
+    await usersService.get(1)
+    await usersService.get(1)
+    expect(before.get).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('cache hook iff option with logger', () => {
+  it('logs skip for a gated-out get/find', async () => {
+    const logger = vi.fn()
+    const { usersService } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      iff: isProvider('server'),
+      logger,
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+    logger.mockClear()
+
+    // internal -> the usual miss/set pair
+    await usersService.get(1)
+    expect(logger.mock.calls.map((c) => c[0].type)).toEqual(['miss', 'set'])
+
+    logger.mockClear()
+
+    // external -> skipped in the before and in the after run, so a cache that
+    // never fills is visible instead of silent
+    await usersService.get(1, { provider: 'rest' })
+    expect(logger.mock.calls.map((c) => c[0])).toEqual([
+      { type: 'skip', method: 'get' },
+      { type: 'skip', method: 'get' },
+    ])
+
+    logger.mockClear()
+
+    await usersService.find({ provider: 'rest' })
+    expect(logger.mock.calls.map((c) => c[0])).toEqual([
+      { type: 'skip', method: 'find' },
+      { type: 'skip', method: 'find' },
+    ])
+  })
+
+  it('carries no key on a skip event', async () => {
+    const logger = vi.fn()
+    const { usersService } = setup({
+      map: new Map(),
+      // a serializer that would throw proves no key is computed for a skip
+      serialize: () => {
+        throw new Error('serialize must not run for a skipped call')
+      },
+      transformParams: ({ query }) => ({ query }),
+      iff: false,
+      logger,
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+    logger.mockClear()
+
+    await usersService.find()
+    expect(logger.mock.calls.map((c) => c[0])).toEqual([
+      { type: 'skip', method: 'find' },
+      { type: 'skip', method: 'find' },
+    ])
+  })
+
+  it('still logs invalidation for a mutation the predicate would reject', async () => {
+    const logger = vi.fn()
+    const { usersService } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      iff: isProvider('server'),
+      logger,
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+    await usersService.get(1)
+    logger.mockClear()
+
+    await usersService.patch(1, { name: 'John Doe' }, { provider: 'rest' })
+    expect(logger.mock.calls.map((c) => c[0].type)).toContain('invalidate')
+    expect(logger.mock.calls[0][0]).toMatchObject({ method: 'patch' })
   })
 })

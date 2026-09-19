@@ -75,6 +75,7 @@ describe('generated options tables', () => {
       'serialize',
       'logger',
       'clone',
+      'iff',
     ])
 
     expect(byName.map).toMatchObject({ type: 'Cache', optional: false })

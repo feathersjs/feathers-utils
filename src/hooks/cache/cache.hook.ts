@@ -3,6 +3,7 @@ import { stringifyParams } from '../../utils/stringify-params/stringify-params.u
 import { getResultIsArray } from '../../utils/get-result-is-array/get-result-is-array.util.js'
 import { copy } from 'fast-copy'
 import type { Promisable } from '../../internal.utils.js'
+import type { PredicateFn } from '../../types.js'
 
 type Cache = {
   get: (key: string) => Promisable<any>
@@ -18,8 +19,9 @@ export type CacheEvent =
   | { type: 'set'; method: string; key: string }
   | { type: 'invalidate'; method: string; key: string }
   | { type: 'clear'; method: string }
+  | { type: 'skip'; method: string }
 
-export type CacheOptions = {
+export type CacheOptions<H extends HookContext = HookContext> = {
   /**
    * The cache implementation to use. It should implement the methods `get`, `set`, `delete`, `clear`, and `keys`.
    * This can be a Map, Redis client, or any other cache implementation.
@@ -82,8 +84,8 @@ export type CacheOptions = {
    */
   serialize?: (params: Params) => string
   /**
-   * Optional logger callback for cache events (hit, miss, set, invalidate, clear).
-   * Useful for debugging and monitoring cache behavior.
+   * Optional logger callback for cache events (hit, miss, set, invalidate,
+   * clear, skip). Useful for debugging and monitoring cache behavior.
    *
    * @example
    * ```ts
@@ -105,12 +107,47 @@ export type CacheOptions = {
    * @default true
    */
   clone?: boolean | (<T>(value: T) => T)
+  /**
+   * Only read from and write to the cache when this is truthy. Can be a boolean
+   * or a (possibly async) predicate that receives the `HookContext`.
+   *
+   * This gates the **caching of `get`/`find` only**. Invalidation on `create`,
+   * `update`, `patch` and `remove` always runs, so a call that is not allowed to
+   * be served from the cache can still never leave stale entries behind.
+   *
+   * A gated-out call logs a `skip` event (without a key — none is computed), so
+   * a cache that never fills is visible in the {@link CacheOptions.logger}
+   * instead of silent.
+   *
+   * A predicate runs on every hook run it gates — with a `before`/`after` or
+   * `around` registration that is twice per `get`/`find` call — so keep it cheap
+   * and side-effect free. A sync predicate is never awaited.
+   *
+   * @default true
+   *
+   * @example
+   * ```ts
+   * import { cache } from 'feathers-utils/hooks'
+   * import { isProvider } from 'feathers-utils/predicates'
+   *
+   * // only serve internal calls from the cache
+   * cache({
+   *   map: new Map(),
+   *   transformParams: (params) => ({ query: params.query }),
+   *   iff: isProvider('server'),
+   * })
+   * ```
+   */
+  iff?: boolean | PredicateFn<H>
 }
 
 /**
  * Caches `get` and `find` results based on `params`. On mutating methods (`create`, `update`,
  * `patch`, `remove`), affected cache entries are automatically invalidated.
  * Works as a `before`, `after`, or `around` hook.
+ *
+ * Use the `iff` option to restrict *caching* to certain calls (e.g. internal
+ * ones) — invalidation always runs, for every call.
  *
  * @example
  * ```ts
@@ -128,7 +165,7 @@ export type CacheOptions = {
  * @see https://utils.feathersjs.com/hooks/cache.html
  */
 export const cache = <H extends HookContext = HookContext>(
-  options: CacheOptions,
+  options: CacheOptions<H>,
 ) => {
   const cacheMap = new ContextCacheMap(options)
   return async (context: H, next?: NextFunction): Promise<void> => {
@@ -153,6 +190,14 @@ const cacheBefore = async (
   cacheMap: ContextCacheMap,
 ): Promise<void> => {
   if (context.method === 'get' || context.method === 'find') {
+    // `isEnabled` only returns a promise for an async predicate, so no `iff`,
+    // a boolean and a sync predicate never cost a microtask here
+    const enabled = cacheMap.isEnabled(context)
+    if (typeof enabled === 'boolean' ? !enabled : !(await enabled)) {
+      cacheMap.skip(context)
+      return
+    }
+
     const value = await cacheMap.get(context)
     if (value) {
       context.result = value
@@ -165,8 +210,16 @@ const cacheAfter = async (
   cacheMap: ContextCacheMap,
 ): Promise<void> => {
   if (context.method === 'get' || context.method === 'find') {
+    const enabled = cacheMap.isEnabled(context)
+    if (typeof enabled === 'boolean' ? !enabled : !(await enabled)) {
+      cacheMap.skip(context)
+      return
+    }
+
     await cacheMap.set(context)
   } else {
+    // invalidation is never gated by `iff`: a call that may not be served from
+    // the cache must still not leave stale entries behind
     await cacheMap.clear(context)
   }
 }
@@ -174,22 +227,43 @@ const cacheAfter = async (
 class ContextCacheMap {
   map: Cache
   private delimiter = ':'
-  private options: CacheOptions
+  private options: CacheOptions<any>
   private log: ((event: CacheEvent) => void) | undefined
   private serialize: (params: Params) => string
   private clone: <T>(value: T) => T
+  private iff: boolean | PredicateFn<any>
 
-  constructor(options: CacheOptions) {
+  constructor(options: CacheOptions<any>) {
     this.map = options.map
     this.options = options
     this.log = options.logger
     this.serialize = options.serialize ?? stringifyParams
+    this.iff = options.iff ?? true
     this.clone =
       options.clone === false
         ? (value) => value
         : typeof options.clone === 'function'
           ? options.clone
           : copy
+  }
+
+  /**
+   * Whether `get`/`find` of this context may use the cache, per the `iff` option.
+   *
+   * Stays synchronous unless the predicate itself is async: `iff` is resolved to
+   * a boolean once in the constructor, so a call without `iff` never pays for a
+   * predicate at all.
+   */
+  isEnabled(context: HookContext): Promisable<boolean> {
+    return typeof this.iff === 'function' ? this.iff(context) : this.iff
+  }
+
+  /**
+   * Called when `iff` gated a `get`/`find` out of the cache. Carries no key:
+   * computing one is exactly the work this path skips.
+   */
+  skip(context: HookContext) {
+    this.log?.({ type: 'skip', method: context.method })
   }
 
   private stringifyCacheKey(context: HookContext) {
