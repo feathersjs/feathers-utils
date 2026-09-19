@@ -1,5 +1,6 @@
 import type { HookContext, NextFunction, Params } from '@feathersjs/feathers'
 import { stringifyParams } from '../../utils/stringify-params/stringify-params.util.js'
+import { getResultIsArray } from '../../utils/get-result-is-array/get-result-is-array.util.js'
 import { copy } from 'fast-copy'
 import type { Promisable } from '../../internal.utils.js'
 
@@ -250,9 +251,7 @@ class ContextCacheMap {
 
   // Called after create(), update(), patch(), and remove()
   async clear<H extends HookContext>(context: H): Promise<H> {
-    const results = Array.isArray(context.result)
-      ? context.result
-      : [context.result]
+    const { result: results } = getResultIsArray(context)
 
     const promises: Promise<any>[] = []
 
