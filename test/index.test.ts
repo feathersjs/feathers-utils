@@ -4,6 +4,7 @@ import * as exportedUtils from '../src/utils/index.js'
 import * as exportedPredicates from '../src/predicates/index.js'
 import * as exportedTransformers from '../src/transformers/index.js'
 import * as exportedTesting from '../src/testing/index.js'
+import * as exportedChannels from '../src/channels/index.js'
 
 const hooks = [
   'cache',
@@ -123,6 +124,16 @@ const transformers = [
   'mutateResult',
 ] satisfies (keyof typeof exportedTransformers)[]
 
+// `channels` is deliberately absent from the root barrel - it needs
+// `@feathersjs/transport-commons`, which is an optional peer dependency only an
+// app with a realtime transport has installed.
+const channels = [
+  'chainChannels',
+  'collapseChannels',
+  'filterChannelLeaves',
+  'toChannelLeaves',
+] satisfies (keyof typeof exportedChannels)[]
+
 // `testing` is deliberately absent from the root barrel — it is test-only code
 // and should not ride along in a production bundle.
 const testing = ['recordHooks'] satisfies (keyof typeof exportedTesting)[]
@@ -142,6 +153,9 @@ describe('expose', () => {
       Object.keys(exportedTransformers).sort(),
       transformers.sort(),
     )
+  })
+  it('expose all channel utilities', () => {
+    assert.deepEqual(Object.keys(exportedChannels).sort(), channels.sort())
   })
   it('expose all testing utilities', () => {
     assert.deepEqual(Object.keys(exportedTesting).sort(), testing.sort())

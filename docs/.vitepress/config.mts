@@ -186,6 +186,17 @@ export default defineConfig({
           })),
       },
       {
+        text: 'Channels',
+        link: '/channels',
+        collapsed: false,
+        items: utilities
+          .filter((x) => x.category === 'channels')
+          .map((x) => ({
+            text: x.title,
+            link: x.path,
+          })),
+      },
+      {
         text: 'Testing',
         link: '/testing',
         collapsed: false,
@@ -208,6 +219,7 @@ export default defineConfig({
           { text: 'Predicates', link: '/predicates' },
           { text: 'Transformers', link: '/transformers' },
           { text: 'Type Guards', link: '/guards' },
+          { text: 'Channels', link: '/channels' },
           { text: 'Testing', link: '/testing' },
           { text: 'Utility Types', link: '/utility-types' },
         ],
