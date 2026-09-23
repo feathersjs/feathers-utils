@@ -6,7 +6,7 @@ tags:
   - relations
 options: CreateRelatedOptions
 hook:
-  type: ['before', 'around']
+  type: ['after', 'around']
   method: ['create']
   multi: true
 see:

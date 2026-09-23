@@ -1,6 +1,6 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { addToQuery, checkContext, queryDefaults } from '../../utils/index.js'
-import type { TransformParamsFn } from '../../types.js'
+import type { PredicateFn, TransformParamsFn } from '../../types.js'
 import { transformParams } from '../../utils/transform-params/transform-params.util.js'
 import { early, isPromise } from '../../common/index.js'
 import type { Promisable } from '../../internal.utils.js'
@@ -50,16 +50,21 @@ export interface SoftDeleteOptions<H extends HookContext = HookContext> {
   usePatchWithHooks?: boolean
 
   /**
+   * Whether the caller may override the `deletedQuery` filter. Can be a boolean
+   * or a predicate that receives the `HookContext`.
+   *
    * By default, if the incoming `params.query` already references a key of
    * `deletedQuery` (e.g. `deletedAt`) — including nested inside `$and`/`$or`/`$nor` —
    * the `deletedQuery` filter is NOT added, letting the caller read soft-deleted
-   * items while `remove` still soft-deletes them.
+   * items while `remove` still soft-deletes them. That includes external
+   * callers — pass `isProvider('server')` to allow it for internal calls only.
    *
    * Set this to `false` to always enforce the `deletedQuery` filter.
    *
+   * @example isProvider('server')
    * @default true
    */
-  allowQueryOverride?: boolean
+  allowQueryOverride?: boolean | PredicateFn<H>
 }
 
 /**
@@ -106,7 +111,12 @@ export const softDelete = <H extends HookContext = HookContext>(
       deleteQuery = await deleteQuery
     }
 
-    const query = allowQueryOverride
+    const allowOverride =
+      typeof allowQueryOverride === 'function'
+        ? await allowQueryOverride(context)
+        : allowQueryOverride
+
+    const query = allowOverride
       ? queryDefaults(context.params.query, deleteQuery)
       : addToQuery(context.params.query, deleteQuery)
 

@@ -511,6 +511,239 @@ describe('hook - createRelated', function () {
     expect(todos).toStrictEqual([])
   })
 
+  describe('blocking', function () {
+    it('throws related errors to the caller by default', async function () {
+      const { app, todosService } = mockApp()
+
+      todosService.hooks({
+        before: {
+          create: [
+            () => {
+              throw new Error('boom')
+            },
+          ],
+        },
+      })
+
+      app.service('users').hooks({
+        after: {
+          create: [
+            createRelated({
+              service: 'todos',
+              data: (item) => ({ title: item.name, userId: item.id }),
+            }),
+          ],
+        },
+      })
+
+      await expect(
+        app.service('users').create({ name: 'John Doe' }),
+      ).rejects.toThrow('boom')
+    })
+
+    it('resolves the call before the related records are created with blocking: false', async function () {
+      const { app, todosService } = mockApp()
+
+      let release: () => void = () => {}
+      const released = new Promise<void>((resolve) => {
+        release = resolve
+      })
+
+      todosService.hooks({
+        before: { create: [() => released] },
+      })
+
+      app.service('users').hooks({
+        after: {
+          create: [
+            createRelated({
+              service: 'todos',
+              data: (item) => ({ title: item.name, userId: item.id }),
+              blocking: false,
+            }),
+          ],
+        },
+      })
+
+      await app.service('users').create({ name: 'John Doe' })
+      expect(await todosService.find({ query: {} })).toStrictEqual([])
+
+      release()
+      await new Promise((r) => setTimeout(r, 10))
+
+      expect(await todosService.find({ query: {} })).toStrictEqual([
+        { id: 1, title: 'John Doe', userId: 1 },
+      ])
+    })
+
+    it('runs data on the result as it is at its position with blocking: false', async function () {
+      const { app, todosService } = mockApp()
+
+      app.service('users').hooks({
+        after: {
+          create: [
+            createRelated({
+              service: 'todos',
+              data: (item) => ({ title: item.name, userId: item.id }),
+              blocking: false,
+            }),
+            (context: HookContext) => {
+              context.result = { ...context.result, name: 'changed later' }
+            },
+          ],
+        },
+      })
+
+      await app.service('users').create({ name: 'John Doe' })
+      await new Promise((r) => setTimeout(r, 10))
+
+      expect(await todosService.find({ query: {} })).toStrictEqual([
+        { id: 1, title: 'John Doe', userId: 1 },
+      ])
+    })
+
+    it('passes related errors to onError with blocking: false, caller still resolves', async function () {
+      const { app, todosService } = mockApp()
+
+      todosService.hooks({
+        before: {
+          create: [
+            () => {
+              throw new Error('boom')
+            },
+          ],
+        },
+      })
+
+      const onError = vi.fn()
+
+      app.service('users').hooks({
+        after: {
+          create: [
+            createRelated({
+              service: 'todos',
+              data: (item) => ({ title: item.name, userId: item.id }),
+              blocking: false,
+              onError,
+            }),
+          ],
+        },
+      })
+
+      await expect(
+        app.service('users').create({ name: 'John Doe' }),
+      ).resolves.toEqual({ id: 1, name: 'John Doe' })
+
+      // let the fire-and-forget .catch() run
+      await new Promise((r) => setTimeout(r, 10))
+
+      expect(onError).toHaveBeenCalledOnce()
+      expect(onError.mock.calls[0]![0].message).toBe('boom')
+      expect(onError.mock.calls[0]![1].path).toBe('users')
+    })
+
+    it('swallows related errors without onError with blocking: false', async function () {
+      const { app, todosService } = mockApp()
+      const unhandled = vi.fn()
+      process.on('unhandledRejection', unhandled)
+
+      try {
+        todosService.hooks({
+          before: {
+            create: [
+              () => {
+                throw new Error('boom')
+              },
+            ],
+          },
+        })
+
+        app.service('users').hooks({
+          after: {
+            create: [
+              createRelated({
+                service: 'todos',
+                data: (item) => ({ title: item.name, userId: item.id }),
+                blocking: false,
+              }),
+            ],
+          },
+        })
+
+        await expect(
+          app.service('users').create({ name: 'John Doe' }),
+        ).resolves.toEqual({ id: 1, name: 'John Doe' })
+        await new Promise((r) => setTimeout(r, 10))
+
+        expect(unhandled).not.toHaveBeenCalled()
+      } finally {
+        process.off('unhandledRejection', unhandled)
+      }
+    })
+
+    it('accepts a predicate for blocking', async function () {
+      const { app, todosService } = mockApp()
+
+      todosService.hooks({
+        before: {
+          create: [
+            () => {
+              throw new Error('boom')
+            },
+          ],
+        },
+      })
+
+      const onError = vi.fn()
+
+      app.service('users').hooks({
+        after: {
+          create: [
+            createRelated({
+              service: 'todos',
+              data: (item) => ({ title: item.name, userId: item.id }),
+              blocking: async (context) => context.params.provider === 'rest',
+              onError,
+            }),
+          ],
+        },
+      })
+
+      await expect(
+        app.service('users').create({ name: 'John Doe' }, { provider: 'rest' }),
+      ).rejects.toThrow('boom')
+      expect(onError).not.toHaveBeenCalled()
+
+      await expect(
+        app.service('users').create({ name: 'Jane Doe' }),
+      ).resolves.toEqual({ id: 2, name: 'Jane Doe' })
+      await new Promise((r) => setTimeout(r, 10))
+      expect(onError).toHaveBeenCalledOnce()
+    })
+
+    it('throws errors from data to the caller with blocking: false', async function () {
+      const { app } = mockApp()
+
+      app.service('users').hooks({
+        after: {
+          create: [
+            createRelated({
+              service: 'todos',
+              data: () => {
+                throw new Error('data failed')
+              },
+              blocking: false,
+            }),
+          ],
+        },
+      })
+
+      await expect(
+        app.service('users').create({ name: 'John Doe' }),
+      ).rejects.toThrow('data failed')
+    })
+  })
+
   it('is type-compatible with AroundHookFunction', () => {
     type User = { id: number; name: string }
     type Todo = { id: number; userId: number; title: string }

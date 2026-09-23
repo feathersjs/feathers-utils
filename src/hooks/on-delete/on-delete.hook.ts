@@ -7,7 +7,7 @@ import {
   removeMany,
 } from '../../utils/index.js'
 import type { MaybeArray, NeverFallback } from '../../internal.utils.js'
-import type { Multi } from '../../types.js'
+import type { Multi, PredicateFn } from '../../types.js'
 import type {
   InferFindParams,
   InferGetResult,
@@ -56,13 +56,16 @@ export interface OnDeleteOptions<
    */
   multi?: Multi
   /**
-   * If true, the hook will wait for the service to finish before continuing
+   * Whether the hook waits for the related-service call to finish before the
+   * call continues. Can be a boolean or a predicate that receives the
+   * `HookContext`.
    *
+   * @example isProvider('external')
    * @default false
    */
-  blocking?: boolean
+  blocking?: boolean | PredicateFn<H>
   /**
-   * Called when a non-blocking (`blocking: false`) related-service call rejects.
+   * Called when a related-service call rejects while not blocking.
    * Without this, fire-and-forget rejections are swallowed (but never leak as an
    * unhandled rejection). In `blocking` mode the error is thrown to the caller instead.
    */
@@ -134,18 +137,21 @@ export const onDelete = <H extends HookContext = HookContext>(
       return
     }
 
+    // resolved before any related-service call starts: awaiting a predicate
+    // between the calls could leave an already started blocking call without
+    // a handler when it rejects
+    const isBlocking = await Promise.all(
+      optionsMulti.map(({ blocking }) =>
+        typeof blocking === 'function' ? blocking(context) : blocking,
+      ),
+    )
+
     const blockingPromises: Promise<any>[] = []
 
-    for (const {
-      keyHere,
-      keyThere,
-      onDelete,
-      service,
-      blocking,
-      query,
-      multi,
-      onError,
-    } of optionsMulti) {
+    for (const [
+      i,
+      { keyHere, keyThere, onDelete, service, query, multi, onError },
+    ] of optionsMulti.entries()) {
       const ids = result.map((x) => x[keyHere]).filter((x) => !!x)
 
       if (ids.length <= 0) {
@@ -175,7 +181,7 @@ export const onDelete = <H extends HookContext = HookContext>(
         continue
       }
 
-      if (blocking) {
+      if (isBlocking[i]) {
         blockingPromises.push(promise)
       } else {
         // fire-and-forget: always attach a catch so a rejection never becomes

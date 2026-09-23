@@ -1082,6 +1082,51 @@ describe('onDelete', function () {
 
       await expect(usersService.remove(user.id)).rejects.toThrow('boom')
     })
+
+    it('accepts a predicate for blocking', async function () {
+      const { usersService, todosService } = mockApp()
+
+      todosService.hooks({
+        before: {
+          remove: [
+            () => {
+              throw new Error('boom')
+            },
+          ],
+        },
+      })
+
+      const onError = vi.fn()
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'cascade',
+              blocking: async (context) => context.params.provider === 'rest',
+              onError,
+            }),
+          ],
+        },
+      })
+
+      const john = await usersService.create({ name: 'John Doe' })
+      const jane = await usersService.create({ name: 'Jane Doe' })
+      await todosService.create({ title: 'Buy milk', userId: john.id })
+      await todosService.create({ title: 'Buy eggs', userId: jane.id })
+
+      await expect(
+        usersService.remove(john.id, { provider: 'rest' }),
+      ).rejects.toThrow('boom')
+      expect(onError).not.toHaveBeenCalled()
+
+      await expect(usersService.remove(jane.id)).resolves.toBeDefined()
+      await new Promise((r) => setTimeout(r, 10))
+      expect(onError).toHaveBeenCalledOnce()
+    })
   })
 
   describe('types', function () {

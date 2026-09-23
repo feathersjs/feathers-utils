@@ -15,7 +15,7 @@ import { isPromise } from '../../common/index.js'
  * app.service('users').hooks({ before: { create: [combinedHook] } })
  * ```
  *
- * @see https://utils.feathersjs.com/utils/combine.html
+ * @see https://utils.feathersjs.com/hooks/combine.html
  */
 export function combine<H extends HookContext = HookContext>(
   ...serviceHooks: HookFunction<H>[]
