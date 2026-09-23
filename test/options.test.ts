@@ -71,6 +71,7 @@ describe('generated options tables', () => {
     expect(Object.keys(byName)).toEqual([
       'map',
       'id',
+      'scope',
       'transformParams',
       'serialize',
       'logger',
