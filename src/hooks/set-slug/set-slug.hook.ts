@@ -1,6 +1,5 @@
-import _setWith from 'lodash/setWith.js'
-import _clone from 'lodash/clone.js'
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
+import { setPath } from '../../common/index.js'
 
 /**
  * Extracts URL route parameters (slugs) and sets them on `params.query`.
@@ -39,7 +38,7 @@ export const setSlug = <H extends HookContext = HookContext>(
     }
 
     // clone every object on the path, so the caller's params stay untouched
-    _setWith(context, `params.${targetField}`, value, _clone)
+    setPath(context, `params.${targetField}`, value)
 
     if (next) return next()
 

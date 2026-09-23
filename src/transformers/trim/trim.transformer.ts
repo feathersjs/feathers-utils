@@ -1,8 +1,6 @@
 import { BadRequest } from '@feathersjs/errors'
 import type { MaybeArray } from '../../internal.utils.js'
-import { toArray } from '../../common/index.js'
-import _get from 'lodash/get.js'
-import _set from 'lodash/set.js'
+import { getPath, setPathInPlace, toArray } from '../../common/index.js'
 import type { StringFieldKey } from '../../types.js'
 
 /**
@@ -25,7 +23,7 @@ export function trim<T extends Record<string, any>>(
 
   for (let i = 0, len = fieldNamesArr.length; i < len; i++) {
     const fieldName = fieldNamesArr[i]
-    const value = _get(item, fieldName)
+    const value = getPath(item, fieldName)
 
     if (value == null) {
       continue
@@ -35,6 +33,6 @@ export function trim<T extends Record<string, any>>(
       throw new BadRequest(`Expected string (trim '${fieldName}')`)
     }
 
-    _set(item, fieldName, value.trim())
+    setPathInPlace(item, fieldName, value.trim())
   }
 }

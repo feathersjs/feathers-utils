@@ -1,7 +1,5 @@
-import _get from 'lodash/get.js'
-import _set from 'lodash/set.js'
 import type { MaybeArray } from '../../internal.utils.js'
-import { toArray } from '../../common/index.js'
+import { getPath, setPathInPlace, toArray } from '../../common/index.js'
 import { BadRequest } from '@feathersjs/errors'
 import type { StringFieldKey } from '../../types.js'
 
@@ -25,7 +23,7 @@ export function lowercase<T extends Record<string, any>>(
 
   for (let i = 0, len = fieldNamesArr.length; i < len; i++) {
     const fieldName = fieldNamesArr[i]
-    const value = _get(item, fieldName)
+    const value = getPath(item, fieldName)
 
     if (value == null) {
       continue
@@ -35,6 +33,6 @@ export function lowercase<T extends Record<string, any>>(
       throw new BadRequest(`Expected string (lowercase '${fieldName}')`)
     }
 
-    _set(item, fieldName, value.toLowerCase())
+    setPathInPlace(item, fieldName, value.toLowerCase())
   }
 }

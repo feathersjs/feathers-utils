@@ -1,6 +1,5 @@
-import _pick from 'lodash/pick.js'
 import type { MaybeArray } from '../../internal.utils.js'
-import { toArray } from '../../common/index.js'
+import { pickPaths, toArray } from '../../common/index.js'
 import type { FieldKey } from '../../types.js'
 
 /**
@@ -19,5 +18,5 @@ export function pick<T extends Record<string, any>>(
   item: T,
   fieldNames: MaybeArray<FieldKey<NoInfer<T>>>,
 ): Partial<T> {
-  return _pick(item, toArray(fieldNames)) as Partial<T>
+  return pickPaths(item, toArray(fieldNames)) as Partial<T>
 }

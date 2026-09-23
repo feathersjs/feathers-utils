@@ -2,7 +2,7 @@
 import fs from 'node:fs/promises'
 import matter from '@11ty/gray-matter'
 import { glob } from 'tinyglobby'
-import kebabCase from 'lodash/kebabCase.js'
+import { kebabCase } from './kebab-case.js'
 import { mainBranch, repository } from './meta.js'
 import type { Node } from 'typescript'
 import ts from 'typescript'

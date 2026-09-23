@@ -1,15 +1,11 @@
-import _get from 'lodash/get.js'
-import _set from 'lodash/set.js'
-import _has from 'lodash/has.js'
-
 import type { FeathersError } from '@feathersjs/errors'
 import { Forbidden } from '@feathersjs/errors'
 
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
-import type { PropertyPath } from 'lodash'
+import type { PropertyPath, PredicateItemWithContext } from '../../types.js'
 import { contextToJson } from '../../utils/context-to-json/context-to-json.util.js'
 import { getDataIsArray } from '../../utils/index.js'
-import type { PredicateItemWithContext } from '../../types.js'
+import { getPath, hasPath, setPathInPlace } from '../../common/index.js'
 
 export interface HookSetDataOptions {
   /**
@@ -82,7 +78,7 @@ export function setData<H extends HookContext = HookContext>(
 
     const contextJson = contextToJson(context)
 
-    if (!_has(contextJson, from)) {
+    if (!hasPath(contextJson, from)) {
       if (!context.params?.provider || allowUndefined === true) {
         if (next) return next()
         return
@@ -90,7 +86,7 @@ export function setData<H extends HookContext = HookContext>(
 
       if (
         !overwrite &&
-        data.every((item: Record<string, unknown>) => _has(item, to))
+        data.every((item: Record<string, unknown>) => hasPath(item, to))
       ) {
         if (next) return next()
         return
@@ -101,7 +97,7 @@ export function setData<H extends HookContext = HookContext>(
         : new Forbidden(`Expected field ${from.toString()} not available`)
     }
 
-    const val = _get(contextJson, from)
+    const val = getPath(contextJson, from)
 
     for (let i = 0, len = data.length; i < len; i++) {
       const item: Record<string, unknown> = data[i]
@@ -109,11 +105,11 @@ export function setData<H extends HookContext = HookContext>(
       const currentOverwrite =
         typeof overwrite === 'function' ? overwrite(item, context) : overwrite
 
-      if (!currentOverwrite && _has(item, to)) {
+      if (!currentOverwrite && hasPath(item, to)) {
         continue
       }
 
-      _set(item, to, val)
+      setPathInPlace(item, to, val)
     }
 
     if (next) return next()

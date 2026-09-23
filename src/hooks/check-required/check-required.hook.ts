@@ -1,11 +1,9 @@
-import _get from 'lodash/get.js'
-import _has from 'lodash/has.js'
 import { BadRequest } from '@feathersjs/errors'
 
 import { checkContext, getDataIsArray } from '../../utils/index.js'
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import type { MaybeArray } from '../../internal.utils.js'
-import { toArray } from '../../common/index.js'
+import { getPath, hasPath, toArray } from '../../common/index.js'
 
 /**
  * Validates that the specified fields exist on `context.data` and are not falsy.
@@ -44,11 +42,11 @@ export function checkRequired<H extends HookContext = HookContext>(
       for (let j = 0; j < fieldNamesArray.length; j++) {
         const name = fieldNamesArray[j]
 
-        if (!_has(item, name)) {
+        if (!hasPath(item, name)) {
           throw new BadRequest(`Field ${name} does not exist. (required)`)
         }
 
-        const value = _get(item, name)
+        const value = getPath(item, name)
 
         if (!value && value !== 0 && value !== false) {
           throw new BadRequest(`Field ${name} is null. (required)`)

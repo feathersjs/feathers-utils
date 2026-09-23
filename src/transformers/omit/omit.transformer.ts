@@ -1,6 +1,5 @@
-import _omit from 'lodash/omit.js'
 import type { MaybeArray } from '../../internal.utils.js'
-import { toArray } from '../../common/index.js'
+import { omitPaths, toArray } from '../../common/index.js'
 import type { FieldKey } from '../../types.js'
 
 /**
@@ -19,5 +18,5 @@ export function omit<T extends Record<string, any>>(
   item: T,
   fieldNames: MaybeArray<FieldKey<NoInfer<T>>>,
 ): T {
-  return _omit(item, toArray(fieldNames)) as T
+  return omitPaths(item, toArray(fieldNames)) as T
 }
