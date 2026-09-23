@@ -27,7 +27,10 @@ export const setQueryDefaults = <H extends HookContext = HookContext>(
   function hook(context: H): void
   function hook(context: H, next: NextFunction): Promise<void>
   function hook(context: H, next?: NextFunction): void | Promise<void> {
-    context.params.query = queryDefaults(context.params.query, defaults)
+    context.params = {
+      ...context.params,
+      query: queryDefaults(context.params.query, defaults),
+    }
 
     if (next) return next()
 

@@ -2,6 +2,7 @@ import type { Params } from '@feathersjs/feathers'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { chunkFind } from './chunk-find.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 type User = {
   id: number
@@ -146,5 +147,26 @@ describe('chunkFind', function () {
 
     expect(chunks).toHaveLength(1)
     expect(chunks[0]).toEqual([expect.objectContaining({ name: 'test1' })])
+  })
+
+  it('does not mutate params, and hands every page its own', async () => {
+    const skips = await expectNoSideEffects(
+      { query: { $limit: 2 } },
+      async (params) => {
+        const app = feathers().use('items', new MemoryService({ multi: true }))
+        await app
+          .service('items')
+          .create([{ name: 'a' }, { name: 'b' }, { name: 'c' }])
+        const find = vi.spyOn(app.service('items'), 'find')
+
+        const yielded: unknown[] = []
+        for await (const value of chunkFind(app, 'items', { params })) {
+          yielded.push(value)
+        }
+
+        return find.mock.calls.map(([params]: any[]) => params.query.$skip)
+      },
+    )
+    expect(skips).toEqual([0, 2])
   })
 })

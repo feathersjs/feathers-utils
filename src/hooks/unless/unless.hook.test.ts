@@ -2,6 +2,7 @@ import type { HookContext } from '@feathersjs/feathers'
 import { assert, expect, vi } from 'vitest'
 import { unless } from './unless.hook.js'
 import { clone, isPromise } from '../../common/index.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 let hook: any
 let hookBefore: any
@@ -484,5 +485,26 @@ describe('around hooks', () => {
 
     assert.equal(hookFcnSyncCalls, 1)
     expect(next).toHaveBeenCalledOnce()
+  })
+})
+
+describe('side effects', () => {
+  it('does not mutate params', async () => {
+    const populate = (context: HookContext) => {
+      context.params = { ...context.params, populate: true }
+    }
+    const params = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      async (params) => {
+        const context = {
+          type: 'before',
+          method: 'find',
+          params,
+        } as HookContext
+        await unless(false, populate)(context)
+        return context.params
+      },
+    )
+    expect(params).toEqual({ query: { name: 'Jane' }, populate: true })
   })
 })

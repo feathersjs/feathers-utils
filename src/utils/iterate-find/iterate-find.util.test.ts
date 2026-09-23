@@ -2,6 +2,7 @@ import type { Params } from '@feathersjs/feathers'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { iterateFind } from './iterate-find.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 type User = {
   id: number
@@ -151,4 +152,25 @@ describe('iterateFind', function () {
     expect(items).toHaveLength(1)
     expect(calls).toBeLessThanOrEqual(2)
   }, 2000)
+
+  it('does not mutate params, and hands every page its own', async () => {
+    const skips = await expectNoSideEffects(
+      { query: { $limit: 2 } },
+      async (params) => {
+        const app = feathers().use('items', new MemoryService({ multi: true }))
+        await app
+          .service('items')
+          .create([{ name: 'a' }, { name: 'b' }, { name: 'c' }])
+        const find = vi.spyOn(app.service('items'), 'find')
+
+        const yielded: unknown[] = []
+        for await (const value of iterateFind(app, 'items', { params })) {
+          yielded.push(value)
+        }
+
+        return find.mock.calls.map(([params]: any[]) => params.query.$skip)
+      },
+    )
+    expect(skips).toEqual([0, 2])
+  })
 })

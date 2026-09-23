@@ -1,4 +1,5 @@
 import { sortQueryProperties } from './sort-query-properties.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('sortQueryProperties', () => {
   it('sorts top-level object keys', () => {
@@ -97,5 +98,12 @@ describe('sortQueryProperties', () => {
   it('handles primitive values', () => {
     const result = sortQueryProperties({ name: 'John', age: 30 })
     expect(result).toEqual({ age: 30, name: 'John' })
+  })
+
+  it('does not mutate the query', async () => {
+    await expectNoSideEffects(
+      { b: 1, a: { $in: [2, 1] }, $or: [{ d: 1 }, { c: 1 }] },
+      (query) => sortQueryProperties(query),
+    )
   })
 })

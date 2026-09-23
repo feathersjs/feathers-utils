@@ -6,6 +6,7 @@ import type {
 } from '@feathersjs/feathers'
 import type { MemoryService } from '@feathersjs/memory'
 import { debug } from './debug.hook.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('services debug', () => {
   it('does not crash', () => {
@@ -41,5 +42,18 @@ describe('services debug', () => {
         AroundHookFunction<App, MemoryService<Item>>
       >()
     })
+  })
+
+  it('does not mutate params', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await expectNoSideEffects(
+      { query: { name: 'Jane' }, user: { id: 1 } },
+      (params) =>
+        debug(
+          'message',
+          'user',
+        )({ type: 'after', method: 'find', params } as any),
+    )
+    log.mockRestore()
   })
 })

@@ -59,9 +59,9 @@ export const rateLimit = <H extends HookContext = HookContext>(
 
     try {
       const res = await rateLimiter.consume(resolvedKey, resolvedPoints)
-      context.params.rateLimit = res
+      context.params = { ...context.params, rateLimit: res }
     } catch (res) {
-      context.params.rateLimit = res as RateLimiterRes
+      context.params = { ...context.params, rateLimit: res as RateLimiterRes }
       throw new TooManyRequests('Too many requests', {
         rateLimitRes: res as RateLimiterRes,
       })

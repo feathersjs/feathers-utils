@@ -4,6 +4,7 @@ import type { HookContext } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { Multi } from '../../types.js'
 import { createMany } from './create-many.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 type Todo = {
   id: number
@@ -131,5 +132,12 @@ describe('utils/createMany', function () {
     const created = await createMany(app, 'todos', data)
 
     expectTypeOf(created).toEqualTypeOf<Todo[]>()
+  })
+
+  it('does not mutate the data', async () => {
+    await expectNoSideEffects([{ name: 'Jane' }, { name: 'Jack' }], (data) => {
+      const app = feathers().use('items', new MemoryService({ multi: true }))
+      return createMany(app, 'items', data)
+    })
   })
 })

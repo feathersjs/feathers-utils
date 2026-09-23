@@ -1,4 +1,5 @@
 import { patchBatch } from './patch-batch.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('patchBatch', () => {
   it('patchBatch', () => {
@@ -20,20 +21,15 @@ describe('patchBatch', () => {
     ])
   })
 
-  it('does not mutate the input items', () => {
-    const items = [
-      { id: 1, name: 'John' },
-      { id: 2, name: 'John' },
-      { id: 3, name: 'Jane' },
-    ]
-
-    patchBatch(items, { id: 'id' })
-
-    expect(items).toEqual([
-      { id: 1, name: 'John' },
-      { id: 2, name: 'John' },
-      { id: 3, name: 'Jane' },
-    ])
+  it('does not mutate the input items', async () => {
+    await expectNoSideEffects(
+      [
+        { id: 1, name: 'John', meta: { a: 1 } },
+        { id: 2, name: 'John', meta: { a: 1 } },
+        { id: 3, name: 'Jane' },
+      ],
+      (items) => patchBatch(items, { id: 'id' }),
+    )
   })
 
   it('groups deep-equal data regardless of key order', () => {

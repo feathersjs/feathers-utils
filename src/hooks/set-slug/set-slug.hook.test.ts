@@ -4,6 +4,7 @@ import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 
 import { setSlug } from './set-slug.hook.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 let hook: any
 
@@ -91,5 +92,17 @@ describe('services setSlug', () => {
       expect(result).toHaveLength(1)
       expect(result[0].storeId).toBe('1')
     })
+  })
+
+  it('does not mutate params', async () => {
+    const params = await expectNoSideEffects(
+      { provider: 'rest', route: { storeId: '42' }, query: { name: 'Jane' } },
+      (params) => {
+        const context = { type: 'before', method: 'find', params } as any
+        setSlug('storeId')(context)
+        return context.params
+      },
+    )
+    assert.deepEqual(params.query, { name: 'Jane', storeId: '42' })
   })
 })

@@ -2,6 +2,7 @@ import type { HookContext } from '@feathersjs/feathers'
 import { assert, expect, vi } from 'vitest'
 import { iff } from './iff.hook.js'
 import { clone, isPromise } from '../../common/index.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 let hook: any
 let hookBefore: any
@@ -484,5 +485,26 @@ describe('services iff - around hooks', () => {
       expect(elseFn).toHaveBeenCalledOnce()
       expect(next).toHaveBeenCalledOnce()
     })
+  })
+})
+
+describe('services iff - side effects', () => {
+  it('does not mutate params', async () => {
+    const populate = (context: HookContext) => {
+      context.params = { ...context.params, populate: true }
+    }
+    const params = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      async (params) => {
+        const context = {
+          type: 'before',
+          method: 'find',
+          params,
+        } as HookContext
+        await iff(true, populate)(context)
+        return context.params
+      },
+    )
+    expect(params).toEqual({ query: { name: 'Jane' }, populate: true })
   })
 })

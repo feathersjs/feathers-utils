@@ -1,4 +1,5 @@
 import { addToQuery } from './add-to-query.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('addToQuery', () => {
   it('basic usage', () => {
@@ -163,16 +164,25 @@ describe('addToQuery', () => {
       })
     })
 
-    it('does not mutate its inputs', () => {
-      const targetQuery = { id: 1, $limit: 10, $sort: { a: 1 } }
-      const query = { id: 2, $limit: 20 }
-      const targetSnapshot = structuredClone(targetQuery)
-      const querySnapshot = structuredClone(query)
-
-      addToQuery(targetQuery, query)
-
-      expect(targetQuery).toEqual(targetSnapshot)
-      expect(query).toEqual(querySnapshot)
+    it('does not mutate its inputs', async () => {
+      await expectNoSideEffects(
+        {
+          targets: [
+            { id: 1, $limit: 10, $sort: { a: 1 }, $select: ['id', 'a'] },
+            { id: 1, $and: [{ a: 1 }] },
+          ],
+          queries: [
+            { id: 2, $limit: 20, $select: ['id'] },
+            { id: 2 },
+            { b: 1 },
+            { $and: [{ b: 2 }] },
+          ],
+        },
+        ({ targets, queries }) =>
+          targets.flatMap((target) =>
+            queries.map((query) => addToQuery<any>(target, query)),
+          ),
+      )
     })
 
     it('is a no-op for an equal filter', () => {

@@ -3,6 +3,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { findOrCreate } from './find-or-create.hook.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 const mockApp = () => {
   const app = feathers()
@@ -299,5 +300,31 @@ describe('hook - findOrCreate', function () {
     await expect(
       findOrCreate({ service: 'tags', uniqueBy: 'name' })(context),
     ).rejects.toThrow(/findOrCreate/)
+  })
+
+  it('does not mutate params, including those of the `params` option', async function () {
+    const query = await expectNoSideEffects(
+      {
+        params: { query: { name: 'Jane' } },
+        findParams: { query: { meta: { kind: 'label' } } },
+      },
+      async ({ params, findParams }) => {
+        const app = feathers().use('tags', new MemoryService({ multi: true }))
+        const find = vi.spyOn(app.service('tags'), 'find')
+        await findOrCreate({
+          service: 'tags',
+          uniqueBy: ['name', 'meta.lang'],
+          params: () => findParams,
+        })({
+          app,
+          type: 'before',
+          method: 'create',
+          params,
+          data: { name: 'a', meta: { lang: 'de' } },
+        } as any)
+        return (find.mock.calls[0][0] as any).query
+      },
+    )
+    expect(query).toEqual({ name: 'a', meta: { kind: 'label', lang: 'de' } })
   })
 })

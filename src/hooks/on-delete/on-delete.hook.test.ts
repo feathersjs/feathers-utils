@@ -10,6 +10,7 @@ import type {
 import { MemoryService } from '@feathersjs/memory'
 import { onDelete } from './on-delete.hook.js'
 import type { OnDeleteOptions } from './on-delete.hook.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 type User = {
   id: number
@@ -1181,5 +1182,34 @@ describe('onDelete', function () {
 
       expectTypeOf(hook).toExtend<AroundHookFunction<App, any>>()
     })
+  })
+
+  it('does not mutate params or the `query` option', async function () {
+    const remaining = await expectNoSideEffects(
+      { params: { query: { name: 'Jane' } }, query: { archived: false } },
+      async ({ params, query }) => {
+        const app = feathers().use('posts', new MemoryService({ multi: true }))
+        await app.service('posts').create([
+          { userId: 1, archived: false },
+          { userId: 2, archived: false },
+        ])
+        await onDelete({
+          service: 'posts',
+          keyHere: 'id',
+          keyThere: 'userId',
+          onDelete: 'cascade',
+          blocking: true,
+          query,
+        } as any)({
+          app,
+          type: 'after',
+          method: 'remove',
+          params,
+          result: { id: 1 },
+        } as any)
+        return app.service('posts').find({ paginate: false } as any)
+      },
+    )
+    expect(remaining).toEqual([{ id: 1, userId: 2, archived: false }])
   })
 })

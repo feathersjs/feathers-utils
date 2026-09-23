@@ -64,6 +64,12 @@ see: # optional cross-links
   enabled in vitest). Coverage thresholds 80%.
 - `test/index.test.ts` asserts the **exact** public export surface per entrypoint
   — update its lists when adding/removing an export.
+- **Params belong to the caller.** A hook changes them by assigning a new
+  `context.params` (`{ ...context.params, query }`); a dot-path write goes
+  through `_setWith(target, path, value, _clone)`, so every nested object on the
+  path is copied. Every hook/util test file carries a `does not mutate …` test
+  built on `expectNoSideEffects` from `test/utils/index.ts` (shared test
+  helpers, kept outside `src` so they never reach the build).
 
 ## Lint / format
 

@@ -9,6 +9,7 @@ import { expect, expectTypeOf } from 'vitest'
 import { copy } from 'fast-copy'
 import { gateParams } from '../../utils/gate-params/gate-params.util.js'
 import { isProvider } from '../../predicates/is-provider/is-provider.predicate.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 const setup = (options: CacheOptions, serviceOptions?: { id?: string }) => {
   const app = feathers<{
@@ -368,6 +369,36 @@ describe('cache hook', () => {
       expect(items.data).toEqual([{ id: 1, name: 'John' }])
       expect(before.find).toHaveBeenCalledTimes(1) // Cache hit, should not call before hook again
     })
+  })
+
+  it('does not mutate params', async () => {
+    const cached = await expectNoSideEffects(
+      {
+        query: { name: 'Jane', $or: [{ role: 'admin' }, { age: { $gt: 18 } }] },
+      },
+      async (params) => {
+        const hook = cache({
+          map: new Map(),
+          transformParams: ({ query }) => ({ query }),
+        })
+        const service = { options: {} }
+        const createContext = (context?: object) =>
+          ({
+            type: 'before',
+            method: 'find',
+            params,
+            service,
+            ...context,
+          }) as any
+
+        await hook(createContext())
+        await hook(createContext({ type: 'after', result: [{ id: 1 }] }))
+        const hit = createContext()
+        await hook(hit)
+        return hit.result
+      },
+    )
+    expect(cached).toEqual([{ id: 1 }])
   })
 })
 

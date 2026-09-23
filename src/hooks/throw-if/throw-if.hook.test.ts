@@ -4,6 +4,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { throwIf } from './throw-if.hook.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('throwIf', () => {
   it('throws BadRequest if no error function is provided', async () => {
@@ -54,5 +55,11 @@ describe('throwIf', () => {
         BadRequest,
       )
     })
+  })
+
+  it('does not mutate params', async () => {
+    await expectNoSideEffects({ query: { name: 'Jane' } }, (params) =>
+      throwIf(() => false)({ type: 'before', method: 'find', params } as any),
+    )
   })
 })

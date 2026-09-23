@@ -8,6 +8,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { stashable } from './stashable.hook.js'
 import { clone } from '../../common/index.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 const startId = 6
 const storeInit = {
@@ -266,5 +267,27 @@ describe('stashable', () => {
     expectTypeOf(stashable<Ctx>()).toExtend<
       AroundHookFunction<App, MemoryService<Item>>
     >()
+  })
+
+  it('does not mutate params', async () => {
+    const stashed = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      async (params) => {
+        const app = feathers().use('users', new MemoryService())
+        const service = app.service('users')
+        const jane = await service.create({ name: 'Jane' })
+        const context = {
+          app,
+          service,
+          type: 'before',
+          method: 'patch',
+          id: jane.id,
+          params,
+        } as any
+        stashable()(context)
+        return context.params.stashed()
+      },
+    )
+    expect(stashed).toEqual({ id: 0, name: 'Jane' })
   })
 })

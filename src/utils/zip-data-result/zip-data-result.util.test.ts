@@ -3,6 +3,7 @@ import type { Application, HookContext } from '@feathersjs/feathers'
 import { zipDataResult } from './zip-data-result.util.js'
 import type { ZipDataResultItem } from './zip-data-result.util.js'
 import type { MemoryService } from '@feathersjs/memory'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 const make = (type: any, method: any, data: any, result: any) =>
   ({ type, method, data, result }) as HookContext
@@ -173,5 +174,17 @@ describe('zipDataResult', () => {
     const zipped = zipDataResult(make('after', 'create', data, result))
 
     expect(zipped).toHaveLength(1)
+  })
+
+  it('does not mutate params', async () => {
+    await expectNoSideEffects({ query: { name: 'Jane' } }, (params) =>
+      zipDataResult({
+        type: 'after',
+        method: 'create',
+        params,
+        data: [{ a: 1 }],
+        result: [{ id: 1, a: 1 }],
+      } as HookContext),
+    )
   })
 })

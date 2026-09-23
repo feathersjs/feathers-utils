@@ -63,10 +63,15 @@ export async function* iterateFind<
     },
   }
 
+  let $skip = params.query.$skip
   let result
 
   do {
-    result = await (service as any).find(params)
+    // a fresh params object per page: the service may hold on to the last one
+    result = await (service as any).find({
+      ...params,
+      query: { ...params.query, $skip },
+    })
 
     // Guard against an infinite loop: an empty page never advances $skip, so
     // `total > $skip` could stay true forever (e.g. $limit:0, or a stale total
@@ -79,6 +84,6 @@ export async function* iterateFind<
       yield item
     }
 
-    params.query.$skip = (params.query.$skip ?? 0) + result.data.length
-  } while (result.total > params.query.$skip)
+    $skip += result.data.length
+  } while (result.total > $skip)
 }

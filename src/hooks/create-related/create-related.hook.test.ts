@@ -3,6 +3,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { createRelated } from './create-related.hook.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 type MockAppOptions = {
   multi?: boolean
@@ -526,5 +527,29 @@ describe('hook - createRelated', function () {
         data: (user) => ({ userId: user.id, title: 'welcome' }),
       }),
     ).toExtend<AroundHookFunction<App, MemoryService<User>>>()
+  })
+
+  it('does not mutate params', async function () {
+    const created = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      async (params) => {
+        const app = feathers().use(
+          'profiles',
+          new MemoryService({ multi: true }),
+        )
+        await createRelated({
+          service: 'profiles',
+          data: (user: any) => ({ userId: user.id }),
+        })({
+          app,
+          type: 'after',
+          method: 'create',
+          params,
+          result: { id: 1 },
+        } as any)
+        return app.service('profiles').find({ paginate: false } as any)
+      },
+    )
+    expect(created).toEqual([{ id: 0, userId: 1 }])
   })
 })

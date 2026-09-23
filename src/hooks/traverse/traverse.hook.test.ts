@@ -4,6 +4,7 @@ import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { traverse } from './traverse.hook.js'
 import { copy } from 'fast-copy'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('traverse', () => {
   let hookBefore: any
@@ -127,6 +128,21 @@ describe('traverse', () => {
     )
 
     assert.deepEqual(obj, result)
+  })
+
+  it('does not mutate params when walking params.query', async () => {
+    const params = await expectNoSideEffects(
+      { query: { b: '  b  b  ', $or: [{ c: ' c ' }] } },
+      (params) => {
+        const context = { type: 'before', method: 'find', params } as any
+        traverse({
+          transformer: trimmer,
+          getObject: (context) => context.params.query,
+        })(context)
+        return context.params
+      },
+    )
+    assert.deepEqual(params, { query: { b: 'b  b', $or: [{ c: 'c' }] } })
   })
 
   describe('integration with service.hooks({ around })', () => {

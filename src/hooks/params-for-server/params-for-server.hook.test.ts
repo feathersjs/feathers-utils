@@ -3,6 +3,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { paramsForServer } from './params-for-server.hook.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('paramsForServer', () => {
   it('should move params to query._$client', () => {
@@ -69,22 +70,20 @@ describe('paramsForServer', () => {
     })
   })
 
-  it('does not mutate a pre-existing query._$client on the caller', () => {
-    const originalClient = { existing: true }
-    const context = {
-      params: {
+  it('does not mutate params, including a pre-existing query._$client', async () => {
+    const params = await expectNoSideEffects(
+      {
         user: { id: 1 },
-        query: { _$client: originalClient },
+        query: { name: 'Jane', _$client: { existing: true } },
       },
-    } as unknown as HookContext
-
-    paramsForServer('user')(context)
-
-    // The caller's original nested object must be untouched.
-    expect(originalClient).toEqual({ existing: true })
-    expect((context.params.query as any)._$client).toEqual({
-      existing: true,
-      user: { id: 1 },
+      (params) => {
+        const context = { params } as unknown as HookContext
+        paramsForServer('user')(context)
+        return context.params
+      },
+    )
+    expect(params).toEqual({
+      query: { name: 'Jane', _$client: { existing: true, user: { id: 1 } } },
     })
   })
 

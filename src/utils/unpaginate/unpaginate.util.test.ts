@@ -1,5 +1,6 @@
 import { toPaginated } from '../to-paginated/to-paginated.util.js'
 import { unpaginate } from './unpaginate.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('unpaginate', function () {
   it('returns an array as-is (same reference, no copy)', function () {
@@ -34,5 +35,12 @@ describe('unpaginate', function () {
     const items = [{ id: 1 }, { id: 2 }]
 
     assert.strictEqual(unpaginate(toPaginated(items)), items)
+  })
+
+  it('does not mutate the result', async function () {
+    await expectNoSideEffects(
+      { total: 1, limit: 10, skip: 0, data: [{ id: 1 }] },
+      (result) => unpaginate(result),
+    )
   })
 })

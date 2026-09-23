@@ -4,6 +4,7 @@ import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { checkMulti } from './check-multi.hook.js'
 import { MethodNotAllowed } from '@feathersjs/errors'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('checkMulti', function () {
   it("passes if 'allowsMulti' not defined", function () {
@@ -292,5 +293,18 @@ describe('checkMulti', function () {
         AroundHookFunction<App, MemoryService<User>>
       >()
     })
+  })
+
+  it('does not mutate params', async function () {
+    const service = { allowsMulti: () => true }
+    await expectNoSideEffects({ query: { name: 'Jane' } }, (params) =>
+      checkMulti()({
+        type: 'before',
+        method: 'create',
+        data: [{}, {}],
+        params,
+        service,
+      } as any),
+    )
   })
 })

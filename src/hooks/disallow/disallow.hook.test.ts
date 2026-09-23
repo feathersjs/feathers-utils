@@ -3,6 +3,7 @@ import { disallow } from './disallow.hook.js'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('hook - disallow', () => {
   describe('disallow is compatible with .disable (without predicate)', () => {
@@ -229,5 +230,15 @@ describe('hook - disallow', () => {
         AroundHookFunction<App, MemoryService<User>>
       >()
     })
+  })
+
+  it('does not mutate params', async () => {
+    await expectNoSideEffects({ query: { name: 'Jane' } }, (params) =>
+      disallow('external')({
+        type: 'before',
+        method: 'find',
+        params,
+      } as HookContext),
+    )
   })
 })

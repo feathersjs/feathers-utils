@@ -1,7 +1,8 @@
 import type { Params } from '@feathersjs/feathers'
 import _get from 'lodash/get.js'
 import _has from 'lodash/has.js'
-import _set from 'lodash/set.js'
+import _setWith from 'lodash/setWith.js'
+import _clone from 'lodash/clone.js'
 import _toPath from 'lodash/toPath.js'
 
 /**
@@ -61,6 +62,13 @@ export type GateParamsOptions<P extends Params = Params> = {
    */
   onUnknownParams?: (keys: string[], params: P) => void
 }
+
+/**
+ * Sets `path` on `out`, cloning every object on the way: an earlier path may
+ * have put one of params' own objects there (`user` before `user.id`).
+ */
+const setPath = (out: Record<string, any>, path: string, value: unknown) =>
+  _setWith(out, path, value, _clone)
 
 /**
  * Selects and/or projects `params` keys according to a declarative path `schema`,
@@ -131,12 +139,12 @@ export function gateParams<P extends Params = Params>(
       if (result === false || result === undefined) {
         continue
       }
-      _set(out, path, result === true ? value : result)
+      setPath(out, path, result === true ? value : result)
       continue
     }
 
     // rule === true → include as-is
-    _set(out, path, value)
+    setPath(out, path, value)
   }
 
   // `query` is always relevant, so it is included as-is by default — UNLESS the

@@ -4,6 +4,7 @@ import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { setData } from './set-data.hook.js'
 import { Forbidden } from '@feathersjs/errors'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('setData', function () {
   it('sets userId for single item', function () {
@@ -29,6 +30,23 @@ describe('setData', function () {
         `'${method}': data has 'userId:1'`,
       )
     })
+  })
+
+  it('does not mutate params', async function () {
+    const data = await expectNoSideEffects(
+      { user: { id: 1 }, query: { name: 'Jane' } },
+      (params) => {
+        const context = {
+          type: 'before',
+          method: 'create',
+          params,
+          data: { name: 'Jane' },
+        } as any
+        setData('params.user.id', 'userId')(context)
+        return context.data
+      },
+    )
+    expect(data).toEqual({ name: 'Jane', userId: 1 })
   })
 })
 

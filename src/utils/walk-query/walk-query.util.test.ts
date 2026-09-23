@@ -1,4 +1,5 @@
 import { walkQuery } from './walk-query.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('walkQuery', () => {
   it('simple case', () => {
@@ -182,5 +183,19 @@ describe('walkQuery', () => {
     })
 
     expect(result).toEqual({ a: 10, b: 2 })
+  })
+
+  it('does not mutate the query when the walker replaces a value', async () => {
+    const query = await expectNoSideEffects(
+      { $and: [{ a: 1 }, { $or: [{ b: { $gt: 2 } }] }], c: { $gt: 3 } },
+      (query) =>
+        walkQuery(query, ({ operator, value }) =>
+          operator === '$gt' ? value + 1 : undefined,
+        ),
+    )
+    expect(query).toEqual({
+      $and: [{ a: 1 }, { $or: [{ b: { $gt: 3 } }] }],
+      c: { $gt: 4 },
+    })
   })
 })

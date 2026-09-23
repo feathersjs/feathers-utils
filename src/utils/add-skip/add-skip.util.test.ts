@@ -1,5 +1,6 @@
 import type { HookContext } from '@feathersjs/feathers'
 import { addSkip } from './add-skip.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('addSkip', function () {
   it('adds skipHooks to context.params', function () {
@@ -25,5 +26,14 @@ describe('addSkip', function () {
     expect(() => {
       addSkip(context, 'after')
     }).toThrow('Invalid skipHooks parameter')
+  })
+
+  it('does not mutate params', async () => {
+    const params = await expectNoSideEffects({ skipHooks: ['a'] }, (params) => {
+      const context = { params } as HookContext
+      addSkip(context, 'b')
+      return context.params
+    })
+    expect(params).toEqual({ skipHooks: ['a', 'b'] })
   })
 })

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { queryDefaults } from './query-defaults.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('queryDefaults', () => {
   it('adds a default when the field is absent', () => {
@@ -40,10 +41,13 @@ describe('queryDefaults', () => {
     expect(queryDefaults(query, { isTemplate: false })).toBe(query)
   })
 
-  it('does not mutate the input query', () => {
-    const query = { status: 'x' }
-    const snapshot = structuredClone(query)
-    queryDefaults(query, { isTemplate: false })
-    expect(query).toEqual(snapshot)
+  it('does not mutate the input query', async () => {
+    await expectNoSideEffects(
+      {
+        query: { status: 'x', $or: [{ isTemplate: true }, { a: 1 }] },
+        defaults: { isTemplate: false, archived: false },
+      },
+      ({ query, defaults }) => queryDefaults(query, defaults),
+    )
   })
 })

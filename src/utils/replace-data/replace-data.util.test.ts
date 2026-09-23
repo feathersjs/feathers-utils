@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { HookContext } from '@feathersjs/feathers'
 import { replaceData } from './replace-data.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 const ctx = (data: any): HookContext =>
   ({ type: 'before', method: 'create', data }) as any
@@ -27,5 +28,22 @@ describe('replaceData', () => {
     const context = ctx([{ n: 1 }, { n: 2 }])
     replaceData(context, [{ n: 1 }, { n: 2 }, { n: 3 }])
     expect(context.data).toEqual([{ n: 1 }, { n: 2 }, { n: 3 }])
+  })
+
+  it('does not mutate params', async () => {
+    const data = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      (params) =>
+        replaceData(
+          {
+            type: 'before',
+            method: 'create',
+            params,
+            data: [{ a: 1 }],
+          } as HookContext,
+          [{ a: 2 }],
+        ).data,
+    )
+    expect(data).toEqual([{ a: 2 }])
   })
 })

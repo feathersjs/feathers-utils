@@ -1,4 +1,5 @@
 import { toPaginated } from './to-paginated.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('toPaginated', function () {
   it('converts an array to a paginated object', function () {
@@ -23,5 +24,9 @@ describe('toPaginated', function () {
     const paginatedResult = toPaginated(paginatedInput)
 
     assert.deepStrictEqual(paginatedResult, paginatedInput)
+  })
+
+  it('does not mutate the result', async () => {
+    await expectNoSideEffects([{ id: 1 }], (result) => toPaginated(result))
   })
 })

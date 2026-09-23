@@ -4,6 +4,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { resolveQuery } from './resolve-query.js'
 import type { HookContext } from '@feathersjs/feathers'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('resolve-query', () => {
   it('simple resolver', async () => {
@@ -148,6 +149,24 @@ describe('resolve-query', () => {
     await resolveQuery({})(context)
 
     expect(context.params.query).toBe(query)
+  })
+
+  it('does not mutate params', async () => {
+    const params = await expectNoSideEffects(
+      { query: { name: 'dave', $or: [{ a: 1 }] } },
+      async (params) => {
+        const context = {
+          type: 'before',
+          method: 'find',
+          params,
+        } as HookContext
+        await resolveQuery({ name: ({ value }) => value?.toUpperCase() })(
+          context,
+        )
+        return context.params
+      },
+    )
+    expect(params.query).toEqual({ name: 'DAVE', $or: [{ a: 1 }] })
   })
 })
 

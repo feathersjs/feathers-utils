@@ -3,6 +3,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { transformResult } from './transform-result.hook.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 let hookAfter: any
 let hookFindPaginate: any
@@ -280,5 +281,22 @@ describe('transformResult', () => {
       expect((got as any).password).toBeUndefined()
       expect(got.name).toBe('Alice')
     })
+  })
+
+  it('does not mutate params', async () => {
+    const result = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      async (params) => {
+        const context = {
+          type: 'after',
+          method: 'get',
+          params,
+          result: { name: 'Jane', password: 'secret' },
+        } as any
+        await transformResult((item: any) => ({ name: item.name }))(context)
+        return context.result
+      },
+    )
+    assert.deepEqual(result, { name: 'Jane' })
   })
 })

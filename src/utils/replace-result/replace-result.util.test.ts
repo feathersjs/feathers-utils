@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { HookContext } from '@feathersjs/feathers'
 import { replaceResult } from './replace-result.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 const ctx = (method: string, result: any, dispatch?: any): HookContext =>
   ({ type: 'after', method, result, dispatch }) as any
@@ -51,5 +52,25 @@ describe('replaceResult', () => {
   it('returns the context', () => {
     const context = ctx('get', { a: 1 })
     expect(replaceResult(context, [{ a: 2 }])).toBe(context)
+  })
+
+  it('does not mutate params', async () => {
+    const context = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      (params) => {
+        const context = replaceResult(
+          {
+            type: 'after',
+            method: 'find',
+            params,
+            result: { total: 1, limit: 10, skip: 0, data: [{ a: 1 }] },
+          } as HookContext,
+          [{ a: 2 }],
+          { dispatch: 'both' },
+        )
+        return { result: context.result, dispatch: context.dispatch }
+      },
+    )
+    expect(context.result.data).toEqual([{ a: 2 }])
   })
 })

@@ -64,7 +64,7 @@ export function stashable<H extends HookContext = HookContext>(
 
     const promise = stashFunc(context).catch(() => undefined)
 
-    context.params[propName] = () => promise
+    context.params = { ...context.params, [propName]: () => promise }
 
     if (next) return next()
 

@@ -10,6 +10,7 @@ import type {
   Params,
 } from '@feathersjs/feathers'
 import { Forbidden } from '@feathersjs/errors'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 type ParamsWithUser = Params & { user?: { id: number; name: string } }
 
@@ -255,5 +256,17 @@ describe('setField', () => {
       expect(result.data).toHaveLength(1)
       expect(result.data[0].id).toBe(1)
     })
+  })
+
+  it('does not mutate params', async () => {
+    const params = await expectNoSideEffects(
+      { user: { id: 1 }, query: { $or: [{ a: 1 }] } },
+      (params) => {
+        const context = { type: 'before', method: 'find', params } as any
+        setField({ from: 'params.user.id', as: 'params.query.userId' })(context)
+        return context.params
+      },
+    )
+    expect(params.query).toEqual({ $or: [{ a: 1 }], userId: 1 })
   })
 })

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { dotifyQuery } from './dotify-query.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('dotifyQuery', () => {
   describe('basic conversion', () => {
@@ -433,11 +434,11 @@ describe('dotifyQuery', () => {
       expect(dotifyQuery(query)).toBe(query)
     })
 
-    it('does not mutate the input', () => {
-      const query = { user: { name: 'x' }, $or: [{ user: { age: 1 } }] }
-      const snapshot = structuredClone(query)
-      dotifyQuery(query)
-      expect(query).toEqual(snapshot)
+    it('does not mutate the input', async () => {
+      await expectNoSideEffects(
+        { user: { name: 'x' }, $or: [{ user: { age: 1 } }] },
+        (query) => dotifyQuery(query),
+      )
     })
   })
 })

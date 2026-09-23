@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import _omit from 'lodash/omit.js'
 import { gateParams } from './gate-params.util.js'
+import { deepFreeze, expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('gateParams', () => {
   it('rule true includes the value as-is', () => {
@@ -131,14 +132,6 @@ describe('gateParams', () => {
   })
 
   it('never writes to the input params (deep-frozen, all code paths)', () => {
-    const deepFreeze = <T>(value: T): T => {
-      if (value && typeof value === 'object') {
-        Object.values(value).forEach(deepFreeze)
-        Object.freeze(value)
-      }
-      return value
-    }
-
     // A frozen object throws on any write attempt in strict mode (ESM), so if
     // gateParams tried to mutate params or any nested object this would throw.
     const params = deepFreeze({
@@ -174,5 +167,20 @@ describe('gateParams', () => {
     })
 
     expect(onUnknownParams).toHaveBeenCalledWith(['provider', 'foo'], params)
+  })
+
+  it('does not mutate params when a path projects into one it included', async () => {
+    const gated = await expectNoSideEffects(
+      { query: { name: 'John' }, user: { id: 7, name: 'John' } },
+      (params) =>
+        gateParams(params, {
+          user: true,
+          'user.name': (name: string) => name.toUpperCase(),
+        }),
+    )
+    expect(gated).toEqual({
+      query: { name: 'John' },
+      user: { id: 7, name: 'JOHN' },
+    })
   })
 })
