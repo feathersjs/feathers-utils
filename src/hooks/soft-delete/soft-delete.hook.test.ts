@@ -3,6 +3,8 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { softDelete } from './soft-delete.hook.js'
+import type { SoftDeleteOptions } from './soft-delete.hook.js'
+import { isProvider } from '../../predicates/is-provider/is-provider.predicate.js'
 import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 async function setup(options: { type: 'before' | 'around' }) {
@@ -228,7 +230,9 @@ describe('softDelete', () => {
   })
 
   describe('allowQueryOverride', () => {
-    async function setupWith(extra: { allowQueryOverride?: boolean } = {}) {
+    async function setupWith(
+      extra: Pick<SoftDeleteOptions, 'allowQueryOverride'> = {},
+    ) {
       const app = feathers().use(
         '/users',
         new MemoryService({ multi: true, id: 'id' }),
@@ -291,6 +295,40 @@ describe('softDelete', () => {
       })
 
       assert.strictEqual(users.length, 0)
+    })
+
+    it('a predicate allows the override only for the calls it returns true for', async () => {
+      const userService = await setupWith({
+        allowQueryOverride: isProvider('server'),
+      })
+
+      const internal = await userService.find({
+        query: { deletedAt: { $ne: null } },
+      })
+      assert.strictEqual(internal.length, 1)
+      assert.strictEqual(internal[0].name, 'deleted')
+
+      const external = await userService.find({
+        query: { deletedAt: { $ne: null } },
+        provider: 'rest',
+      })
+      assert.strictEqual(external.length, 0)
+    })
+
+    it('awaits an async predicate, which receives the context', async () => {
+      const allowQueryOverride = vi.fn(
+        async (context: HookContext) => context.method === 'find',
+      )
+      const userService = await setupWith({ allowQueryOverride })
+
+      const users = await userService.find({
+        query: { deletedAt: { $ne: null } },
+      })
+
+      assert.strictEqual(users.length, 1)
+      expect(allowQueryOverride).toHaveBeenLastCalledWith(
+        expect.objectContaining({ method: 'find', path: 'users' }),
+      )
     })
   })
 

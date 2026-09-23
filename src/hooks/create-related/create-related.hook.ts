@@ -5,7 +5,7 @@ import {
   getResultIsArray,
 } from '../../utils/index.js'
 import type { MaybeArray, Promisable } from '../../internal.utils.js'
-import type { Multi } from '../../types.js'
+import type { Multi, PredicateFn } from '../../types.js'
 import type { InferCreateDataSingle } from '../../utility-types/infer-service-methods.js'
 import type { ResultSingleHookContext } from '../../utility-types/hook-context.js'
 
@@ -41,13 +41,34 @@ export interface CreateRelatedOptions<
     item: ResultSingleHookContext<H>,
     context: H,
   ) => Promisable<MaybeArray<InferCreateDataSingle<Services[S]>> | undefined>
+  /**
+   * Whether the hook waits for the related records to be created before the
+   * call continues. Can be a boolean or a predicate that receives the
+   * `HookContext`.
+   *
+   * When not blocking, the related records are created in the background and
+   * the call does not wait for them. The `data` function still runs in the
+   * hook chain, on the result as it is at this point, and an error in it is
+   * still thrown to the caller.
+   *
+   * @example isProvider('external')
+   * @default true
+   */
+  blocking?: boolean | PredicateFn<H>
+  /**
+   * Called when creating the related records fails while not blocking.
+   * Without this, the error is swallowed (but never leaks as an unhandled
+   * rejection). In `blocking` mode the error is thrown to the caller instead.
+   */
+  onError?: (error: any, context: H) => void
 }
 
 /**
  * Creates related records in other services after a successful `create` call.
  * For each result item, a `data` function produces the record to create in the target service.
  * They are created in a single multi-create if the related service allows it,
- * otherwise with one call per item.
+ * otherwise with one call per item. With `blocking: false` they are created in
+ * the background, without holding up the call.
  *
  * @example
  * ```ts
@@ -82,7 +103,7 @@ export function createRelated<H extends HookContext = HookContext>(
 
     await Promise.all(
       entries.map(async (entry) => {
-        const { data, service, multi } = entry
+        const { data, service, multi, blocking = true, onError } = entry
 
         const dataToCreate = (
           await Promise.all(result.map(async (item) => data(item, context)))
@@ -94,9 +115,24 @@ export function createRelated<H extends HookContext = HookContext>(
           return
         }
 
-        await createMany(context.app, service as string, dataToCreate as any, {
-          multi,
-        })
+        const isBlocking =
+          typeof blocking === 'function' ? await blocking(context) : blocking
+
+        const promise = createMany(
+          context.app,
+          service as string,
+          dataToCreate as any,
+          { multi },
+        )
+
+        if (isBlocking) {
+          await promise
+          return
+        }
+
+        // fire-and-forget: always attach a catch so a rejection never becomes
+        // an unhandled promise rejection. Surface it via `onError` if provided.
+        promise.catch((error) => onError?.(error, context))
       }),
     )
   }
