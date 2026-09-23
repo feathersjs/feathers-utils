@@ -27,12 +27,15 @@ export const disablePagination = <H extends HookContext = HookContext>() => {
       method: ['find'],
       label: 'disablePagination',
     })
-    const $limit = context.params?.query?.$limit
+    const $limit = context.params.query?.$limit
 
-    if ($limit === '-1' || $limit === -1) {
-      context.params.paginate = false
-      delete context.params.query.$limit
+    if ($limit !== '-1' && $limit !== -1) {
+      if (next) return next()
+      return
     }
+
+    const { $limit: _limit, ...query } = context.params.query
+    context.params = { ...context.params, paginate: false, query }
 
     if (next) return next()
 

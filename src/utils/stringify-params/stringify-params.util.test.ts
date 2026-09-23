@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { stringifyParams } from './stringify-params.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('stringifyParams', () => {
   it('is order-independent for top-level keys', () => {
@@ -93,23 +94,17 @@ describe('stringifyParams', () => {
     expect(a).toContain('[3,1,2]')
   })
 
-  it('does not mutate the original params (order preserved)', () => {
-    const params = {
-      query: {
-        $or: [{ name: 'John' }, { name: 'Jane' }],
-        status: { $in: [3, 1, 2] },
-        tags: ['b', 'a', 'c'],
+  it('does not mutate the original params (order preserved)', async () => {
+    await expectNoSideEffects(
+      {
+        query: {
+          $or: [{ name: 'John' }, { name: 'Jane' }],
+          status: { $in: [3, 1, 2] },
+          tags: ['b', 'a', 'c'],
+        },
       },
-    }
-    const snapshot = structuredClone(params)
-
-    stringifyParams(params)
-
-    // input is left byte-for-byte identical, incl. all array orderings
-    expect(params).toEqual(snapshot)
-    expect(params.query.$or).toEqual([{ name: 'John' }, { name: 'Jane' }])
-    expect(params.query.status.$in).toEqual([3, 1, 2])
-    expect(params.query.tags).toEqual(['b', 'a', 'c'])
+      (params) => stringifyParams(params),
+    )
   })
 
   it('distinguishes different queries', () => {

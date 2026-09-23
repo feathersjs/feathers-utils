@@ -1,4 +1,5 @@
-import _set from 'lodash/set.js'
+import _setWith from 'lodash/setWith.js'
+import _clone from 'lodash/clone.js'
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 
 /**
@@ -27,12 +28,18 @@ export const setSlug = <H extends HookContext = HookContext>(
   function hook(context: H): void
   function hook(context: H, next: NextFunction): Promise<void>
   function hook(context: H, next?: NextFunction): void | Promise<void> {
-    if (context.params && context.params.provider === 'rest') {
-      const value = context.params.route[slug]
-      if (typeof value === 'string' && value[0] !== ':') {
-        _set(context.params, targetField, value)
-      }
+    const value =
+      context.params.provider === 'rest'
+        ? context.params.route[slug]
+        : undefined
+
+    if (typeof value !== 'string' || value[0] === ':') {
+      if (next) return next()
+      return
     }
+
+    // clone every object on the path, so the caller's params stay untouched
+    _setWith(context, `params.${targetField}`, value, _clone)
 
     if (next) return next()
 

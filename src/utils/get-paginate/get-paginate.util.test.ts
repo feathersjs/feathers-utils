@@ -1,5 +1,6 @@
 import type { HookContext } from '@feathersjs/feathers'
 import { getPaginate } from './get-paginate.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('getPaginate', () => {
   it('returns service.options.paginate', function () {
@@ -69,5 +70,16 @@ describe('getPaginate', () => {
     } as HookContext)
 
     assert.deepStrictEqual(paginate, undefined)
+  })
+
+  it('does not mutate params', async () => {
+    await expectNoSideEffects(
+      { query: { name: 'Jane' }, adapter: { paginate: { default: 5 } } },
+      (params) =>
+        getPaginate({
+          params,
+          service: { options: { paginate: { default: 10 } } },
+        } as any),
+    )
   })
 })

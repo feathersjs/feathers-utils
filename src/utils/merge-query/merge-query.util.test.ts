@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { Query } from '@feathersjs/feathers'
 import { mergeQuery, type MergeQueryOptions } from './merge-query.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 type Pair = {
   target: Query
@@ -27,7 +28,7 @@ describe('mergeQuery', () => {
       })
     })
 
-    it('returns a new query and never mutates its inputs', () => {
+    it('returns a new query and never mutates its inputs', async () => {
       const cases: Array<{
         target: Query
         source: Query
@@ -51,15 +52,14 @@ describe('mergeQuery', () => {
       ]
 
       for (const { target, source, mode } of cases) {
-        const targetSnapshot = structuredClone(target)
-        const sourceSnapshot = structuredClone(source)
+        await expectNoSideEffects({ target, source }, ({ target, source }) => {
+          const result = mergeQuery(target, source, { mode })
 
-        const result = mergeQuery(target, source, { mode })
+          expect(result).not.toBe(target)
+          expect(result).not.toBe(source)
 
-        expect(target).toEqual(targetSnapshot)
-        expect(source).toEqual(sourceSnapshot)
-        expect(result).not.toBe(target)
-        expect(result).not.toBe(source)
+          return result
+        })
       }
     })
   })

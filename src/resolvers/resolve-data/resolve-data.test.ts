@@ -5,6 +5,7 @@ import { MemoryService } from '@feathersjs/memory'
 import { resolveData } from './resolve-data.js'
 import { resolve, type ResolverObject } from '../resolvers.internal.js'
 import type { HookContext } from '@feathersjs/feathers'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('resolve-data', () => {
   it('simple resolver', async () => {
@@ -207,6 +208,23 @@ describe('resolve-data', () => {
     const resolved = await resolver({ data } as HookContext)
 
     expect(data).toBe(resolved.data)
+  })
+
+  it('does not mutate params', async () => {
+    const data = await expectNoSideEffects(
+      { query: { name: 'dave' } },
+      async (params) => {
+        const context = {
+          type: 'before',
+          method: 'create',
+          params,
+          data: { name: ' dave ' },
+        } as HookContext
+        await resolveData({ name: ({ value }: any) => value?.trim() })(context)
+        return context.data
+      },
+    )
+    expect(data).toEqual({ name: 'dave' })
   })
 })
 

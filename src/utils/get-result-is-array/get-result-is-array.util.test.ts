@@ -2,6 +2,7 @@ import { expectTypeOf } from 'vitest'
 import type { Application, HookContext } from '@feathersjs/feathers'
 import { getResultIsArray } from './get-result-is-array.util.js'
 import type { MemoryService } from '@feathersjs/memory'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('getResultIsArray (type tests)', () => {
   type Todo = {
@@ -183,5 +184,16 @@ describe('getResultIsArray', () => {
       key: 'result',
     })
     expect(context.dispatch).toEqual(undefined)
+  })
+
+  it('does not mutate params', async () => {
+    await expectNoSideEffects({ query: { name: 'Jane' } }, (params) =>
+      getResultIsArray({
+        type: 'after',
+        method: 'find',
+        params,
+        result: { total: 1, limit: 10, skip: 0, data: [{ a: 1 }] },
+      } as HookContext),
+    )
   })
 })

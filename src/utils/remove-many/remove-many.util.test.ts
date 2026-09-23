@@ -4,6 +4,7 @@ import type { HookContext, Params } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { Multi } from '../../types.js'
 import { removeMany } from './remove-many.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 type Todo = {
   id: number
@@ -219,5 +220,23 @@ describe('utils/removeMany', function () {
     const removed = await removeMany(app, 'todos', { query: { userId: 1 } })
 
     expectTypeOf(removed).toEqualTypeOf<Todo[]>()
+  })
+
+  it('does not mutate params', async () => {
+    const removed = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      async (params) => {
+        const app = feathers().use('items', new MemoryService({ multi: true }))
+        await app.service('items').create([{ name: 'Jane' }, { name: 'Jack' }])
+        const multi = await removeMany(app, 'items', params, { multi: true })
+        await app.service('items').create({ name: 'Jane' })
+        const single = await removeMany(app, 'items', params, { multi: false })
+        return [multi, single]
+      },
+    )
+    expect(removed).toEqual([
+      [{ id: 0, name: 'Jane' }],
+      [{ id: 2, name: 'Jane' }],
+    ])
   })
 })

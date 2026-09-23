@@ -1,5 +1,6 @@
 import type { HookContext } from '@feathersjs/feathers'
 import { skipResult } from './skip-result.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('skipResult', function () {
   const paginatedService = {
@@ -258,5 +259,19 @@ describe('skipResult', function () {
         assert.deepStrictEqual(result, [], `'${i}': result is empty array`)
       })
     })
+  })
+
+  it('does not mutate params', async () => {
+    const result = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      (params) =>
+        skipResult({
+          type: 'before',
+          method: 'find',
+          params,
+          service: { options: { paginate: { default: 10 } } },
+        } as any).result,
+    )
+    expect(result).toEqual({ total: 0, skip: 0, limit: 0, data: [] })
   })
 })

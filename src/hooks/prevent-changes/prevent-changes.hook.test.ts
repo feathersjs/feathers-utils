@@ -4,6 +4,7 @@ import { MemoryService } from '@feathersjs/memory'
 import { BadRequest } from '@feathersjs/errors'
 import { preventChanges } from './prevent-changes.hook.js'
 import { clone } from '../../common/index.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 type User = {
   id: number
@@ -195,5 +196,23 @@ describe('preventChanges', () => {
       )
       assert.deepEqual(context.data, { last: 'Doe', a: { c: { d: {} } } })
     })
+  })
+
+  it('does not mutate params', async () => {
+    const data = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      async (params) => {
+        const context = {
+          type: 'before',
+          method: 'patch',
+          id: 1,
+          params,
+          data: { name: 'Jane', role: 'admin' },
+        } as any
+        await preventChanges('role')(context)
+        return context.data
+      },
+    )
+    assert.deepEqual(data, { name: 'Jane' })
   })
 })

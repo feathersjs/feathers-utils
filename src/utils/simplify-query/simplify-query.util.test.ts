@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { simplifyQuery } from './simplify-query.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('simplifyQuery', () => {
   it('returns falsy queries as-is', () => {
@@ -309,10 +310,10 @@ describe('simplifyQuery', () => {
     expect(simplifyQuery(once)).toEqual(once)
   })
 
-  it('does not mutate the input', () => {
-    const query = { $and: [{ id: 1 }, { id: 1 }], $or: [{ a: 1 }] }
-    const snapshot = structuredClone(query)
-    simplifyQuery(query)
-    expect(query).toEqual(snapshot)
+  it('does not mutate the input', async () => {
+    await expectNoSideEffects(
+      { $and: [{ id: 1 }, { id: 1 }, { $or: [{ b: 1 }] }], $or: [{ a: 1 }] },
+      (query) => simplifyQuery(query),
+    )
   })
 })

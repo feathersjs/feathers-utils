@@ -1,6 +1,7 @@
 import type { HookContext } from '@feathersjs/feathers'
 import { throwIfIsProvider } from './throw-if-is-provider.hook.js'
 import { MethodNotAllowed } from '@feathersjs/errors'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('throwIfIsProvider', () => {
   it('should throw if provider matches', async () => {
@@ -35,5 +36,15 @@ describe('throwIfIsProvider', () => {
         filter: (ctx) => ctx.method === 'find',
       })(context),
     ).resolves.not.toThrow("Provider 'rest' can not call 'create'.")
+  })
+
+  it('does not mutate params', async () => {
+    await expectNoSideEffects({ query: { name: 'Jane' } }, (params) =>
+      throwIfIsProvider('external')({
+        type: 'before',
+        method: 'find',
+        params,
+      } as HookContext),
+    )
   })
 })

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { queryHasProperty } from './query-has-property.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('queryHasProperty', () => {
   it('finds a top-level property', () => {
@@ -53,10 +54,10 @@ describe('queryHasProperty', () => {
     expect(queryHasProperty({}, 'isTemplate')).toBe(false)
   })
 
-  it('does not mutate the query', () => {
-    const query = { $and: [{ isTemplate: true }], age: { $gt: 1 } }
-    const snapshot = structuredClone(query)
-    queryHasProperty(query, 'isTemplate')
-    expect(query).toEqual(snapshot)
+  it('does not mutate the query', async () => {
+    await expectNoSideEffects(
+      { $and: [{ isTemplate: true }], age: { $gt: 1 } },
+      (query) => queryHasProperty(query, 'isTemplate'),
+    )
   })
 })

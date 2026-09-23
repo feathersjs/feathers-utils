@@ -4,6 +4,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { combine } from './combine.util.js'
 import { clone } from '../../common/index.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 const startId = 6
 const storeInit = {
@@ -154,5 +155,19 @@ describe('util combine', () => {
         assert.fail(true, false)
       })
       .catch(() => {})
+  })
+
+  it('does not mutate params', async () => {
+    const params = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      async (params) => {
+        const context = { type: 'before', method: 'find', params } as any
+        const result = await combine((context: any) => {
+          context.params = { ...context.params, populate: true }
+        })(context)
+        return result.params
+      },
+    )
+    assert.deepEqual(params, { query: { name: 'Jane' }, populate: true })
   })
 })

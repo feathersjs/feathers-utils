@@ -2,7 +2,6 @@
   "extends": "@tsconfig/node24/tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
     "esModuleInterop": true,
     "types": ["node", "vitest/globals", "vitest/importMeta"],
     "declaration": true,

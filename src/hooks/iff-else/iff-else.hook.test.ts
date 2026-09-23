@@ -5,6 +5,7 @@ import { iffElse } from './iff-else.hook.js'
 import { or } from '../../predicates/or/or.predicate.js'
 import { and } from '../../predicates/and/and.predicate.js'
 import { clone } from '../../common/index.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 let hook: any
 let hookBefore: any
@@ -267,5 +268,24 @@ describe('services iffElse', () => {
 
       assert.deepEqual(order, ['inner', 'next'])
     })
+  })
+
+  it('does not mutate params', async () => {
+    const populate = (context: HookContext) => {
+      context.params = { ...context.params, populate: true }
+    }
+    const params = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      async (params) => {
+        const context = {
+          type: 'before',
+          method: 'find',
+          params,
+        } as HookContext
+        await iffElse(false, [], [populate])(context)
+        return context.params
+      },
+    )
+    expect(params).toEqual({ query: { name: 'Jane' }, populate: true })
   })
 })

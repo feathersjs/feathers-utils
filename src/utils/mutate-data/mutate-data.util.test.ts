@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { HookContext } from '@feathersjs/feathers'
 import { mutateData } from './mutate-data.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 const ctx = (data: any): HookContext =>
   ({ type: 'before', method: 'create', data }) as any
@@ -62,5 +63,22 @@ describe('mutateData', () => {
     const context = ctx([{ n: 1 }])
     mutateData(context, (item) => item)
     expect(Array.isArray(context.data)).toBe(true)
+  })
+
+  it('does not mutate params', async () => {
+    const data = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      async (params) => {
+        const context = {
+          type: 'before',
+          method: 'create',
+          params,
+          data: [{ name: ' Jane ' }],
+        } as HookContext
+        await mutateData(context, (item) => ({ name: item.name.trim() }))
+        return context.data
+      },
+    )
+    expect(data).toEqual([{ name: 'Jane' }])
   })
 })

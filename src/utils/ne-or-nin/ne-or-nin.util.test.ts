@@ -1,4 +1,5 @@
 import { neOrNin } from './ne-or-nin.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('neOrNin', function () {
   it('returns a $nin for multiple values', function () {
@@ -42,10 +43,8 @@ describe('neOrNin', function () {
     })
   })
 
-  it('does not mutate the input', function () {
-    const values = [1, 1, 2]
-    neOrNin(values)
-    assert.deepStrictEqual(values, [1, 1, 2])
+  it('does not mutate the input', async function () {
+    await expectNoSideEffects([1, 1, 2], (values) => neOrNin(values))
   })
 
   it('accepts a readonly array', function () {

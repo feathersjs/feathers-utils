@@ -1,5 +1,6 @@
 import { expect } from 'vitest'
 import { mutateResult } from './mutate-result.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('mutateResult', () => {
   it("mutates context.result on paginated 'find'", async () => {
@@ -171,5 +172,27 @@ describe('mutateResult', () => {
 
     expect(context.result).toStrictEqual({ result: true })
     expect(context.dispatch).toStrictEqual({ result: true, test: true })
+  })
+
+  it('does not mutate params', async () => {
+    const context = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      async (params) => {
+        const context = {
+          type: 'after',
+          method: 'get',
+          params,
+          result: { name: ' Jane ' },
+        } as any
+        await mutateResult(context, (item) => ({ name: item.name.trim() }), {
+          dispatch: 'both',
+        })
+        return { result: context.result, dispatch: context.dispatch }
+      },
+    )
+    expect(context).toEqual({
+      result: { name: 'Jane' },
+      dispatch: { name: 'Jane' },
+    })
   })
 })

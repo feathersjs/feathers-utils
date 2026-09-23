@@ -4,6 +4,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { rateLimit } from './rate-limit.hook.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('hook - rateLimit', () => {
   it('passes through when under limit and sets context.params.rateLimit', async () => {
@@ -179,5 +180,36 @@ describe('hook - rateLimit', () => {
         /Too many requests/,
       )
     })
+  })
+
+  it('does not mutate params', async () => {
+    const remaining = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      async (params) => {
+        const hook = rateLimit(
+          new RateLimiterMemory({ points: 1, duration: 60 }),
+        )
+        const allowed = {
+          type: 'before',
+          method: 'find',
+          path: 'users',
+          params,
+        } as any
+        const limited = {
+          type: 'before',
+          method: 'find',
+          path: 'users',
+          params,
+        } as any
+
+        await hook(allowed)
+        await expect(hook(limited)).rejects.toThrow('Too many requests')
+
+        return [allowed, limited].map(
+          (context) => context.params.rateLimit.remainingPoints,
+        )
+      },
+    )
+    expect(remaining).toEqual([0, 0])
   })
 })

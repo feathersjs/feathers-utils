@@ -1,5 +1,6 @@
 import _get from 'lodash/get.js'
-import _set from 'lodash/set.js'
+import _setWith from 'lodash/setWith.js'
+import _clone from 'lodash/clone.js'
 import { BadRequest } from '@feathersjs/errors'
 import type { HookContext, NextFunction, Params } from '@feathersjs/feathers'
 import { checkContext, getDataIsArray } from '../../utils/index.js'
@@ -100,7 +101,8 @@ export function findOrCreate<H extends HookContext = HookContext>(
     for (const path of toArray(uniqueBy as MaybeArray<string>)) {
       const val = _get(item, path)
       if (val === undefined) continue
-      _set(query, path, val)
+      // a nested path clones the objects it passes, which the `params` option owns
+      _setWith(query, path, val, _clone)
     }
 
     const found = (await context.app.service(service as string).find({

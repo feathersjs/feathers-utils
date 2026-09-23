@@ -1,4 +1,5 @@
 import { eqOrIn } from './eq-or-in.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('eqOrIn', function () {
   it('returns a $in for multiple values', function () {
@@ -40,10 +41,8 @@ describe('eqOrIn', function () {
     })
   })
 
-  it('does not mutate the input', function () {
-    const values = [1, 1, 2]
-    eqOrIn(values)
-    assert.deepStrictEqual(values, [1, 1, 2])
+  it('does not mutate the input', async function () {
+    await expectNoSideEffects([1, 1, 2], (values) => eqOrIn(values))
   })
 
   it('accepts a readonly array', function () {

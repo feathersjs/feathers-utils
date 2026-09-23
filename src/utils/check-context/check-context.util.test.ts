@@ -2,6 +2,7 @@ import { expect } from 'vitest'
 
 import { checkContext } from './check-context.util.js'
 import type { HookContext } from '@feathersjs/feathers'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 const make = (type: any, method: any) => ({ type, method }) as HookContext
 
@@ -199,5 +200,14 @@ describe('util checkContext', () => {
         "The 'myHook' hook has invalid context (type: expected 'before' | 'around' but got 'after', method: expected 'create' but got 'patch').",
       )
     })
+  })
+
+  it('does not mutate params', async () => {
+    await expectNoSideEffects({ query: { name: 'Jane' } }, (params) =>
+      checkContext({ type: 'before', method: 'find', params } as HookContext, {
+        type: 'before',
+        method: 'find',
+      }),
+    )
   })
 })

@@ -4,6 +4,7 @@ import type { HookContext, Params } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { Multi } from '../../types.js'
 import { patchMany } from './patch-many.util.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 type Todo = {
   id: number
@@ -230,5 +231,24 @@ describe('utils/patchMany', function () {
     )
 
     expectTypeOf(patched).toEqualTypeOf<Todo[]>()
+  })
+
+  it('does not mutate params or data', async () => {
+    const patched = await expectNoSideEffects(
+      { data: { done: true }, params: { query: { name: 'Jane' } } },
+      async ({ data, params }) => {
+        const app = feathers().use('items', new MemoryService({ multi: true }))
+        await app.service('items').create([{ name: 'Jane' }, { name: 'Jack' }])
+        return Promise.all(
+          [true, false].map((multi) =>
+            patchMany(app, 'items', data, params, { multi }),
+          ),
+        )
+      },
+    )
+    expect(patched).toEqual([
+      [{ id: 0, name: 'Jane', done: true }],
+      [{ id: 0, name: 'Jane', done: true }],
+    ])
   })
 })

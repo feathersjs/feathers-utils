@@ -2,6 +2,7 @@ import { expectTypeOf } from 'vitest'
 import type { Application, HookContext } from '@feathersjs/feathers'
 import { getDataIsArray } from './get-data-is-array.util.js'
 import type { MemoryService } from '@feathersjs/memory'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('getDataIsArray (type tests)', () => {
   type Todo = {
@@ -59,5 +60,16 @@ describe('getDataIsArray', () => {
       isArray: false,
       data: [data],
     })
+  })
+
+  it('does not mutate params', async () => {
+    await expectNoSideEffects({ query: { name: 'Jane' } }, (params) =>
+      getDataIsArray({
+        type: 'before',
+        method: 'create',
+        params,
+        data: [{ a: 1 }],
+      } as HookContext),
+    )
   })
 })

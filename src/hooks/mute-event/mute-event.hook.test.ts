@@ -2,6 +2,7 @@ import type { HookContext } from '@feathersjs/feathers'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { muteEvent } from './mute-event.hook.js'
+import { expectNoSideEffects } from '../../../test/utils/index.js'
 
 type User = { id: number; name: string }
 
@@ -114,5 +115,21 @@ describe('muteEvent', () => {
       expect(created).toBe(false)
       expect(patched).toBe(true)
     })
+  })
+
+  it('does not mutate params', async () => {
+    const event = await expectNoSideEffects(
+      { query: { name: 'Jane' } },
+      async (params) => {
+        const context = {
+          type: 'before',
+          method: 'create',
+          params,
+        } as HookContext
+        await muteEvent()(context)
+        return context.event
+      },
+    )
+    expect(event).toBeNull()
   })
 })

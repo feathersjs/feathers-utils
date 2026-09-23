@@ -3,7 +3,8 @@ import type { TransformerFn } from '../../types.js'
 
 /**
  * Transforms `context.params.query` using the provided transformer function.
- * The transformer receives the current query and can return a modified version.
+ * The transformer receives a shallow copy of the query, which it can change in
+ * place (e.g. with `lowercase`) or replace by returning a new query.
  * Useful for normalizing, sanitizing, or enriching queries before they hit the database.
  *
  * @example
@@ -26,10 +27,12 @@ export const transformQuery = <
   function hook(context: H): void
   function hook(context: H, next: NextFunction): Promise<void>
   function hook(context: H, next?: NextFunction): void | Promise<void> {
-    context.params.query = transformer(context.params.query ?? {}, {
-      context,
-      i: 0,
-    })
+    // a copy, so a transformer that changes the query in place (like
+    // `lowercase`) does not write into the caller's params
+    const query = { ...context.params.query }
+    const result = transformer(query, { context, i: 0 })
+
+    context.params = { ...context.params, query: result ?? query }
 
     if (next) return next()
 

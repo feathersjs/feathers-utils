@@ -1,5 +1,5 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
-import { traverse as _traverse } from '../../common/index.js'
+import { clone, traverse as _traverse } from '../../common/index.js'
 
 export type TraverseOptions = {
   /**
@@ -11,7 +11,9 @@ export type TraverseOptions = {
   /**
    * Picks what is walked out of the hook context, e.g. `context.data`,
    * `context.params.query` or `context.result`. The returned object is
-   * traversed in place.
+   * traversed in place — `context.params.query` is deep-cloned first, so
+   * walking it leaves the caller's query untouched (other `params` members are
+   * walked as they are).
    */
   getObject: (
     context: HookContext,
@@ -50,7 +52,13 @@ export const traverse = <H extends HookContext = HookContext>({
   getObject,
   runAfter = false,
 }: TraverseOptions) => {
-  const runTraverse = (context: H) => _traverse(getObject(context), transformer)
+  const runTraverse = (context: H) => {
+    if (context.params.query) {
+      context.params = { ...context.params, query: clone(context.params.query) }
+    }
+
+    _traverse(getObject(context), transformer)
+  }
 
   function hook(context: H): void
   function hook(context: H, next: NextFunction): Promise<void>
