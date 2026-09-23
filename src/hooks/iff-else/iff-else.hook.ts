@@ -1,6 +1,6 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { isPromise } from '../../common/index.js'
-import { combine } from '../../utils/combine/combine.util.js'
+import { combine } from '../combine/combine.hook.js'
 import type { HookFunction, PredicateFn } from '../../types.js'
 
 /**
