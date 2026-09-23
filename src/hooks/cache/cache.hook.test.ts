@@ -9,6 +9,7 @@ import { expect, expectTypeOf } from 'vitest'
 import { copy } from 'fast-copy'
 import { gateParams } from '../../utils/gate-params/gate-params.util.js'
 import { isProvider } from '../../predicates/is-provider/is-provider.predicate.js'
+import { getResultIsArray } from '../../utils/get-result-is-array/get-result-is-array.util.js'
 
 const setup = (options: CacheOptions, serviceOptions?: { id?: string }) => {
   const app = feathers<{
@@ -94,11 +95,19 @@ const setup = (options: CacheOptions, serviceOptions?: { id?: string }) => {
   }
 }
 
-describe('cache hook', () => {
+// All three shipped cache implementations satisfy the same `Cache` interface,
+// so each of them has to pass the same suite.
+const cacheImplementations: [string, () => CacheOptions['map']][] = [
+  ['lru-cache', () => new LRUCache({ max: 10 })],
+  ['@isaacs/ttlcache', () => new TTLCache({ max: 10, ttl: 60_000 })],
+  ['native Map', () => new Map()],
+]
+
+describe.each(cacheImplementations)('cache hook with %s', (_name, makeMap) => {
   describe('get', () => {
     it('basic get cache', async () => {
       const { usersService, before } = setup({
-        map: new LRUCache({ max: 10 }),
+        map: makeMap(),
         transformParams: (params) => params,
       })
 
@@ -116,7 +125,7 @@ describe('cache hook', () => {
 
     it('does not clear get cache on create', async () => {
       const { usersService, before } = setup({
-        map: new LRUCache({ max: 10 }),
+        map: makeMap(),
         transformParams: (params) => params,
       })
 
@@ -131,7 +140,7 @@ describe('cache hook', () => {
 
     it('does clear get cache on patch', async () => {
       const { usersService, before } = setup({
-        map: new LRUCache({ max: 10 }),
+        map: makeMap(),
         transformParams: (params) => params,
       })
 
@@ -153,7 +162,7 @@ describe('cache hook', () => {
 
     it('considers query params in cache', async () => {
       const { usersService, before } = setup({
-        map: new LRUCache({ max: 10 }),
+        map: makeMap(),
         transformParams: (params) => params,
       })
 
@@ -178,7 +187,7 @@ describe('cache hook', () => {
   describe('find', () => {
     it('basic find cache', async () => {
       const { usersService, before } = setup({
-        map: new LRUCache({ max: 10 }),
+        map: makeMap(),
         transformParams: (params) => params,
       })
 
@@ -203,7 +212,7 @@ describe('cache hook', () => {
 
     it('paginate does not cache', async () => {
       const { usersService, before } = setup({
-        map: new LRUCache({ max: 10 }),
+        map: makeMap(),
         transformParams: (params) => params,
       })
 
@@ -228,7 +237,7 @@ describe('cache hook', () => {
 
     it('mutations deletes cached find', async () => {
       const { usersService, before } = setup({
-        map: new LRUCache({ max: 10 }),
+        map: makeMap(),
         transformParams: (params) => params,
       })
 
@@ -257,7 +266,7 @@ describe('cache hook', () => {
 
     it('considers query params in cache', async () => {
       const { usersService, before } = setup({
-        map: new LRUCache({ max: 10 }),
+        map: makeMap(),
         transformParams: (params) => params,
       })
 
@@ -280,7 +289,7 @@ describe('cache hook', () => {
 
     it('cache hit regardless of query property order', async () => {
       const { usersService, before } = setup({
-        map: new LRUCache({ max: 10 }),
+        map: makeMap(),
         transformParams: (params) => params,
       })
 
@@ -299,7 +308,7 @@ describe('cache hook', () => {
 
     it('cache hit regardless of $or order', async () => {
       const { usersService, before } = setup({
-        map: new LRUCache({ max: 10 }),
+        map: makeMap(),
         transformParams: (params) => params,
       })
 
@@ -322,7 +331,7 @@ describe('cache hook', () => {
 
     it('cache hit regardless of $in order', async () => {
       const { usersService, before } = setup({
-        map: new LRUCache({ max: 10 }),
+        map: makeMap(),
         transformParams: (params) => params,
       })
 
@@ -345,7 +354,7 @@ describe('cache hook', () => {
 
     it('can transform params', async () => {
       const { usersService, before } = setup({
-        map: new LRUCache({ max: 10 }),
+        map: makeMap(),
         transformParams: (params) => {
           const { paginate, ...rest } = params as any
           return rest
@@ -367,328 +376,6 @@ describe('cache hook', () => {
 
       expect(items.data).toEqual([{ id: 1, name: 'John' }])
       expect(before.find).toHaveBeenCalledTimes(1) // Cache hit, should not call before hook again
-    })
-  })
-})
-
-describe('cache hook with @isaacs/ttlcache', () => {
-  describe('get', () => {
-    it('basic get cache', async () => {
-      const { usersService, before } = setup({
-        map: new TTLCache({ max: 10, ttl: 60_000 }),
-        transformParams: (params) => params,
-      })
-
-      await usersService.create({ id: 1, name: 'John' })
-
-      let item = await usersService.get(1)
-      expect(item).toEqual({ id: 1, name: 'John' })
-      expect(before.get).toHaveBeenCalledTimes(1)
-      expect(before.get.mock.lastCall?.[0].result).toBeUndefined()
-
-      item = await usersService.get(1)
-      expect(item).toEqual({ id: 1, name: 'John' })
-      expect(before.get).toHaveBeenCalledTimes(1)
-    })
-
-    it('does not clear get cache on create', async () => {
-      const { usersService, before } = setup({
-        map: new TTLCache({ max: 10, ttl: 60_000 }),
-        transformParams: (params) => params,
-      })
-
-      await usersService.create({ id: 1, name: 'John' })
-      await usersService.get(1)
-      expect(before.get).toHaveBeenCalledTimes(1)
-
-      await usersService.create({ id: 2, name: 'Jane' })
-      await usersService.get(1)
-      expect(before.get).toHaveBeenCalledTimes(1)
-    })
-
-    it('does clear get cache on patch', async () => {
-      const { usersService, before } = setup({
-        map: new TTLCache({ max: 10, ttl: 60_000 }),
-        transformParams: (params) => params,
-      })
-
-      await usersService.create({ id: 1, name: 'John' })
-      await usersService.create({ id: 2, name: 'Jane' })
-      await usersService.get(1)
-      expect(before.get).toHaveBeenCalledTimes(1)
-
-      await usersService.get(2)
-      expect(before.get).toHaveBeenCalledTimes(2)
-
-      await usersService.patch(1, { name: 'John Doe' })
-      await usersService.get(1)
-      expect(before.get).toHaveBeenCalledTimes(3)
-
-      await usersService.get(2)
-      expect(before.get).toHaveBeenCalledTimes(3)
-    })
-
-    it('considers query params in cache', async () => {
-      const { usersService, before } = setup({
-        map: new TTLCache({ max: 10, ttl: 60_000 }),
-        transformParams: (params) => params,
-      })
-
-      await usersService.create({ id: 1, name: 'John' })
-      await usersService.create({ id: 2, name: 'Jane' })
-
-      let item = await usersService.get(1, { query: { name: 'John' } })
-      expect(item).toEqual({ id: 1, name: 'John' })
-      expect(before.get).toHaveBeenCalledTimes(1)
-
-      item = await usersService.get(1, { query: { name: 'John' } })
-      expect(item).toEqual({ id: 1, name: 'John' })
-      expect(before.get).toHaveBeenCalledTimes(1)
-
-      item = await usersService.get(1, { query: { name: { $in: ['John'] } } })
-      expect(item).toEqual({ id: 1, name: 'John' })
-      expect(before.get).toHaveBeenCalledTimes(2)
-    })
-  })
-
-  describe('find', () => {
-    it('basic find cache', async () => {
-      const { usersService, before } = setup({
-        map: new TTLCache({ max: 10, ttl: 60_000 }),
-        transformParams: (params) => params,
-      })
-
-      await usersService.create({ id: 1, name: 'John' })
-      await usersService.create({ id: 2, name: 'Jane' })
-
-      let items = await usersService.find()
-      expect(items.data).toEqual([
-        { id: 1, name: 'John' },
-        { id: 2, name: 'Jane' },
-      ])
-      expect(before.find).toHaveBeenCalledTimes(1)
-
-      items = await usersService.find()
-      expect(items.data).toEqual([
-        { id: 1, name: 'John' },
-        { id: 2, name: 'Jane' },
-      ])
-      expect(before.find).toHaveBeenCalledTimes(1)
-    })
-
-    it('mutations deletes cached find', async () => {
-      const { usersService, before } = setup({
-        map: new TTLCache({ max: 10, ttl: 60_000 }),
-        transformParams: (params) => params,
-      })
-
-      await usersService.create({ id: 1, name: 'John' })
-      await usersService.create({ id: 2, name: 'Jane' })
-
-      await usersService.find()
-      expect(before.find).toHaveBeenCalledTimes(1)
-
-      await usersService.create({ id: 3, name: 'Jack' })
-      await usersService.find()
-      expect(before.find).toHaveBeenCalledTimes(2)
-
-      await usersService.patch(1, { name: 'John Doe' })
-      await usersService.find()
-      expect(before.find).toHaveBeenCalledTimes(3)
-
-      await usersService.update(1, { name: 'John Smith' })
-      await usersService.find()
-      expect(before.find).toHaveBeenCalledTimes(4)
-
-      await usersService.remove(1)
-      await usersService.find()
-      expect(before.find).toHaveBeenCalledTimes(5)
-    })
-
-    it('can transform params', async () => {
-      const { usersService, before } = setup({
-        map: new TTLCache({ max: 10, ttl: 60_000 }),
-        transformParams: (params) => {
-          const { paginate, ...rest } = params as any
-          return rest
-        },
-      })
-
-      await usersService.create({ id: 1, name: 'John' })
-      await usersService.create({ id: 2, name: 'Jane' })
-
-      let items = await usersService.find({ query: { name: 'John' } })
-      expect(items.data).toEqual([{ id: 1, name: 'John' }])
-      expect(before.find).toHaveBeenCalledTimes(1)
-
-      items = (await usersService.find({
-        query: { name: 'John' },
-        paginate: false,
-      })) as any
-
-      expect(items.data).toEqual([{ id: 1, name: 'John' }])
-      expect(before.find).toHaveBeenCalledTimes(1)
-    })
-  })
-})
-
-describe('cache hook with native Map', () => {
-  describe('get', () => {
-    it('basic get cache', async () => {
-      const { usersService, before } = setup({
-        map: new Map(),
-        transformParams: (params) => params,
-      })
-
-      await usersService.create({ id: 1, name: 'John' })
-
-      let item = await usersService.get(1)
-      expect(item).toEqual({ id: 1, name: 'John' })
-      expect(before.get).toHaveBeenCalledTimes(1)
-      expect(before.get.mock.lastCall?.[0].result).toBeUndefined()
-
-      item = await usersService.get(1)
-      expect(item).toEqual({ id: 1, name: 'John' })
-      expect(before.get).toHaveBeenCalledTimes(1)
-    })
-
-    it('does not clear get cache on create', async () => {
-      const { usersService, before } = setup({
-        map: new Map(),
-        transformParams: (params) => params,
-      })
-
-      await usersService.create({ id: 1, name: 'John' })
-      await usersService.get(1)
-      expect(before.get).toHaveBeenCalledTimes(1)
-
-      await usersService.create({ id: 2, name: 'Jane' })
-      await usersService.get(1)
-      expect(before.get).toHaveBeenCalledTimes(1)
-    })
-
-    it('does clear get cache on patch', async () => {
-      const { usersService, before } = setup({
-        map: new Map(),
-        transformParams: (params) => params,
-      })
-
-      await usersService.create({ id: 1, name: 'John' })
-      await usersService.create({ id: 2, name: 'Jane' })
-      await usersService.get(1)
-      expect(before.get).toHaveBeenCalledTimes(1)
-
-      await usersService.get(2)
-      expect(before.get).toHaveBeenCalledTimes(2)
-
-      await usersService.patch(1, { name: 'John Doe' })
-      await usersService.get(1)
-      expect(before.get).toHaveBeenCalledTimes(3)
-
-      await usersService.get(2)
-      expect(before.get).toHaveBeenCalledTimes(3)
-    })
-
-    it('considers query params in cache', async () => {
-      const { usersService, before } = setup({
-        map: new Map(),
-        transformParams: (params) => params,
-      })
-
-      await usersService.create({ id: 1, name: 'John' })
-      await usersService.create({ id: 2, name: 'Jane' })
-
-      let item = await usersService.get(1, { query: { name: 'John' } })
-      expect(item).toEqual({ id: 1, name: 'John' })
-      expect(before.get).toHaveBeenCalledTimes(1)
-
-      item = await usersService.get(1, { query: { name: 'John' } })
-      expect(item).toEqual({ id: 1, name: 'John' })
-      expect(before.get).toHaveBeenCalledTimes(1)
-
-      item = await usersService.get(1, { query: { name: { $in: ['John'] } } })
-      expect(item).toEqual({ id: 1, name: 'John' })
-      expect(before.get).toHaveBeenCalledTimes(2)
-    })
-  })
-
-  describe('find', () => {
-    it('basic find cache', async () => {
-      const { usersService, before } = setup({
-        map: new Map(),
-        transformParams: (params) => params,
-      })
-
-      await usersService.create({ id: 1, name: 'John' })
-      await usersService.create({ id: 2, name: 'Jane' })
-
-      let items = await usersService.find()
-      expect(items.data).toEqual([
-        { id: 1, name: 'John' },
-        { id: 2, name: 'Jane' },
-      ])
-      expect(before.find).toHaveBeenCalledTimes(1)
-
-      items = await usersService.find()
-      expect(items.data).toEqual([
-        { id: 1, name: 'John' },
-        { id: 2, name: 'Jane' },
-      ])
-      expect(before.find).toHaveBeenCalledTimes(1)
-    })
-
-    it('mutations deletes cached find', async () => {
-      const { usersService, before } = setup({
-        map: new Map(),
-        transformParams: (params) => params,
-      })
-
-      await usersService.create({ id: 1, name: 'John' })
-      await usersService.create({ id: 2, name: 'Jane' })
-
-      await usersService.find()
-      expect(before.find).toHaveBeenCalledTimes(1)
-
-      await usersService.create({ id: 3, name: 'Jack' })
-      await usersService.find()
-      expect(before.find).toHaveBeenCalledTimes(2)
-
-      await usersService.patch(1, { name: 'John Doe' })
-      await usersService.find()
-      expect(before.find).toHaveBeenCalledTimes(3)
-
-      await usersService.update(1, { name: 'John Smith' })
-      await usersService.find()
-      expect(before.find).toHaveBeenCalledTimes(4)
-
-      await usersService.remove(1)
-      await usersService.find()
-      expect(before.find).toHaveBeenCalledTimes(5)
-    })
-
-    it('can transform params', async () => {
-      const { usersService, before } = setup({
-        map: new Map(),
-        transformParams: (params) => {
-          const { paginate, ...rest } = params as any
-          return rest
-        },
-      })
-
-      await usersService.create({ id: 1, name: 'John' })
-      await usersService.create({ id: 2, name: 'Jane' })
-
-      let items = await usersService.find({ query: { name: 'John' } })
-      expect(items.data).toEqual([{ id: 1, name: 'John' }])
-      expect(before.find).toHaveBeenCalledTimes(1)
-
-      items = (await usersService.find({
-        query: { name: 'John' },
-        paginate: false,
-      })) as any
-
-      expect(items.data).toEqual([{ id: 1, name: 'John' }])
-      expect(before.find).toHaveBeenCalledTimes(1)
     })
   })
 })
@@ -1437,5 +1124,559 @@ describe('cache hook iff option with logger', () => {
     await usersService.patch(1, { name: 'John Doe' }, { provider: 'rest' })
     expect(logger.mock.calls.map((c) => c[0].type)).toContain('invalidate')
     expect(logger.mock.calls[0][0]).toMatchObject({ method: 'patch' })
+  })
+})
+
+/** The recipe from the `scope` docs: tenant in the query, tenant on the row. */
+const companyScope = (context: HookContext) => {
+  if (context.method === 'get' || context.method === 'find') {
+    // only scope when the query really pins the tenant down
+    return context.params.query?.companyId
+  }
+
+  // `update` replaces the row, so the company may change or be dropped
+  if (context.method === 'update') {
+    return undefined
+  }
+
+  // a `patch` could move items into another company
+  if (context.method === 'patch' && mayChangeCompany(context.data)) {
+    return undefined
+  }
+
+  return getResultIsArray(context).result.map((item: any) => item.companyId)
+}
+
+const mayChangeCompany = (data: any) =>
+  (Array.isArray(data) ? data : [data]).some(
+    (item) =>
+      item &&
+      ('companyId' in item ||
+        Object.keys(item).some((key) => key.startsWith('$'))),
+  )
+
+const seedCompanies = async (usersService: any) => {
+  await usersService.create({ id: 1, name: 'John', companyId: 'a' })
+  await usersService.create({ id: 2, name: 'Jane', companyId: 'b' })
+  await usersService.create({ id: 3, name: 'Jim', companyId: 'c' })
+}
+
+describe('cache hook scope option', () => {
+  it('leaves another tenant`s cached find alone on create', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: companyScope,
+    })
+
+    await seedCompanies(usersService)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(2) // one miss per tenant
+
+    await usersService.create({ id: 4, name: 'Joe', companyId: 'a' })
+
+    // company b is untouched by a create in company a
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(2)
+
+    // company a was invalidated
+    await usersService.find({ query: { companyId: 'a' } })
+    expect(before.find).toHaveBeenCalledTimes(3)
+  })
+
+  it('leaves another tenant`s cached find alone on patch', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: companyScope,
+    })
+
+    await seedCompanies(usersService)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(2)
+
+    // a rename cannot move the row, so only company a is affected
+    await usersService.patch(1, { name: 'John Doe' })
+
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(2)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    expect(before.find).toHaveBeenCalledTimes(3)
+  })
+
+  it('leaves another tenant`s cached find alone on a multi patch', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: companyScope,
+    })
+
+    await seedCompanies(usersService)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    await usersService.find({ query: { companyId: 'c' } })
+    expect(before.find).toHaveBeenCalledTimes(3)
+
+    await usersService.patch(
+      null,
+      { name: 'Renamed' },
+      { query: { companyId: { $in: ['a', 'b'] } } },
+    )
+
+    await usersService.find({ query: { companyId: 'c' } })
+    expect(before.find).toHaveBeenCalledTimes(3)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(5)
+  })
+
+  it('leaves another tenant`s cached find alone on remove by id', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: companyScope,
+    })
+
+    await seedCompanies(usersService)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(2)
+
+    await usersService.remove(1)
+
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(2)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    expect(before.find).toHaveBeenCalledTimes(3)
+  })
+
+  it('stores an unpinned find unscoped and drops it on any mutation', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: companyScope,
+    })
+
+    await seedCompanies(usersService)
+
+    await usersService.find()
+    await usersService.find()
+    expect(before.find).toHaveBeenCalledTimes(1)
+
+    // a mutation in *some* tenant must still drop the unscoped entry
+    await usersService.create({ id: 4, name: 'Joe', companyId: 'b' })
+
+    await usersService.find()
+    expect(before.find).toHaveBeenCalledTimes(2)
+  })
+
+  it('invalidates every tenant when a patch may move an item', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: companyScope,
+    })
+
+    await seedCompanies(usersService)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(2)
+
+    await usersService.patch(1, { companyId: 'b' })
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(4)
+  })
+
+  it('invalidates every tenant on update', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: companyScope,
+    })
+
+    await seedCompanies(usersService)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(2)
+
+    await usersService.update(3, { id: 3, name: 'Jim', companyId: 'c' })
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(4)
+  })
+
+  it('degrades to unscoped when $select strips the scope field', async () => {
+    const logger = vi.fn()
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: companyScope,
+      logger,
+    })
+
+    await seedCompanies(usersService)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(2)
+    logger.mockClear()
+
+    // the patched item comes back without `companyId`, so the scope is unknown
+    await usersService.patch(
+      1,
+      { name: 'John Doe' },
+      { query: { $select: ['id', 'name'] } },
+    )
+
+    expect(logger.mock.calls.map((call) => call[0])).toContainEqual({
+      type: 'degrade',
+      method: 'patch',
+      reason: 'no-scope',
+    })
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(4)
+  })
+
+  it('invalidates only the affected tenants of a multi remove', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: companyScope,
+    })
+
+    await seedCompanies(usersService)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    await usersService.find({ query: { companyId: 'c' } })
+    expect(before.find).toHaveBeenCalledTimes(3)
+
+    await usersService.remove(null, {
+      query: { companyId: { $in: ['a', 'b'] } },
+    })
+
+    await usersService.find({ query: { companyId: 'c' } })
+    expect(before.find).toHaveBeenCalledTimes(3) // untouched
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(5)
+  })
+
+  it('invalidates every tenant a multi create spans', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: companyScope,
+    })
+
+    await seedCompanies(usersService)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    await usersService.find({ query: { companyId: 'c' } })
+    expect(before.find).toHaveBeenCalledTimes(3)
+
+    await usersService.create([
+      { id: 4, name: 'Joe', companyId: 'a' },
+      { id: 5, name: 'Jen', companyId: 'b' },
+    ])
+
+    await usersService.find({ query: { companyId: 'c' } })
+    expect(before.find).toHaveBeenCalledTimes(3)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(5)
+  })
+
+  it('still invalidates cached get entries by id, ignoring the scope', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: companyScope,
+    })
+
+    await seedCompanies(usersService)
+
+    await usersService.get(1)
+    await usersService.get(2)
+    expect(before.get).toHaveBeenCalledTimes(2)
+
+    await usersService.patch(1, { name: 'John Doe' })
+
+    await usersService.get(2)
+    expect(before.get).toHaveBeenCalledTimes(2) // untouched
+    await usersService.get(1)
+    expect(before.get).toHaveBeenCalledTimes(3)
+  })
+
+  it('does not invalidate cached get entries on create', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: companyScope,
+    })
+
+    await seedCompanies(usersService)
+
+    await usersService.get(1)
+    expect(before.get).toHaveBeenCalledTimes(1)
+
+    await usersService.create({ id: 4, name: 'Joe', companyId: 'a' })
+
+    await usersService.get(1)
+    expect(before.get).toHaveBeenCalledTimes(1)
+  })
+
+  it('collapses a single-element array to that scope on a read', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: (context) => {
+        if (context.method === 'get' || context.method === 'find') {
+          const companyId = context.params.query?.companyId
+          return companyId ? [companyId] : undefined
+        }
+        return getResultIsArray(context).result.map(
+          (item: any) => item.companyId,
+        )
+      },
+    })
+
+    await seedCompanies(usersService)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(2)
+
+    await usersService.create({ id: 4, name: 'Joe', companyId: 'a' })
+
+    await usersService.find({ query: { companyId: 'b' } })
+    expect(before.find).toHaveBeenCalledTimes(2)
+  })
+
+  it('treats a multi-element array on a read as unscoped', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: (context) => {
+        if (context.method === 'get' || context.method === 'find') {
+          return ['a', 'b']
+        }
+        return getResultIsArray(context).result.map(
+          (item: any) => item.companyId,
+        )
+      },
+    })
+
+    await seedCompanies(usersService)
+
+    await usersService.find({ query: { companyId: 'a' } })
+    expect(before.find).toHaveBeenCalledTimes(1)
+
+    // a mutation in company c must still drop the unscoped entry
+    await usersService.create({ id: 4, name: 'Joe', companyId: 'c' })
+
+    await usersService.find({ query: { companyId: 'a' } })
+    expect(before.find).toHaveBeenCalledTimes(2)
+  })
+
+  it('never fails the call when the scope resolver throws', async () => {
+    const logger = vi.fn()
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      scope: () => {
+        throw new Error('boom')
+      },
+      logger,
+    })
+
+    await seedCompanies(usersService)
+
+    await expect(
+      usersService.find({ query: { companyId: 'a' } }),
+    ).resolves.toBeDefined()
+    await usersService.find({ query: { companyId: 'a' } })
+    expect(before.find).toHaveBeenCalledTimes(1) // caching still works, unscoped
+
+    expect(logger.mock.calls.map((call) => call[0])).toContainEqual({
+      type: 'degrade',
+      method: 'find',
+      reason: 'scope-error',
+    })
+
+    // and the unscoped entry is dropped by any mutation
+    await usersService.create({ id: 4, name: 'Joe', companyId: 'b' })
+    await usersService.find({ query: { companyId: 'a' } })
+    expect(before.find).toHaveBeenCalledTimes(2)
+  })
+
+  it('never emits a degrade event without a scope option', async () => {
+    const logger = vi.fn()
+    const { usersService } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+      logger,
+    })
+
+    await seedCompanies(usersService)
+    await usersService.find({ query: { companyId: 'a' } })
+    await usersService.get(1)
+    await usersService.patch(1, { name: 'John Doe' })
+    await usersService.remove(1)
+
+    expect(logger.mock.calls.map((call) => call[0].type)).not.toContain(
+      'degrade',
+    )
+  })
+})
+
+describe('cache hook key parsing', () => {
+  it('invalidates a cached get whose id contains the delimiter', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+    })
+
+    await usersService.create({ id: 'urn:user:1', name: 'John' })
+
+    await usersService.get('urn:user:1')
+    await usersService.get('urn:user:1')
+    expect(before.get).toHaveBeenCalledTimes(1)
+
+    await usersService.patch('urn:user:1', { name: 'John Doe' })
+
+    await usersService.get('urn:user:1')
+    expect(before.get).toHaveBeenCalledTimes(2)
+  })
+
+  it('treats the id `0` as a known id instead of wiping the cache', async () => {
+    const { usersService, before } = setup({
+      map: new Map(),
+      transformParams: ({ query }) => ({ query }),
+    })
+
+    await usersService.create({ id: 0, name: 'John' })
+    await usersService.create({ id: 1, name: 'Jane' })
+
+    await usersService.get(0)
+    await usersService.get(1)
+    expect(before.get).toHaveBeenCalledTimes(2)
+
+    await usersService.patch(0, { name: 'John Doe' })
+
+    // id 0 is invalidated...
+    await usersService.get(0)
+    expect(before.get).toHaveBeenCalledTimes(3)
+    // ...and id 1 survives, rather than being taken down by a full wipe
+    await usersService.get(1)
+    expect(before.get).toHaveBeenCalledTimes(3)
+  })
+
+  it('drops an unreadable key instead of throwing', async () => {
+    const map = new Map<string, any>()
+    const { usersService } = setup({
+      map,
+      transformParams: ({ query }) => ({ query }),
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+    map.set('no-delimiter-here', { stale: true })
+
+    await expect(
+      usersService.patch(1, { name: 'John Doe' }),
+    ).resolves.toBeDefined()
+    expect(map.has('no-delimiter-here')).toBe(false)
+  })
+
+  it('drops a key that is missing its scope segment', async () => {
+    const map = new Map<string, any>()
+    const { usersService } = setup({
+      map,
+      transformParams: ({ query }) => ({ query }),
+      // a hashing serializer, so a key holds no delimiters of its own
+      serialize: () => 'hashedparams',
+      scope: companyScope,
+    })
+
+    await seedCompanies(usersService)
+
+    // the two-segment format this instance wrote before `scope` was enabled
+    map.set('null:hashedparams', { stale: true })
+
+    await usersService.patch(2, { name: 'Jane Doe' })
+
+    expect(map.has('null:hashedparams')).toBe(false)
+  })
+
+  it('clears everything when only *some* mutated items carry an id', async () => {
+    const map = new Map<string, any>()
+    const cacheHook = cache({
+      map,
+      transformParams: ({ query }) => ({ query }),
+    })
+
+    map.set('1:{}', { stale: true })
+    map.set('2:{}', { stale: true })
+    map.set('null:{}', { stale: true })
+
+    // the second item lost its id on the way out, so the set of affected ids is
+    // unknowable — invalidating only id 1 would leave id 2 silently stale
+    await cacheHook({
+      type: 'after',
+      method: 'patch',
+      service: { options: { id: 'id' } },
+      params: {},
+      result: [{ id: 1, name: 'John Doe' }, { name: 'Jane Doe' }],
+    } as any)
+
+    expect(map.size).toBe(0)
+  })
+
+  it('keeps clearing everything when the result is empty', async () => {
+    const map = new Map<string, any>()
+    const logger = vi.fn()
+    const cacheHook = cache({
+      map,
+      transformParams: ({ query }) => ({ query }),
+      logger,
+    })
+
+    map.set('1:{}', { stale: true })
+
+    await cacheHook({
+      type: 'after',
+      method: 'patch',
+      service: { options: { id: 'id' } },
+      params: {},
+      result: [],
+    } as any)
+
+    expect(map.size).toBe(0)
+    expect(logger).toHaveBeenCalledWith({
+      type: 'clear',
+      method: 'patch',
+      reason: 'no-ids',
+    })
   })
 })
