@@ -1,10 +1,8 @@
-import _has from 'lodash/has.js'
-import _omit from 'lodash/omit.js'
 import type { FeathersError } from '@feathersjs/errors'
 import { BadRequest } from '@feathersjs/errors'
 import { transformData } from '../transform-data/transform-data.hook.js'
 import type { KeyOfOrDotNotation, MaybeArray } from '../../internal.utils.js'
-import { toArray } from '../../common/index.js'
+import { hasPath, omitPaths, toArray } from '../../common/index.js'
 import type { HookContext } from '@feathersjs/feathers'
 import type { DataSingleHookContext } from '../../utility-types/hook-context.js'
 
@@ -50,7 +48,7 @@ export const preventChanges = <
       for (let i = 0; i < fieldNamesArr.length; i++) {
         const name = fieldNamesArr[i]
 
-        if (_has(item, name)) {
+        if (hasPath(item, name)) {
           const error =
             typeof options.error === 'function'
               ? options.error(item as D, name)
@@ -62,7 +60,7 @@ export const preventChanges = <
         }
       }
     } else {
-      return _omit(item, fieldNamesArr)
+      return omitPaths(item, fieldNamesArr)
     }
 
     return item

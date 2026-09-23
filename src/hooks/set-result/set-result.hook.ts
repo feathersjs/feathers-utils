@@ -1,16 +1,17 @@
-import _get from 'lodash/get.js'
-import _set from 'lodash/set.js'
-import _has from 'lodash/has.js'
 import { copy } from 'fast-copy'
 
 import type { FeathersError } from '@feathersjs/errors'
 import { Forbidden } from '@feathersjs/errors'
 
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
-import type { PropertyPath } from 'lodash'
+import type {
+  PropertyPath,
+  DispatchOption,
+  PredicateItemWithContext,
+} from '../../types.js'
 import { contextToJson } from '../../utils/context-to-json/context-to-json.util.js'
 import { getResultIsArray } from '../../utils/index.js'
-import type { DispatchOption, PredicateItemWithContext } from '../../types.js'
+import { getPath, hasPath, setPathInPlace } from '../../common/index.js'
 
 export interface SetResultOptions {
   /**
@@ -89,14 +90,14 @@ export function setResult<H extends HookContext = HookContext>(
 
     const contextJson = contextToJson(context)
 
-    if (!_has(contextJson, from)) {
+    if (!hasPath(contextJson, from)) {
       if (!context.params?.provider || allowUndefined === true) {
         return context
       }
 
       if (
         !overwrite &&
-        result.every((item: Record<string, unknown>) => _has(item, to))
+        result.every((item: Record<string, unknown>) => hasPath(item, to))
       ) {
         return context
       }
@@ -106,7 +107,7 @@ export function setResult<H extends HookContext = HookContext>(
         : new Forbidden(`Expected field ${from.toString()} not available`)
     }
 
-    const val = _get(contextJson, from)
+    const val = getPath(contextJson, from)
 
     for (let i = 0; i < result.length; i++) {
       const item: Record<string, unknown> = result[i]
@@ -114,11 +115,11 @@ export function setResult<H extends HookContext = HookContext>(
       const currentOverwrite =
         typeof overwrite === 'function' ? overwrite(item, context) : overwrite
 
-      if (!currentOverwrite && _has(item, to)) {
+      if (!currentOverwrite && hasPath(item, to)) {
         continue
       }
 
-      _set(item, to, val)
+      setPathInPlace(item, to, val)
     }
 
     return context

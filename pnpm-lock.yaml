@@ -124,9 +124,6 @@ importers:
       fast-copy:
         specifier: ^4.1.1
         version: 4.1.1
-      lodash:
-        specifier: ^4.18.1
-        version: 4.18.1
       neotraverse:
         specifier: ^0.6.18
         version: 0.6.18
@@ -173,9 +170,6 @@ importers:
       '@tsconfig/node24':
         specifier: ^24.0.5
         version: 24.0.5
-      '@types/lodash':
-        specifier: ^4.17.25
-        version: 4.17.25
       '@types/markdown-it':
         specifier: ^14.2.0
         version: 14.2.0
@@ -1164,9 +1158,6 @@ packages:
 
   '@types/linkify-it@5.0.0':
     resolution: {integrity: sha512-sVDA58zAw4eWAffKOaQH5/5j3XeayukzDk+ewSsnv3p4yJEZHCCzMDiZM8e0OUrRvmpGZ85jf4yDHkHsgBNr9Q==}
-
-  '@types/lodash@4.17.25':
-    resolution: {integrity: sha512-+K1NIO8I+F9/wNulfVvu23QYd0Pe9/OCqRrim4NoYIf1VoEDL90Ve4ClzpyqBLc7NpGGWRvYNCKZ1BE/Jpf8dQ==}
 
   '@types/markdown-it@14.2.0':
     resolution: {integrity: sha512-NoQ2yGlLWj4wpxMs+TYmRKk3thDrQ97agr7sFqfLsAlvoS8SNQuTrlObhFqG9iugdTtgOE9jpJ6FNM4ZGsa5xQ==}
@@ -4554,8 +4545,6 @@ snapshots:
       '@types/node': 25.9.2
 
   '@types/linkify-it@5.0.0': {}
-
-  '@types/lodash@4.17.25': {}
 
   '@types/markdown-it@14.2.0':
     dependencies:

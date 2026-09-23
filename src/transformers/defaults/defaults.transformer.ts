@@ -1,6 +1,5 @@
-import _get from 'lodash/get.js'
-import _set from 'lodash/set.js'
 import type { DefaultsInput } from '../../types.js'
+import { getPath, setPathInPlace } from '../../common/index.js'
 
 /**
  * Sets default values on an item for fields that are `undefined`.
@@ -25,8 +24,8 @@ export function defaults<T extends Record<string, any>>(
   for (let i = 0, len = entries.length; i < len; i++) {
     const [key, value] = entries[i]
 
-    if (_get(item, key) === undefined) {
-      _set(item, key, typeof value === 'function' ? value() : value)
+    if (getPath(item, key) === undefined) {
+      setPathInPlace(item, key, typeof value === 'function' ? value() : value)
     }
   }
 }

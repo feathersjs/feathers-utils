@@ -1,8 +1,6 @@
 import { BadRequest } from '@feathersjs/errors'
-import { toArray } from '../../common/index.js'
+import { getPath, setPathInPlace, toArray } from '../../common/index.js'
 import type { MaybeArray } from '../../internal.utils.js'
-import _get from 'lodash/get.js'
-import _set from 'lodash/set.js'
 import type { FieldKey } from '../../types.js'
 
 /**
@@ -25,13 +23,13 @@ export function parseDate<T extends Record<string, any>>(
 
   for (let i = 0, len = fieldNamesArr.length; i < len; i++) {
     const key = fieldNamesArr[i]
-    const value = _get(item, key)
+    const value = getPath(item, key)
     if (value) {
       const date = new Date(value)
       if (Number.isNaN(date.getTime())) {
         throw new BadRequest(`Expected valid date (parseDate '${key}')`)
       }
-      _set(item, key, date)
+      setPathInPlace(item, key, date)
     }
   }
 }

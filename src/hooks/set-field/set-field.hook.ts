@@ -1,7 +1,5 @@
-import _get from 'lodash/get.js'
-import _setWith from 'lodash/setWith.js'
-import _clone from 'lodash/clone.js'
 import { checkContext } from '../../utils/index.js'
+import { getPath, setPath } from '../../common/index.js'
 import type { FeathersError } from '@feathersjs/errors'
 import { Forbidden } from '@feathersjs/errors'
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
@@ -75,7 +73,7 @@ export const setField = <H extends HookContext = HookContext>({
     checkContext(context, { type: ['before', 'around'], label: 'setField' })
 
     const value =
-      typeof from === 'function' ? from(context) : _get(context, from)
+      typeof from === 'function' ? from(context) : getPath(context, from)
 
     if (value === undefined) {
       if (!params.provider || allowUndefined) {
@@ -89,7 +87,7 @@ export const setField = <H extends HookContext = HookContext>({
     }
 
     for (const target of targets) {
-      _setWith(context, target, value, _clone)
+      setPath(context, target, value)
     }
 
     if (next) return next()

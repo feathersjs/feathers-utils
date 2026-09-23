@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import _omit from 'lodash/omit.js'
 import { gateParams } from './gate-params.util.js'
+import { omitPaths } from '../../common/index.js'
 import { deepFreeze, expectNoSideEffects } from '../../../test/utils/index.js'
 
 describe('gateParams', () => {
@@ -56,7 +56,9 @@ describe('gateParams', () => {
 
   it('drops a nested key while keeping the parent via a projection', () => {
     const params = { query: { userId: 1, _$client: { foo: 1 } } } as any
-    expect(gateParams(params, { query: (q) => _omit(q, '_$client') })).toEqual({
+    expect(
+      gateParams(params, { query: (q) => omitPaths(q, ['_$client']) }),
+    ).toEqual({
       query: { userId: 1 },
     })
   })

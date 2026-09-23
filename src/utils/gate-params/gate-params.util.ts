@@ -1,9 +1,5 @@
 import type { Params } from '@feathersjs/feathers'
-import _get from 'lodash/get.js'
-import _has from 'lodash/has.js'
-import _setWith from 'lodash/setWith.js'
-import _clone from 'lodash/clone.js'
-import _toPath from 'lodash/toPath.js'
+import { getPath, hasPath, setPath, toPath } from '../../common/index.js'
 
 /**
  * A rule for a single schema path.
@@ -29,9 +25,9 @@ export type GateParamsFn<P extends Params = Params> = (
 ) => boolean | undefined | unknown
 
 /**
- * Declarative schema keyed by lodash **paths** in dot-notation
+ * Declarative schema keyed by **paths** in dot-notation
  * (e.g. `'query'`, `'user.id'`, `'authentication.payload.sub'`). Paths are read
- * with lodash `get`/`has`; the result is built with `set` at the same path.
+ * with `getPath`/`hasPath`; the result is built at the same path with `setPath`.
  * Any custom path is allowed.
  */
 export type GateParamsSchema<P extends Params = Params> = Record<
@@ -64,18 +60,11 @@ export type GateParamsOptions<P extends Params = Params> = {
 }
 
 /**
- * Sets `path` on `out`, cloning every object on the way: an earlier path may
- * have put one of params' own objects there (`user` before `user.id`).
- */
-const setPath = (out: Record<string, any>, path: string, value: unknown) =>
-  _setWith(out, path, value, _clone)
-
-/**
  * Selects and/or projects `params` keys according to a declarative path `schema`,
  * returning a NEW object. General-purpose — no cache knowledge. Typically composed
  * into the cache hook's `transformParams` option as `(p) => gateParams(p, schema, opts)`.
  *
- * Paths are resolved with lodash `get`/`has` and written with `set`, so nested
+ * Paths are resolved with `getPath`/`hasPath` and written with `setPath`, so nested
  * values can be picked declaratively (`'user.id': true`).
  *
  * `params` is never mutated: kept values are copied over by reference into the
@@ -110,12 +99,14 @@ export function gateParams<P extends Params = Params>(
   const out: Record<string, any> = {}
   const claimedTop = new Set<string>()
 
-  // schema paths drive inclusion / projection.
+  // schema paths drive inclusion / projection. `setPath` copies every object it
+  // passes, since an earlier path may have put one of params' own objects there
+  // (`user` before `user.id`).
   for (const path of Object.keys(schema)) {
     // A path claims its top-level segment, so a parent whose child was declared
     // is never treated as unknown (e.g. `user.id` claims `user`).
-    const topKey = _toPath(path)[0]
-    if (topKey !== undefined) {
+    const topKey = toPath(path)[0]
+    if (typeof topKey === 'string') {
       claimedTop.add(topKey)
     }
 
@@ -127,11 +118,11 @@ export function gateParams<P extends Params = Params>(
     }
 
     // path not present — nothing to include (no injection)
-    if (!_has(params, path)) {
+    if (!hasPath(params, path)) {
       continue
     }
 
-    const value = _get(params, path)
+    const value = getPath(params, path)
 
     // dynamic predicate / projection
     if (typeof rule === 'function') {
@@ -153,8 +144,8 @@ export function gateParams<P extends Params = Params>(
   // unknown-key handling and prevents accidentally caching across queries.
   if (!claimedTop.has('query')) {
     claimedTop.add('query')
-    if (_has(params, 'query')) {
-      out.query = _get(params, 'query')
+    if (hasPath(params, 'query')) {
+      out.query = getPath(params, 'query')
     }
   }
 

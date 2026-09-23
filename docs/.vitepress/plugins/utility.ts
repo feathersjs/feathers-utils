@@ -3,7 +3,7 @@ import {
   type UtilityOption,
   type UtilityOptionGroup,
 } from '../utilities.js'
-import kebabCase from 'lodash/kebabCase.js'
+import { kebabCase } from '../kebab-case.js'
 
 /**
  * What the generated markdown is for.

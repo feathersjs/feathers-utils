@@ -1,6 +1,5 @@
-import _set from 'lodash/set.js'
 import type { MaybeArray } from '../../internal.utils.js'
-import { toArray } from '../../common/index.js'
+import { setPathInPlace, toArray } from '../../common/index.js'
 import type { FieldKey } from '../../types.js'
 
 /**
@@ -24,6 +23,6 @@ export function setNow<T extends Record<string, any>>(
 
   for (let i = 0, len = fieldNamesArr.length; i < len; i++) {
     const fieldName = fieldNamesArr[i]
-    _set(item, fieldName, now)
+    setPathInPlace(item, fieldName, now)
   }
 }

@@ -90,3 +90,12 @@ export type TransformParamsFn<P extends Params = Params> = (
 ) => P | void
 
 export type DispatchOption = boolean | 'both'
+
+/** A single property name usable as a path segment. */
+export type PropertyName = string | number | symbol
+
+/**
+ * A property path, either as dot/bracket notation (`'user.address[0].city'`) or
+ * as pre-split segments (`['user', 'address', 0, 'city']`).
+ */
+export type PropertyPath = PropertyName | readonly PropertyName[]

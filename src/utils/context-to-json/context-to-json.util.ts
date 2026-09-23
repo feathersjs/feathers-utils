@@ -2,7 +2,7 @@ import type { HookContext } from '@feathersjs/feathers'
 
 /**
  * Converts a FeathersJS HookContext to a plain JSON object by calling `toJSON()` if available.
- * This is important when using lodash `get`/`has` on the context, since the HookContext
+ * This is important when reading the context by path, since the HookContext
  * class uses getters that may not be enumerable.
  *
  * @example
