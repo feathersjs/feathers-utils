@@ -87,11 +87,7 @@
     "CHANGELOG.md",
     "LICENSE",
     "README.md",
-    "src/**",
-    "dist/**",
-    "!src/**/*.md",
-    "!src/**/*.test.ts",
-    "!src/**/*.test-d.ts"
+    "dist/**"
   ],
   "dependencies": {
     "@feathersjs/errors": "^5.0.49",

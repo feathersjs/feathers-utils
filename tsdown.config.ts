@@ -5,7 +5,7 @@ export default defineConfig({
   treeshake: true,
   dts: true,
   clean: true,
-  sourcemap: true,
+  sourcemap: false,
   format: ['esm'],
   external: [
     ...Object.keys(pkg.peerDependencies || {}),
@@ -25,5 +25,9 @@ export default defineConfig({
   },
   define: {
     'import.meta.vitest': 'undefined',
+  },
+  outputOptions: {
+    // JSDoc already ships in the `.d.mts` files, where editors read it
+    comments: { legal: true, annotation: true, jsdoc: false },
   },
 })
