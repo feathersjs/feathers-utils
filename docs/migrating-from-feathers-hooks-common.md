@@ -102,7 +102,7 @@ Nowadays it's recommended to use [resolvers](https://feathersjs.com/api/schema/r
 
 ## `disallow`
 
-The `disallow` hook has been updated to use a more explicit syntax. Instead of using a spread argument, you can now pass a single string or an array of field names to specify which fields should not be allowed in the data or result of a hook call. This change improves clarity and consistency in how disallowed fields are specified.
+The [`disallow`](/hooks/disallow.html) hook no longer takes spread arguments. Pass a single transport name or an array of them (`'socketio'`, `'rest'`, `'external'` or `'server'`). If you call it with no arguments, it still blocks the method for every caller.
 
 ```ts
 // old
@@ -110,7 +110,8 @@ import { disallow } from "feathers-hooks-common";
 
 app.service("my-service").hooks({
   before: {
-    all: [disallow("field1", "field2")],
+    remove: [disallow("socketio", "rest")],
+    update: [disallow()],
   },
 });
 
@@ -119,7 +120,8 @@ import { disallow } from "feathers-utils/hooks";
 
 app.service("my-service").hooks({
   before: {
-    all: [disallow(["field1", "field2"])],
+    remove: [disallow(["socketio", "rest"])],
+    update: [disallow()],
   },
 });
 ```
