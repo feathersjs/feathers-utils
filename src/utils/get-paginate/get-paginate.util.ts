@@ -1,5 +1,4 @@
-import type { PaginationOptions } from '@feathersjs/adapter-commons'
-import type { HookContext } from '@feathersjs/feathers'
+import type { HookContext, PaginationOptions } from '@feathersjs/feathers'
 import { hasOwnProperty } from '../../common/index.js'
 
 /**
