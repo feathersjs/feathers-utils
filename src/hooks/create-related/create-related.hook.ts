@@ -4,6 +4,7 @@ import {
   createMany,
   getResultIsArray,
 } from '../../utils/index.js'
+import { resolveBoolean } from '../../common/index.js'
 import type { MaybeArray, Promisable } from '../../internal.utils.js'
 import type { Multi, PredicateFn } from '../../types.js'
 import type { InferCreateDataSingle } from '../../utility-types/infer-service-methods.js'
@@ -103,7 +104,7 @@ export function createRelated<H extends HookContext = HookContext>(
 
     await Promise.all(
       entries.map(async (entry) => {
-        const { data, service, multi, blocking = true, onError } = entry
+        const { data, service, multi, blocking, onError } = entry
 
         const dataToCreate = (
           await Promise.all(result.map(async (item) => data(item, context)))
@@ -115,8 +116,7 @@ export function createRelated<H extends HookContext = HookContext>(
           return
         }
 
-        const isBlocking =
-          typeof blocking === 'function' ? await blocking(context) : blocking
+        const isBlocking = await resolveBoolean(blocking, context, true)
 
         const promise = createMany(
           context.app,

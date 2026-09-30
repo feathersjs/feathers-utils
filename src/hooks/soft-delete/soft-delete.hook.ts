@@ -2,7 +2,7 @@ import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { addToQuery, checkContext, queryDefaults } from '../../utils/index.js'
 import type { PredicateFn, TransformParamsFn } from '../../types.js'
 import { transformParams } from '../../utils/transform-params/transform-params.util.js'
-import { early, isPromise } from '../../common/index.js'
+import { early, isPromise, resolveBoolean } from '../../common/index.js'
 import type { Promisable } from '../../internal.utils.js'
 
 export type SoftDeleteOptionFunction<H extends HookContext = HookContext> = (
@@ -104,17 +104,18 @@ export const softDelete = <H extends HookContext = HookContext>(
       return
     }
 
-    const { deletedQuery, removeData, allowQueryOverride = true } = options
+    const { deletedQuery, removeData, allowQueryOverride } = options
 
     let deleteQuery = getValue(deletedQuery, context)
     if (isPromise(deleteQuery)) {
       deleteQuery = await deleteQuery
     }
 
-    const allowOverride =
-      typeof allowQueryOverride === 'function'
-        ? await allowQueryOverride(context)
-        : allowQueryOverride
+    const allowOverride = await resolveBoolean(
+      allowQueryOverride,
+      context,
+      true,
+    )
 
     const query = allowOverride
       ? queryDefaults(context.params.query, deleteQuery)

@@ -40,6 +40,9 @@ const defaultStashFunc = (context: HookContext) => {
  * const before = await context.params.stashed()
  * ```
  *
+ * @deprecated Use {@link defineStash} instead. `stashable` starts the fetch
+ * without waiting for it, so the call can overtake a fetch with slow hooks.
+ *
  * @see https://utils.feathersjs.com/hooks/stashable.html
  */
 export function stashable<H extends HookContext = HookContext>(

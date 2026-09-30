@@ -6,6 +6,7 @@ import {
   patchMany,
   removeMany,
 } from '../../utils/index.js'
+import { resolveBoolean } from '../../common/index.js'
 import type { MaybeArray, NeverFallback } from '../../internal.utils.js'
 import type { Multi, PredicateFn } from '../../types.js'
 import type {
@@ -142,7 +143,7 @@ export const onDelete = <H extends HookContext = HookContext>(
     // a handler when it rejects
     const isBlocking = await Promise.all(
       optionsMulti.map(({ blocking }) =>
-        typeof blocking === 'function' ? blocking(context) : blocking,
+        resolveBoolean(blocking, context, false),
       ),
     )
 

@@ -1042,6 +1042,49 @@ describe('recordHooks', function () {
     expect(calls.before.find[0].params.query).toEqual({ name: 'jane' })
   })
 
+  it('snapshot keeps nested arrays as they were, even changed in place later', async function () {
+    const { app, users } = setup()
+    const calls = recordHooks(app, { snapshot: true })
+
+    app.service('users').hooks({
+      before: {
+        find: [
+          (context) => {
+            ;(context.params.query as any).name.$in.push('rewritten')
+          },
+        ],
+      },
+    })
+
+    await users.find({ query: { name: { $in: ['jane'] } } })
+
+    expect(calls.before.find[0].params.query).toEqual({
+      name: { $in: ['jane'] },
+    })
+  })
+
+  it('snapshot keeps class instances by reference, so they keep working', async function () {
+    // like a bson ObjectId: a copy would lose the private state
+    class Id {
+      #hex: string
+      constructor(hex: string) {
+        this.#hex = hex
+      }
+      toString() {
+        return this.#hex
+      }
+    }
+    const { app, users } = setup()
+    const calls = recordHooks(app, { snapshot: true })
+    const owner = new Id('a')
+
+    await users.find({ query: { owner } })
+
+    const recorded = (calls.before.find[0].params.query as any).owner
+    expect(recorded).toBe(owner)
+    expect(String(recorded)).toBe('a')
+  })
+
   it('snapshotting does not write back into the live context', async function () {
     const { app, users } = setup()
     const calls = recordHooks(app, { snapshot: true })
