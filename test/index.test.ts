@@ -15,6 +15,7 @@ const hooks = [
   'disablePagination',
   'disallow',
   'findOrCreate',
+  'FROM_CLIENT_FOR_SERVER_DEFAULT_KEY',
   'iff',
   'iffElse',
   'muteEvent',
