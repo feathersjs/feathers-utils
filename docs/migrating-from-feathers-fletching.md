@@ -327,7 +327,7 @@ app.service("albums").find(addSkip({}, "myHook"));
 
 ## `stashable`
 
-In `feathers-fletching`, `stashable` lazily stashes the pre-mutation state of a record. In `feathers-utils`, [`stashable`](/hooks/stashable.html) eagerly starts the fetch but exposes a memoized function — calling it multiple times only hits the database once.
+In `feathers-fletching`, `stashable` lazily stashes the pre-mutation state of a record. In `feathers-utils`, [`stash` and `stashed`](/utils/define-stash) take its place: `stash` fetches the items before the call and waits for them, `stashed` returns them — paired with the items after the call, once it ran.
 
 ```ts
 // old
@@ -343,25 +343,26 @@ app.service("users").hooks({
 const before = await context.params.stashed();
 
 // new
-import { stashable } from "feathers-utils/hooks";
+import { stash, stashed } from "feathers-utils/utils";
 
 app.service("users").hooks({
   before: {
-    patch: [stashable()],
+    patch: [stash],
   },
 });
 
 // Access in a later hook (before or after):
-const before = await context.params.stashed();
+const [{ before, result }] = await stashed(context);
 ```
 
 ### Key differences
 
-| `feathers-fletching`                       | `feathers-utils`                                                     |
-| ------------------------------------------ | -------------------------------------------------------------------- |
-| Lazy — only fetches when `stashed()` is called | Eager start — fetch begins immediately, result is memoized        |
-| `propName` option (default: `'stashed'`)   | Same — `propName` option (default: `'stashed'`)                      |
-| `stashFunc` option for custom fetch        | Same — `stashFunc` option for custom fetch                           |
+| `feathers-fletching`                           | `feathers-utils`                                                       |
+| ---------------------------------------------- | ---------------------------------------------------------------------- |
+| Lazy — only fetches when `stashed()` is called | `stash` fetches before the call and waits for it                       |
+| `context.params.stashed()`                     | `stashed(context)`, nothing is written to `params`                     |
+| `propName` option (default: `'stashed'`)       | Not needed — every [`defineStash()`](/utils/define-stash) is its own stash |
+| `stashFunc` option for custom fetch            | `transformParams` option of `defineStash` adjusts the params of the fetch |
 
 ## `joinQuery`
 

@@ -188,3 +188,130 @@ describe('zipDataResult', () => {
     )
   })
 })
+
+describe("zipDataResult, by: 'id'", () => {
+  const zip = (data: any, result: any, service?: any) =>
+    zipDataResult(
+      { ...make('after', 'create', data, result), service } as HookContext,
+      { by: 'id' },
+    )
+
+  it('pairs by id, whatever order the result has', () => {
+    const data = [
+      { id: 2, title: 'b' },
+      { id: 1, title: 'a' },
+    ]
+    const result = [
+      { id: 1, title: 'a' },
+      { id: 2, title: 'b' },
+    ]
+
+    expect(zip(data, result)).toStrictEqual([
+      { data: data[0], result: result[1] },
+      { data: data[1], result: result[0] },
+    ])
+  })
+
+  it('pairs data items without an id by their position', () => {
+    const data = [{ title: 'a' }, { title: 'b' }]
+    const result = [
+      { id: 1, title: 'a' },
+      { id: 2, title: 'b' },
+    ]
+
+    expect(zip(data, result)).toStrictEqual([
+      { data: data[0], result: result[0] },
+      { data: data[1], result: result[1] },
+    ])
+  })
+
+  it("doesn't give a data item without an id a result taken by id", () => {
+    const data = [{ id: 5, title: 'a' }, { title: 'b' }]
+    const result = [
+      { id: 1, title: 'b' },
+      { id: 5, title: 'a' },
+    ]
+
+    expect(zip(data, result)).toStrictEqual([
+      { data: data[0], result: result[1] },
+      // its position is taken by the id of the first data item
+      { data: data[1], result: undefined },
+      { data: undefined, result: result[0] },
+    ])
+  })
+
+  it('has no result for an id that is not in the result', () => {
+    const data = [{ id: 3, title: 'c' }]
+    const result = [{ id: 1, title: 'a' }]
+
+    expect(zip(data, result)).toStrictEqual([
+      { data: data[0], result: undefined },
+      { data: undefined, result: result[0] },
+    ])
+  })
+
+  it('gives a result to only one of two data items with the same id', () => {
+    const data = [
+      { id: 1, title: 'a' },
+      { id: 1, title: 'b' },
+    ]
+    const result = [{ id: 1, title: 'a' }]
+
+    expect(zip(data, result)).toStrictEqual([
+      { data: data[0], result: result[0] },
+      { data: data[1], result: undefined },
+    ])
+  })
+
+  it('compares ids as strings', () => {
+    class ObjectId {
+      #hex: string
+      constructor(hex: string) {
+        this.#hex = hex
+      }
+      toString() {
+        return this.#hex
+      }
+    }
+    const data = [{ id: new ObjectId('b') }, { id: new ObjectId('a') }]
+    const result = [{ id: new ObjectId('a') }, { id: new ObjectId('b') }]
+
+    expect(zip(data, result).map(({ result }) => String(result?.id))).toEqual([
+      'b',
+      'a',
+    ])
+  })
+
+  it('uses the id field of the service', () => {
+    const data = [{ _id: 2 }, { _id: 1 }]
+    const result = [{ _id: 1 }, { _id: 2 }]
+
+    expect(zip(data, result, { id: '_id' })).toStrictEqual([
+      { data: data[0], result: result[1] },
+      { data: data[1], result: result[0] },
+    ])
+  })
+
+  it('repeats single data for each result item', () => {
+    const data = { title: 'hello' }
+    const result = [{ id: 1 }, { id: 2 }]
+
+    expect(zip(data, result)).toStrictEqual([
+      { data, result: result[0] },
+      { data, result: result[1] },
+    ])
+  })
+
+  it('calls onMismatch when array lengths differ', () => {
+    const onMismatch = vi.fn()
+    zipDataResult(
+      make('after', 'create', [{ id: 1 }], [{ id: 1 }, { id: 2 }]),
+      {
+        by: 'id',
+        onMismatch,
+      },
+    )
+
+    expect(onMismatch).toHaveBeenCalledTimes(1)
+  })
+})

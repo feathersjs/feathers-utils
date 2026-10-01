@@ -1,7 +1,6 @@
-import { copy } from 'fast-copy'
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import type { HookType, MethodName, PredicateContextSync } from '../../types.js'
-import { toArray } from '../../common/index.js'
+import { snapshot as snapshotOf, toArray } from '../../common/index.js'
 import {
   isContext,
   type IsContextOptions,
@@ -55,9 +54,11 @@ export type RecordHooksOptions = {
   id?: IsContextOptions['id']
   /**
    * Record a snapshot instead of the live context, so later hooks cannot
-   * rewrite what was recorded. `data`, `result` and `params.query` are copied;
-   * `app`, `service` and the rest of `params` stay by reference, because deep
-   * copying those would clone the whole application.
+   * rewrite what was recorded. The plain objects and arrays of `data`,
+   * `result` and `params.query` are copied; class instances in them - dates,
+   * bson `ObjectId`s - stay by reference, since a copy would lose their
+   * private state. `app`, `service` and the rest of `params` stay by reference,
+   * because deep copying those would clone the whole application.
    *
    * @default false
    */
@@ -268,16 +269,16 @@ const snapshotContext = (context: HookContext): HookContext => {
   if (context.params) {
     snapshot.params = { ...context.params }
     if (context.params.query) {
-      snapshot.params.query = copy(context.params.query)
+      snapshot.params.query = snapshotOf(context.params.query)
     }
   }
 
   if (context.data !== undefined) {
-    snapshot.data = copy(context.data)
+    snapshot.data = snapshotOf(context.data)
   }
 
   if (context.result !== undefined) {
-    snapshot.result = copy(context.result)
+    snapshot.result = snapshotOf(context.result)
   }
 
   return snapshot

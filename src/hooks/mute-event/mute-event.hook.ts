@@ -1,4 +1,5 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
+import { resolveBoolean } from '../../common/index.js'
 import type { PredicateFn } from '../../types.js'
 
 export type MuteEventOptions<H extends HookContext = HookContext> = {
@@ -42,10 +43,7 @@ export const muteEvent = <H extends HookContext = HookContext>(
   const when = options?.when
 
   return async (context: H, next?: NextFunction): Promise<void> => {
-    const should =
-      typeof when === 'function' ? await when(context) : (when ?? true)
-
-    if (should) {
+    if (await resolveBoolean(when, context, true)) {
       context.event = null
     }
 

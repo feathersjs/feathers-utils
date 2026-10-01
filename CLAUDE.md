@@ -31,8 +31,12 @@ sibling files named `<name>.<kind>.*` where `kind` ∈
 
 ## Docs (VitePress)
 
-Auto-discovered from `src/**/*.md`; the prose body is generated from the sibling
-`.ts` file's JSDoc — keep `@example`/`@see` authoritative there. Frontmatter:
+Auto-discovered from `src/**/*.md`. A page renders the sibling `.ts` file's JSDoc
+description, then its `@example`s as `## Example`, then the `.md` body. The JSDoc
+is the single source of truth for the intro and the main example — keep
+`@example`/`@see` authoritative there. So the `.md` body opens with the first
+topic the JSDoc doesn't cover (details, edge cases, migration); an intro or
+example written there shows up twice on the page. Frontmatter:
 
 ```yaml
 ---

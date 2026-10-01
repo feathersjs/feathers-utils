@@ -366,7 +366,7 @@ import { some } from "feathers-utils/predicates";
 
 ## `stashBefore`
 
-The `stashBefore` hook has been renamed to [`stashable`](/hooks/stashable.html). Instead of eagerly fetching and storing the result directly on `context.params.before`, it now exposes a memoized function that returns a promise. The fetch starts immediately but multiple calls to `stashed()` only hit the database once.
+The `stashBefore` hook is replaced by [`stash` and `stashed`](/utils/define-stash). Instead of storing the result on `context.params.before`, `stash` keeps the items per call, and `stashed` returns them — paired with the items after the call, once it ran.
 
 ```ts
 // old
@@ -382,19 +382,19 @@ app.service("users").hooks({
 const before = context.params.before;
 
 // new
-import { stashable } from "feathers-utils/hooks";
+import { stash, stashed } from "feathers-utils/utils";
 
 app.service("users").hooks({
   before: {
-    patch: [stashable()],
+    patch: [stash],
   },
 });
 
-// Access via memoized function:
-const before = await context.params.stashed();
+// Access via the context:
+const [{ before }] = await stashed(context);
 ```
 
-The default property name changed from `before` to `stashed`. You can restore the old name with `stashable({ propName: 'before' })`.
+Nothing is written to `params`, so concurrent calls with one `params` object and nested calls with `{ ...context.params }` don't see each other's stash.
 
 ## `traverse`
 

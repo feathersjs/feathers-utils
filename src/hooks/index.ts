@@ -30,6 +30,7 @@ export * from './transform-data/transform-data.hook.js'
 export * from './transform-query/transform-query.hook.js'
 export * from './transform-result/transform-result.hook.js'
 export * from './traverse/traverse.hook.js'
+export * from './trigger/trigger.hook.js'
 export * from './unless/unless.hook.js'
 
 export { resolveData } from '../resolvers/resolve-data/resolve-data.js'
