@@ -3,7 +3,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { paramsFromClient } from './params-from-client.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 describe('paramsFromClient', () => {
   it('should move params to query._$client', () => {
@@ -140,9 +140,12 @@ describe('paramsFromClient', () => {
   it('does not mutate params', async () => {
     const params = await expectNoSideEffects(
       { query: { name: 'Jane', _$client: { populate: true } } },
-      (params) => {
-        const context = { params } as unknown as HookContext
-        paramsFromClient('populate')(context)
+      async (params) => {
+        const context = await runHook(paramsFromClient('populate'), {
+          type: 'before',
+          method: 'find',
+          params,
+        })
         return context.params
       },
     )

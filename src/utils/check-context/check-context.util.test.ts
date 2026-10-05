@@ -2,7 +2,7 @@ import { expect } from 'vitest'
 
 import { checkContext } from './check-context.util.js'
 import type { HookContext } from '@feathersjs/feathers'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 const make = (type: any, method: any) => ({ type, method }) as HookContext
 
@@ -198,6 +198,41 @@ describe('util checkContext', () => {
         }),
       ).toThrow(
         "The 'myHook' hook has invalid context (type: expected 'before' | 'around' but got 'after', method: expected 'create' but got 'patch').",
+      )
+    })
+
+    it('leaves the criteria that match out of the error message', () => {
+      expect(() =>
+        checkContext(make('error', 'create'), {
+          type: ['before', 'after'],
+          method: ['create', 'patch'],
+          label: 'myHook',
+        }),
+      ).toThrow(
+        "The 'myHook' hook has invalid context (type: expected 'before' | 'after' but got 'error').",
+      )
+
+      expect(() =>
+        checkContext(
+          make('before', 'find'),
+          'before',
+          ['create', 'patch'],
+          'myHook',
+        ),
+      ).toThrow(
+        "The 'myHook' hook has invalid context (method: expected 'create' | 'patch' but got 'find').",
+      )
+    })
+
+    it('shows an expected null id in error message', () => {
+      expect(() =>
+        checkContext({ ...make('before', 'patch'), id: 1 } as HookContext, {
+          method: 'patch',
+          id: null,
+          label: 'myHook',
+        }),
+      ).toThrow(
+        "The 'myHook' hook has invalid context (id: expected 'null' but got '1').",
       )
     })
   })

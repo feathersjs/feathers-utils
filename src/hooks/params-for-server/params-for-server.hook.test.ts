@@ -3,7 +3,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { paramsForServer } from './params-for-server.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 describe('paramsForServer', () => {
   it('should move params to query._$client', () => {
@@ -76,9 +76,12 @@ describe('paramsForServer', () => {
         user: { id: 1 },
         query: { name: 'Jane', _$client: { existing: true } },
       },
-      (params) => {
-        const context = { params } as unknown as HookContext
-        paramsForServer('user')(context)
+      async (params) => {
+        const context = await runHook(paramsForServer('user'), {
+          type: 'before',
+          method: 'find',
+          params,
+        })
         return context.params
       },
     )

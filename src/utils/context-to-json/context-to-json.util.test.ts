@@ -1,6 +1,6 @@
 import type { HookContext } from '@feathersjs/feathers'
 import { contextToJson } from './context-to-json.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('util contextToJson', () => {
   it('returns what toJSON() returns', () => {

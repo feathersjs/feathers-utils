@@ -4,7 +4,7 @@ import type { HookContext, Params } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { Multi } from '../../types.js'
 import { patchMany } from './patch-many.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 type Todo = {
   id: number

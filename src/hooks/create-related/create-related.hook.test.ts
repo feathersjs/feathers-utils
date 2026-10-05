@@ -3,7 +3,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { createRelated } from './create-related.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 type MockAppOptions = {
   multi?: boolean
@@ -770,16 +770,20 @@ describe('hook - createRelated', function () {
           'profiles',
           new MemoryService({ multi: true }),
         )
-        await createRelated({
-          service: 'profiles',
-          data: (user: any) => ({ userId: user.id }),
-        })({
-          app,
-          type: 'after',
-          method: 'create',
-          params,
-          result: { id: 1 },
-        } as any)
+        await runHook(
+          createRelated({
+            service: 'profiles',
+            data: (user: any) => ({ userId: user.id }),
+          }),
+          {
+            type: 'after',
+            method: 'create',
+            data: { name: 'Jane' },
+            params,
+            result: { id: 1 },
+            app,
+          },
+        )
         return app.service('profiles').find({ paginate: false } as any)
       },
     )

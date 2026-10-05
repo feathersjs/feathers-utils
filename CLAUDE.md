@@ -29,6 +29,23 @@ sibling files named `<name>.<kind>.*` where `kind` ∈
   stripped from the build.
 - `src/internal.utils.ts` — internal helpers/types, not public API.
 
+## Performance
+
+Hooks and utils run on the **hot path** of every service call, so performance
+outranks brevity. Write the plain form:
+
+- **One pass**: a `for` loop that filters, maps and checks in one go — each
+  `filter`/`map`/`flatMap` of a chain builds an array of its own.
+- Look up in a `Set`/`Map` instead of nesting `some`/`includes` scans.
+- Compute what depends only on the options once, in the hook's factory, not
+  per call; compare in place (`indexOf`, `isPathWithin`) instead of building
+  strings or arrays to compare.
+- Copy only the objects you change (`setPath` copies just the objects on its
+  path); return the input itself when nothing changed.
+- One query per call, not per item (`$in`/`$or`), selecting only the fields
+  needed; fetches of a call's items go through `call-fetches.ts`, so hooks
+  share them.
+
 ## Docs (VitePress)
 
 Auto-discovered from `src/**/*.md`. A page renders the sibling `.ts` file's JSDoc
@@ -70,10 +87,10 @@ see: # optional cross-links
   — update its lists when adding/removing an export.
 - **Params belong to the caller.** A hook changes them by assigning a new
   `context.params` (`{ ...context.params, query }`); a dot-path write goes
-  through `_setWith(target, path, value, _clone)`, so every nested object on the
-  path is copied. Every hook/util test file carries a `does not mutate …` test
-  built on `expectNoSideEffects` from `test/utils/index.ts` (shared test
-  helpers, kept outside `src` so they never reach the build).
+  through `setPath` from `common`, so every nested object on the path is
+  copied. Every hook/util test file carries a `does not mutate …` test
+  built on `expectNoSideEffects`, imported from `../../testing/index.js` — the
+  public `./testing` helper, so the tests use what users get.
 
 ## Lint / format
 

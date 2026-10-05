@@ -4,7 +4,7 @@ import { MemoryService } from '@feathersjs/memory'
 import { BadRequest } from '@feathersjs/errors'
 import { preventChanges } from './prevent-changes.hook.js'
 import { clone } from '../../common/index.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 type User = {
   id: number
@@ -202,14 +202,13 @@ describe('preventChanges', () => {
     const data = await expectNoSideEffects(
       { query: { name: 'Jane' } },
       async (params) => {
-        const context = {
+        const context = await runHook(preventChanges('role'), {
           type: 'before',
           method: 'patch',
           id: 1,
-          params,
           data: { name: 'Jane', role: 'admin' },
-        } as any
-        await preventChanges('role')(context)
+          params,
+        })
         return context.data
       },
     )

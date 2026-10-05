@@ -16,6 +16,7 @@ const hooks = [
   'disallow',
   'findOrCreate',
   'FROM_CLIENT_FOR_SERVER_DEFAULT_KEY',
+  'generated',
   'iff',
   'iffElse',
   'muteEvent',
@@ -45,6 +46,7 @@ const hooks = [
   'traverse',
   'trigger',
   'unless',
+  'unique',
   'when',
 ] satisfies (keyof typeof exportedHooks)[]
 
@@ -59,10 +61,13 @@ const utils = [
   'defineHooks',
   'defineStash',
   'dotifyQuery',
+  'findAll',
   'eqOrIn',
   'gateParams',
   'getDataIsArray',
   'getExposedMethods',
+  'getIdField',
+  'getMergedData',
   'getPaginate',
   'getResultIsArray',
   'iterateFind',
@@ -102,6 +107,7 @@ const predicates = [
   'some',
   'isContext',
   'isPaginated',
+  'isSelected',
   'shouldSkip',
   // re-export hooks
   'iff',
@@ -131,7 +137,12 @@ const transformers = [
 
 // `testing` is deliberately absent from the root barrel — it is test-only code
 // and should not ride along in a production bundle.
-const testing = ['recordHooks'] satisfies (keyof typeof exportedTesting)[]
+const testing = [
+  'deepFreeze',
+  'expectNoSideEffects',
+  'recordHooks',
+  'runHook',
+] satisfies (keyof typeof exportedTesting)[]
 
 describe('expose', () => {
   it('expose all hooks', () => {

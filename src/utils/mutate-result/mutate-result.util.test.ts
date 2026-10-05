@@ -1,6 +1,6 @@
 import { expect } from 'vitest'
 import { mutateResult } from './mutate-result.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('mutateResult', () => {
   it("mutates context.result on paginated 'find'", async () => {

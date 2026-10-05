@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { HookContext } from '@feathersjs/feathers'
 import { setQueryDefaults } from './set-query-defaults.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 const ctx = (query?: any): HookContext =>
   ({ type: 'before', method: 'find', params: { query } }) as any
@@ -60,13 +60,12 @@ describe('setQueryDefaults', () => {
   it('does not mutate params', async () => {
     const params = await expectNoSideEffects(
       { query: { name: 'Jane', $or: [{ a: 1 }] } },
-      (params) => {
-        const context = {
+      async (params) => {
+        const context = await runHook(setQueryDefaults({ isTemplate: false }), {
           type: 'before',
           method: 'find',
           params,
-        } as HookContext
-        setQueryDefaults({ isTemplate: false })(context)
+        })
         return context.params
       },
     )

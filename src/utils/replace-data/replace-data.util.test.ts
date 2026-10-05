@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { HookContext } from '@feathersjs/feathers'
 import { replaceData } from './replace-data.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 const ctx = (data: any): HookContext =>
   ({ type: 'before', method: 'create', data }) as any

@@ -2,7 +2,7 @@ import type { Params } from '@feathersjs/feathers'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { iterateFind } from './iterate-find.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 type User = {
   id: number

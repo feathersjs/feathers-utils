@@ -3,7 +3,7 @@ import type { Application, HookContext } from '@feathersjs/feathers'
 import { zipDataResult } from './zip-data-result.util.js'
 import type { ZipDataResultItem } from './zip-data-result.util.js'
 import type { MemoryService } from '@feathersjs/memory'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 const make = (type: any, method: any, data: any, result: any) =>
   ({ type, method, data, result }) as HookContext

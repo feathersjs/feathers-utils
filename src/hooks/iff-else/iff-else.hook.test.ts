@@ -5,7 +5,7 @@ import { iffElse } from './iff-else.hook.js'
 import { or } from '../../predicates/or/or.predicate.js'
 import { and } from '../../predicates/and/and.predicate.js'
 import { clone } from '../../common/index.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 let hook: any
 let hookBefore: any
@@ -277,12 +277,11 @@ describe('services iffElse', () => {
     const params = await expectNoSideEffects(
       { query: { name: 'Jane' } },
       async (params) => {
-        const context = {
+        const context = await runHook(iffElse(false, [], [populate]), {
           type: 'before',
           method: 'find',
           params,
-        } as HookContext
-        await iffElse(false, [], [populate])(context)
+        })
         return context.params
       },
     )

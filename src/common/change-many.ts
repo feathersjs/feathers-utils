@@ -1,15 +1,16 @@
 import type { Params } from '@feathersjs/feathers'
 import type { Multi } from '../types.js'
 import { allowsMulti } from './allows-multi.js'
+import { findAllOf } from './find-all.js'
 import { toArray } from './to-array.js'
-import { unpaginate } from '../utils/unpaginate/unpaginate.util.js'
+import { getIdField } from '../utils/get-id-field/get-id-field.util.js'
 
 /**
  * The query selects *which* items are affected. It is consumed by the `find`
  * of the per-item fallback and must not be forwarded to the per-item calls -
  * only `$select` is kept, so both paths return the same shape.
  */
-const toSingleParams = (params: Params | undefined): Params => {
+export const toSingleParams = (params: Params | undefined): Params => {
   const { query, ...rest } = params ?? {}
 
   if (!query?.$select) {
@@ -58,10 +59,9 @@ export const changeMany = async (
     return toArray(result)
   }
 
-  const idProperty: string = service.id ?? 'id'
+  const idProperty = getIdField(service)
 
-  const found = await service.find(toFindParams(params, idProperty))
-  const items: any[] = unpaginate(found)
+  const items = await findAllOf(service, toFindParams(params, idProperty))
 
   if (!items.length) {
     return []

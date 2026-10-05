@@ -3,7 +3,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { transformResult } from './transform-result.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 let hookAfter: any
 let hookFindPaginate: any
@@ -287,13 +287,16 @@ describe('transformResult', () => {
     const result = await expectNoSideEffects(
       { query: { name: 'Jane' } },
       async (params) => {
-        const context = {
-          type: 'after',
-          method: 'get',
-          params,
-          result: { name: 'Jane', password: 'secret' },
-        } as any
-        await transformResult((item: any) => ({ name: item.name }))(context)
+        const context = await runHook(
+          transformResult((item: any) => ({ name: item.name })),
+          {
+            type: 'after',
+            method: 'get',
+            id: 1,
+            params,
+            result: { name: 'Jane', password: 'secret' },
+          },
+        )
         return context.result
       },
     )

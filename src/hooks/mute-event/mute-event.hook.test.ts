@@ -2,7 +2,7 @@ import type { HookContext } from '@feathersjs/feathers'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { muteEvent } from './mute-event.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 type User = { id: number; name: string }
 
@@ -121,12 +121,12 @@ describe('muteEvent', () => {
     const event = await expectNoSideEffects(
       { query: { name: 'Jane' } },
       async (params) => {
-        const context = {
+        const context = await runHook(muteEvent(), {
           type: 'before',
           method: 'create',
+          data: { name: 'Jane' },
           params,
-        } as HookContext
-        await muteEvent()(context)
+        })
         return context.event
       },
     )
