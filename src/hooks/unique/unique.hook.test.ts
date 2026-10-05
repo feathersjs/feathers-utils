@@ -114,6 +114,17 @@ describe('unique', () => {
       expect(find).not.toHaveBeenCalled()
     })
 
+    it('fetches the whole items with select: false', async () => {
+      const { users, find } = await setup({
+        fields: ['tenantId', 'email'],
+        select: false,
+      })
+
+      await users.patch(1, { email: 'anna@x.de' })
+
+      expect(find).toHaveBeenCalledWith({ query: { id: 1 }, paginate: false })
+    })
+
     it('does not count the item against itself', async () => {
       const { users } = await setup()
 

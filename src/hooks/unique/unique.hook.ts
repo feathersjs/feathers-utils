@@ -91,6 +91,15 @@ export type UniqueOptions<
    * @default true
    */
   underscore?: boolean
+  /**
+   * Whether the fetch of the stored items selects only the fields it needs.
+   * With `false`, it fetches the whole items - which `stash`, `trigger` and
+   * the other hooks of the call reuse, so a chain that needs them later
+   * fetches only once. See {@link getMergedData}.
+   *
+   * @default true
+   */
+  select?: boolean
 }
 
 /**
@@ -200,7 +209,9 @@ export function unique<
       return
     }
 
-    const items = await getMergedData<T>(context, read as FieldKey<T>[])
+    const items = await getMergedData<T>(context, read as FieldKey<T>[], {
+      select: options.select,
+    })
 
     // one pass: the items the call changes, those of them in the index,
     // duplicates among them, and what to look for among the stored items - a

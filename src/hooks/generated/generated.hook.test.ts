@@ -203,6 +203,14 @@ describe('generated', () => {
         })
       })
 
+      it('fetches the whole items with select: false', async () => {
+        const { users, find } = await setup(registration, { select: false })
+
+        await users.patch(1, { firstName: 'Anne' })
+
+        expect(find).toHaveBeenCalledWith({ query: { id: 1 }, paginate: false })
+      })
+
       it('does not compute when the from fields stay as they are', async () => {
         const { users, generate } = await setup(registration)
 

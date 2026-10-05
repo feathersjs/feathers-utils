@@ -1,6 +1,5 @@
 import type { HookContext, Id } from '@feathersjs/feathers'
 import {
-  findAllOf,
   hasAllOwnProperties,
   pathsOverlap,
   pickPaths,
@@ -10,12 +9,19 @@ import {
 import type { MaybeArray } from '../../internal.utils.js'
 import type { FieldKey } from '../../types.js'
 import { checkContext } from '../check-context/check-context.util.js'
-import { getIdField } from '../get-id-field/get-id-field.util.js'
-import {
-  fetchShared,
-  getCallFetches,
-  paramsBefore,
-} from '../define-stash/call-fetches.js'
+import { fetchStored } from '../define-stash/call-fetches.js'
+
+export type GetMergedDataOptions = {
+  /**
+   * Whether the fetch selects only the id and what the fields are part of.
+   * With `false`, it fetches the whole items - which `stash`, `trigger` and
+   * the other hooks of the call reuse, so a chain that needs them later
+   * fetches only once.
+   *
+   * @default true
+   */
+  select?: boolean
+}
 
 export type MergedData<T = any> = {
   /**
@@ -56,12 +62,13 @@ export type MergedData<T = any> = {
  * When it fetched, each entry also holds the fields as they are `stored`, to
  * tell whether the call changes them.
  *
- * The fetch only selects the id and the top-level properties of the fields.
- * It is shared with {@link defineStash}: a fetch of the call that has all of
- * them is reused - one of `stash` or `trigger`, which fetch whole items, or of
- * another `getMergedData`. So register `stash` or `trigger` first to fetch
- * only once. Use it in a `before` hook, or in an `around` hook before
- * `next()`.
+ * The fetch only selects the id and the top-level properties of the fields,
+ * or the whole items with `select: false`. It is shared with
+ * {@link defineStash}: a fetch of the call that has all of them is reused -
+ * one of `stash` or `trigger`, which fetch whole items, or of another
+ * `getMergedData`. So to fetch only once, register `stash` or `trigger`
+ * first, or fetch the whole items here already. Use it in a `before` hook, or
+ * in an `around` hook before `next()`.
  *
  * @example
  * ```ts
@@ -88,7 +95,11 @@ export type MergedData<T = any> = {
 export async function getMergedData<
   T = any,
   H extends HookContext = HookContext,
->(context: H, fields: MaybeArray<FieldKey<T>>): Promise<MergedData<T>[]> {
+>(
+  context: H,
+  fields: MaybeArray<FieldKey<T>>,
+  options?: GetMergedDataOptions,
+): Promise<MergedData<T>[]> {
   checkContext(context, {
     type: ['before', 'around'],
     method: ['create', 'update', 'patch'],
@@ -120,19 +131,11 @@ export async function getMergedData<
     return [{ id: context.id, data: pickPaths(data, paths) as Partial<T> }]
   }
 
-  // only the id and what the fields are part of - adapters like knex can't
-  // select a nested path
-  const idField = getIdField(context.service)
-  const params = paramsBefore(context)
-  const $select = properties.includes(idField)
-    ? properties
-    : [idField, ...properties]
-
-  const items = await fetchShared(
-    getCallFetches(context).before,
-    { ...params, query: { ...params.query, $select } },
-    (params) => findAllOf(context.service, params),
-    idField,
+  // only what the fields are part of - adapters like knex can't select a
+  // nested path
+  const items = await fetchStored(
+    context,
+    options?.select === false ? undefined : properties,
   )
 
   return Array.from(items.values(), ({ id, item }) => ({
