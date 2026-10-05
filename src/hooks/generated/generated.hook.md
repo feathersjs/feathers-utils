@@ -26,7 +26,7 @@ see:
 | `patch` whose `data` has all `from` fields | `data`, once for all items                 | none                                        |
 | any other `patch`                          | `data` merged over the stored items        | one, [shared](/utils/get-merged-data) with `stash` and `trigger` |
 
-If the stored items were fetched and no item's `from` fields change, e.g. because a form sends all fields, `generate` is not called and the stored generated fields stay. Once one item changes, all items of the call are computed, so that equal values can still share a write.
+If the stored items were fetched and no item's `from` fields change, e.g. because a form sends all fields, `generate` is not called and the stored generated fields stay. Once one item changes, all items of the call are computed, so that equal values can still share a write. Values are compared by content - a bson `ObjectId` as well; a class that keeps its value in `#private` fields would look unchanged.
 
 `generate` gets only the `from` fields of each item. A field it needs must be in `from`, also so that a `patch` of it recomputes the generated fields.
 

@@ -5,7 +5,8 @@ import {
   changesTopLevel,
   findAllOf,
   getPath,
-  isEqual,
+  isDeepEqual,
+  isUnchanged,
   isPlainObject,
   pickPaths,
   toArray,
@@ -91,6 +92,15 @@ export type UniqueOptions<
    * @default true
    */
   underscore?: boolean
+  /**
+   * Whether the fetch of the stored items selects only the fields it needs.
+   * With `false`, it fetches the whole items - which `stash`, `trigger` and
+   * the other hooks of the call reuse, so a chain that needs them later
+   * fetches only once. See {@link getMergedData}.
+   *
+   * @default true
+   */
+  select?: boolean
 }
 
 /**
@@ -153,7 +163,9 @@ export function unique<
   /** whether the item is in the index */
   const inWhere = (data: Record<string, any>) => {
     for (const key of whereFields) {
-      if (!isEqual(getPath(data, key) ?? null, where[key] ?? null)) return false
+      if (!isDeepEqual(getPath(data, key) ?? null, where[key] ?? null)) {
+        return false
+      }
     }
     return true
   }
@@ -200,7 +212,9 @@ export function unique<
       return
     }
 
-    const items = await getMergedData<T>(context, read as FieldKey<T>[])
+    const items = await getMergedData<T>(context, read as FieldKey<T>[], {
+      select: options.select,
+    })
 
     // one pass: the items the call changes, those of them in the index,
     // duplicates among them, and what to look for among the stored items - a
@@ -211,7 +225,7 @@ export function unique<
     for (const { id, data, stored } of items) {
       // unchanged, it was checked when it got these values - and stays a
       // stored item the others are checked against
-      if (stored && isEqual(data, stored)) continue
+      if (isUnchanged(data, stored)) continue
       if (id !== undefined) changing.push(id)
 
       if (!inWhere(data)) continue

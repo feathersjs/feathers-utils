@@ -1,6 +1,7 @@
 ---
 title: getMergedData
 category: utils
+options: GetMergedDataOptions
 tags:
   - data
   - multi

@@ -1,9 +1,11 @@
 import type { HookContext, Id, Params } from '@feathersjs/feathers'
+import { findAllOf } from '../../common/find-all.js'
 import { isEqual } from '../../common/is-equal.js'
 import { selectCovers } from '../../common/select-covers.js'
 import { snapshot } from '../../common/snapshot.js'
 import { addToQuery } from '../add-to-query/add-to-query.util.js'
 import { getIdField } from '../get-id-field/get-id-field.util.js'
+import { getResultIsArray } from '../get-result-is-array/get-result-is-array.util.js'
 
 export type ItemsById = Map<string, { id: Id; item: any }>
 
@@ -115,4 +117,60 @@ export const fetchShared = (
   const items = fetch(snapshot(params)).then((items) => byId(items, idField))
   fetches.push({ params: snapshotOfParams, items })
   return items
+}
+
+/**
+ * The items of the call as they are stored before it, fetched once per call:
+ * with `properties`, only those and the id are selected, without them the
+ * whole items - a fetch every other one of the call can reuse
+ */
+export const fetchStored = (
+  context: HookContext,
+  properties?: readonly string[],
+): Promise<ItemsById> => {
+  const idField = getIdField(context.service)
+  const params = paramsBefore(context)
+
+  return fetchShared(
+    getCallFetches(context).before,
+    properties
+      ? {
+          ...params,
+          query: {
+            ...params.query,
+            $select: properties.includes(idField)
+              ? properties
+              : [idField, ...properties],
+          },
+        }
+      : params,
+    (params) => findAllOf(context.service, params),
+    idField,
+  )
+}
+
+/**
+ * The items of the result, with `properties` - fetched again by id with only
+ * those if the `$select` of the call left one of them out
+ */
+export const resultWith = async (
+  context: HookContext,
+  properties: readonly string[],
+): Promise<any[]> => {
+  const { result } = getResultIsArray(context)
+  const idField = getIdField(context.service)
+  if (
+    !result.length ||
+    selectCovers(context.params.query?.$select, properties, idField)
+  ) {
+    return result
+  }
+
+  return await findAllOf(context.service, {
+    ...context.params,
+    query: {
+      [idField]: { $in: result.map((item: any) => item[idField]) },
+      $select: [idField, ...properties],
+    },
+  })
 }

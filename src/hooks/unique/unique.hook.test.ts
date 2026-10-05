@@ -114,6 +114,17 @@ describe('unique', () => {
       expect(find).not.toHaveBeenCalled()
     })
 
+    it('fetches the whole items with select: false', async () => {
+      const { users, find } = await setup({
+        fields: ['tenantId', 'email'],
+        select: false,
+      })
+
+      await users.patch(1, { email: 'anna@x.de' })
+
+      expect(find).toHaveBeenCalledWith({ query: { id: 1 }, paginate: false })
+    })
+
     it('does not count the item against itself', async () => {
       const { users } = await setup()
 
@@ -234,6 +245,26 @@ describe('unique', () => {
       await expect(users.patch(5, { deletedAt: null })).rejects.toBeInstanceOf(
         Conflict,
       )
+    })
+
+    it('compares where with class instances by content', async () => {
+      class Id {
+        constructor(public buffer: string) {}
+      }
+      const service = {
+        find: async () => [],
+        _find: async () => [{ id: 9, email: 'a@x.de' }],
+        create: async (data: any) => data,
+      }
+
+      await expect(
+        runHook(unique({ fields: 'email', where: { tenantId: new Id('t') } }), {
+          type: 'before',
+          method: 'create',
+          data: { email: 'a@x.de', tenantId: new Id('t') },
+          service,
+        }),
+      ).rejects.toBeInstanceOf(Conflict)
     })
 
     it('does not check items with a null field, like a unique index', async () => {

@@ -212,6 +212,28 @@ describe('getMergedData', () => {
     expect(find).toHaveBeenCalledOnce()
   })
 
+  it('fetches the whole items with select: false, for later hooks to reuse', async () => {
+    const { users, find } = await setup()
+
+    await runHook(
+      async (context: HookContext) => {
+        await getMergedData(context, 'lastName', { select: false })
+        // needs the whole items - and gets them from the same fetch
+        await stash(context)
+      },
+      {
+        type: 'before',
+        method: 'patch',
+        id: 1,
+        data: { firstName: 'Anne' },
+        service: users,
+      },
+    )
+
+    expect(find).toHaveBeenCalledOnce()
+    expect((find.mock.calls[0]![0] as any).query).not.toHaveProperty('$select')
+  })
+
   it('reuses a fetch with more fields, but not one with fewer', async () => {
     const { users, find } = await setup()
     const patch = (hook: (context: HookContext) => Promise<unknown>) =>

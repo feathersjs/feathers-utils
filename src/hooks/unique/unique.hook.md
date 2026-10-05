@@ -31,7 +31,7 @@ see:
 
 ## What It Checks
 
-Only the items whose values change. If the stored items were fetched anyway, an item whose `fields` and `where` fields stay as they are is skipped - it was checked when it got them - and stays among the stored items the others are checked against. If no item changes, nothing is queried.
+Only the items whose values change. If the stored items were fetched anyway, an item whose `fields` and `where` fields stay as they are is skipped - it was checked when it got them - and stays among the stored items the others are checked against. If no item changes, nothing is queried. Values are compared by content - a bson `ObjectId` as well; a class that keeps its value in `#private` fields would look unchanged.
 
 - **The items of the call among themselves**: two items of a multi `create`, or a multi `patch` that gives several items the same values.
 - **The stored items**, apart from those the call changes: one query for all items of the call, with the `_find` of the adapter, so the hooks of `find` don't hide conflicts. It gets the params of the call without its `provider`, so a transaction passed in `params` covers it. With `underscore: false`, and for a service without `_find`, it is queried with `find`, through the hooks of the service.

@@ -37,6 +37,23 @@ export const isDeepEqual = (a: unknown, b: unknown): boolean =>
   compare(a, b, new Map(), true)
 
 /**
+ * Whether the fields of an item keep their stored values - `data` and
+ * `stored` as {@link getMergedData} returns them, compared by content with
+ * {@link isDeepEqual}. Without `stored`, the fields weren't fetched, so they
+ * count as changed. A class that keeps its value in `#private` fields looks
+ * unchanged to it.
+ *
+ * @example
+ * ```ts
+ * for (const { data, stored } of await getMergedData(context, fields)) {
+ *   if (isUnchanged(data, stored)) continue
+ * }
+ * ```
+ */
+export const isUnchanged = (data: unknown, stored: unknown): boolean =>
+  stored !== undefined && isDeepEqual(data, stored)
+
+/**
  * `comparing` holds the pairs up the stack: meeting one of them again means a
  * self-reference, which is equal as far as the rest of both values is.
  * `byContent` compares class instances, maps and sets by content instead of
@@ -187,6 +204,21 @@ if (import.meta.vitest) {
       expect(isEqual(a, cyclic({ n: 1 }))).toBe(true)
       expect(isEqual(a, cyclic({ n: 2 }))).toBe(false)
       expect(isEqual({ a }, { a: cyclic({ n: 2 }) })).toBe(false)
+    })
+  })
+
+  describe('isUnchanged', () => {
+    class Id {
+      constructor(public buffer: string) {}
+    }
+
+    it('compares data and stored by content', () => {
+      expect(isUnchanged({ id: new Id('a') }, { id: new Id('a') })).toBe(true)
+      expect(isUnchanged({ id: new Id('a') }, { id: new Id('b') })).toBe(false)
+    })
+
+    it('counts fields that were not fetched as changed', () => {
+      expect(isUnchanged({}, undefined)).toBe(false)
     })
   })
 
