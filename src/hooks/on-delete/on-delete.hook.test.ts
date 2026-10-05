@@ -10,7 +10,7 @@ import type {
 import { MemoryService } from '@feathersjs/memory'
 import { onDelete } from './on-delete.hook.js'
 import type { OnDeleteOptions } from './on-delete.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 type User = {
   id: number
@@ -1238,20 +1238,24 @@ describe('onDelete', function () {
           { userId: 1, archived: false },
           { userId: 2, archived: false },
         ])
-        await onDelete({
-          service: 'posts',
-          keyHere: 'id',
-          keyThere: 'userId',
-          onDelete: 'cascade',
-          blocking: true,
-          query,
-        } as any)({
-          app,
-          type: 'after',
-          method: 'remove',
-          params,
-          result: { id: 1 },
-        } as any)
+        await runHook(
+          onDelete({
+            service: 'posts',
+            keyHere: 'id',
+            keyThere: 'userId',
+            onDelete: 'cascade',
+            blocking: true,
+            query,
+          } as any),
+          {
+            type: 'after',
+            method: 'remove',
+            id: 1,
+            params,
+            result: { id: 1 },
+            app,
+          },
+        )
         return app.service('posts').find({ paginate: false } as any)
       },
     )

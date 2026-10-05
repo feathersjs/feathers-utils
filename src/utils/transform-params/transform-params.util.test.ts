@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { transformParams } from './transform-params.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('transformParams', () => {
   it('returns the original params when no fn is provided', () => {

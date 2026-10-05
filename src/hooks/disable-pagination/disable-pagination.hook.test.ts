@@ -7,7 +7,7 @@ import type {
   HookContext,
   Paginated,
 } from '@feathersjs/feathers'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 describe('hook - disablePagination', () => {
   it('disables on $limit = -1', () => {
@@ -156,13 +156,12 @@ describe('hook - disablePagination', () => {
   it('does not mutate params', async () => {
     const params = await expectNoSideEffects(
       { query: { name: 'Jane', $limit: -1 } },
-      (params) => {
-        const context = {
+      async (params) => {
+        const context = await runHook(disablePagination(), {
           type: 'before',
           method: 'find',
           params,
-        } as HookContext
-        disablePagination()(context)
+        })
         return context.params
       },
     )

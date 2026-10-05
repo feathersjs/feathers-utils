@@ -2,7 +2,7 @@ import { expectTypeOf } from 'vitest'
 import type { Application, HookContext } from '@feathersjs/feathers'
 import { getResultIsArray } from './get-result-is-array.util.js'
 import type { MemoryService } from '@feathersjs/memory'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('getResultIsArray (type tests)', () => {
   type Todo = {

@@ -23,13 +23,22 @@ export { getPath } from './get-path.js'
 export { hasPath } from './has-path.js'
 export { omitPaths } from './omit-paths.js'
 export { pickPaths } from './pick-paths.js'
-export { hasOwnProperty } from './has-own-property.js'
+export {
+  changesTopLevel,
+  isPathWithin,
+  pathsOverlap,
+  topLevelKey,
+  topLevelKeys,
+} from './paths.js'
+export { selectCovers } from './select-covers.js'
+export { hasAllOwnProperties, hasOwnProperty } from './has-own-property.js'
+export { findAllOf } from './find-all.js'
 export { toArray } from './to-array.js'
 export { resolveBoolean } from './resolve-boolean.js'
 export { early } from './early.js'
 export { isEmptyObject } from './is-empty-object.js'
 export { isPlainObject } from './is-plain-object.js'
-export { isEqual } from './is-equal.js'
+export { isDeepEqual, isEqual, isUnchanged } from './is-equal.js'
 export { snapshot } from './snapshot.js'
 export { ownEnumerableKeys } from './own-enumerable-keys.js'
 export { isOnlyOperator } from './is-only-operator.js'

@@ -4,11 +4,19 @@ import type {
   NextFunction,
   Params,
 } from '@feathersjs/feathers'
+import { findAllOf } from '../../common/find-all.js'
 import { isEqual } from '../../common/is-equal.js'
 import { snapshot } from '../../common/snapshot.js'
-import { addToQuery } from '../add-to-query/add-to-query.util.js'
 import { checkContext } from '../check-context/check-context.util.js'
+import { getIdField } from '../get-id-field/get-id-field.util.js'
 import { getResultIsArray } from '../get-result-is-array/get-result-is-array.util.js'
+import {
+  byId,
+  fetchShared,
+  getCallFetches,
+  paramsBefore,
+  type ItemsById,
+} from './call-fetches.js'
 
 /**
  * Like `TransformParamsFn`, but may be async and gets the context
@@ -71,41 +79,24 @@ export type Stash<T = any, H extends HookContext = HookContext> = {
   stashed: (context: H) => Promise<StashedItem<T>[]>
 }
 
-type ItemsById = Map<string, { id: Id; item: any }>
-
-type Fetch = {
-  /** a snapshot of the params the items are fetched with */
-  params: Params
-  items: Promise<ItemsById>
-}
-
 type Entry = {
   before: Promise<ItemsById | undefined>
   stashed?: Promise<StashedItem[]>
 }
 
-type CallState = {
-  /** per `defineStash()` */
-  entries: Map<symbol, Entry>
-  /** shared by all stashes of the call */
-  fetchesBefore: Fetch[]
-  fetchesAfter: Fetch[]
-}
-
 /**
- * Keyed by the context, which lives exactly as long as the call. `params`
- * would leak: callers reuse one `params` object for concurrent calls and pass
- * `{ ...context.params }` on to nested calls.
+ * Per `defineStash()`, keyed by the context like the fetches the stashes
+ * share (see `call-fetches.ts`)
  */
-const callStates = new WeakMap<HookContext, CallState>()
+const callEntries = new WeakMap<HookContext, Map<symbol, Entry>>()
 
-const getCallState = (context: HookContext): CallState => {
-  let state = callStates.get(context)
-  if (!state) {
-    state = { entries: new Map(), fetchesBefore: [], fetchesAfter: [] }
-    callStates.set(context, state)
+const getCallEntries = (context: HookContext): Map<symbol, Entry> => {
+  let entries = callEntries.get(context)
+  if (!entries) {
+    entries = new Map()
+    callEntries.set(context, entries)
   }
-  return state
+  return entries
 }
 
 /**
@@ -160,11 +151,11 @@ export function defineStash<T = any, H extends HookContext = HookContext>(
       )
     }
 
-    const state = getCallState(context)
-    let entry = state.entries.get(token)
+    const entries = getCallEntries(context)
+    let entry = entries.get(token)
     if (!entry) {
-      entry = { before: fetchItemsBefore(context, options, state) }
-      state.entries.set(token, entry)
+      entry = { before: fetchItemsBefore(context, options) }
+      entries.set(token, entry)
     }
 
     await entry.before
@@ -173,9 +164,8 @@ export function defineStash<T = any, H extends HookContext = HookContext>(
   }
 
   const stashed = async (context: H): Promise<StashedItem<T>[]> => {
-    const state = callStates.get(context)
-    const entry = state?.entries.get(token)
-    if (!state || !entry) {
+    const entry = callEntries.get(context)?.get(token)
+    if (!entry) {
       throw new Error(
         "stashed: nothing is stashed for this call - use 'stash' in a before hook, or in an around hook before 'next()'",
       )
@@ -192,28 +182,11 @@ export function defineStash<T = any, H extends HookContext = HookContext>(
         : []
     }
 
-    entry.stashed ??= pairWithResult(context, options, state, entry)
+    entry.stashed ??= pairWithResult(context, options, entry)
     return await entry.stashed
   }
 
   return { stash, stashed }
-}
-
-const getIdField = (context: HookContext): string =>
-  context.service.id ?? context.service.options?.id ?? 'id'
-
-const byId = (items: any[], idField: string): ItemsById =>
-  new Map(
-    items.map((item) => [String(item[idField]), { id: item[idField], item }]),
-  )
-
-/**
- * All items, even if `transformParams` dropped `paginate: false` - one page
- * would leave the other items without `before` or `result`
- */
-const findItems = async (context: HookContext, params: Params) => {
-  const result = await context.service.find({ ...params, paginate: false })
-  return Array.isArray(result) ? result : result.data
 }
 
 const transform = async <H extends HookContext>(
@@ -227,62 +200,27 @@ const transform = async <H extends HookContext>(
   return (await transformParams(copy, context)) ?? copy
 }
 
-/**
- * The first stash of the call with these params fetches the items, the others
- * reuse them. Finding and adding the fetch is synchronous, so two stashes
- * can't both start the same fetch.
- */
-const fetchShared = (
-  fetches: Fetch[],
-  params: Params,
-  fetch: (params: Params) => Promise<any[]>,
-  idField: string,
-): Promise<ItemsById> => {
-  const shared = fetches.find((f) => isEqual(f.params, params))
-  if (shared) return shared.items
-
-  // taken before the fetch, whose hooks may change the params
-  const snapshotOfParams = snapshot(params)
-  // a copy of its own as well: the params share their nested objects with the
-  // params of the call, which the hooks of the fetch must not write into -
-  // feathers-casl, for one, keeps its state of the call on `params.casl`
-  const items = fetch(snapshot(params)).then((items) => byId(items, idField))
-  fetches.push({ params: snapshotOfParams, items })
-  return items
-}
-
 const fetchItemsBefore = async <H extends HookContext>(
   context: H,
   options: StashOptions<H> | undefined,
-  state: CallState,
 ): Promise<ItemsById | undefined> => {
   if (options?.fetchBefore === false || context.method === 'create') {
     return undefined
   }
 
-  const idField = getIdField(context)
-  // without `$select`, to compare the whole items
-  const { $select: _, ...query } = context.params.query ?? {}
   const params = await transform(
-    {
-      ...context.params,
-      // `find` for a call with an id as well, so the items before and after
-      // the call go through the same hooks
-      query:
-        context.id == null
-          ? query
-          : addToQuery(query, { [idField]: context.id }),
-      paginate: false,
-    },
+    paramsBefore(context),
     context,
     options?.transformParams,
   )
 
   return await fetchShared(
-    state.fetchesBefore,
+    getCallFetches(context).before,
     params,
-    (params) => findItems(context, params),
-    idField,
+    // all items, even if `transformParams` dropped `paginate: false` - one
+    // page would leave the other items without `before` or `result`
+    (params) => findAllOf(context.service, params),
+    getIdField(context.service),
   )
 }
 
@@ -293,7 +231,6 @@ const fetchItemsBefore = async <H extends HookContext>(
 const fetchItemsAfter = async <H extends HookContext>(
   context: H,
   options: StashOptions<H> | undefined,
-  state: CallState,
   resultById: ItemsById,
   idField: string,
 ): Promise<ItemsById> => {
@@ -312,9 +249,11 @@ const fetchItemsAfter = async <H extends HookContext>(
   }
 
   return await fetchShared(
-    state.fetchesAfter,
+    getCallFetches(context).after,
     transformed,
-    (params) => findItems(context, params),
+    // all items, even if `transformParams` dropped `paginate: false` - one
+    // page would leave the other items without `before` or `result`
+    (params) => findAllOf(context.service, params),
     idField,
   )
 }
@@ -322,15 +261,14 @@ const fetchItemsAfter = async <H extends HookContext>(
 const pairWithResult = async <H extends HookContext>(
   context: H,
   options: StashOptions<H> | undefined,
-  state: CallState,
   entry: Entry,
 ): Promise<StashedItem[]> => {
-  const idField = getIdField(context)
+  const idField = getIdField(context.service)
   const resultById = byId(getResultIsArray(context).result, idField)
 
   const [before, after] = await Promise.all([
     entry.before,
-    fetchItemsAfter(context, options, state, resultById, idField),
+    fetchItemsAfter(context, options, resultById, idField),
   ])
 
   return [...resultById.values()].map(({ id }) => ({

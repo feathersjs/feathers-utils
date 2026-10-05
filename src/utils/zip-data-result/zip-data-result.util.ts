@@ -2,6 +2,7 @@ import type { HookContext } from '@feathersjs/feathers'
 import { getDataIsArray } from '../get-data-is-array/get-data-is-array.util.js'
 import { getResultIsArray } from '../get-result-is-array/get-result-is-array.util.js'
 import { checkContext } from '../check-context/check-context.util.js'
+import { getIdField } from '../get-id-field/get-id-field.util.js'
 import type {
   DataSingleHookContext,
   ResultSingleHookContext,
@@ -95,7 +96,7 @@ const zipById = <D, R>(
   data: D[],
   results: R[],
 ): ZipDataResultItem<D, R>[] => {
-  const idField: string = context.service?.id ?? 'id'
+  const idField = getIdField(context.service)
   const idOf = (item: any): unknown => item?.[idField]
 
   const indexOfId = new Map<string, number>()

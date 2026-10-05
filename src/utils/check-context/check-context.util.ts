@@ -1,4 +1,5 @@
 import type { HookContext } from '@feathersjs/feathers'
+import { toArray } from '../../common/index.js'
 import type { HookType, MethodName } from '../../types.js'
 import {
   isContext,
@@ -27,6 +28,9 @@ export type CheckContextOptions<H extends HookContext = HookContext> =
   IsContextOptions<H> & {
     label?: string
   }
+
+/** in the order they are reported */
+const criteria = ['type', 'method', 'path', 'id'] as const
 
 /**
  * Validates that the hook context matches the expected type(s) and method(s).
@@ -93,28 +97,14 @@ export function checkContext<H extends HookContext = HookContext>(
   }
 
   if (!isContext(options)(context)) {
-    const details: string[] = []
-
-    if (options.type != null) {
-      details.push(
-        `type: expected '${Array.isArray(options.type) ? options.type.join("' | '") : options.type}' but got '${context.type}'`,
+    // each criterion on its own, to report only those that did not match - a
+    // criterion that was not given always matches
+    const details = criteria
+      .filter((key) => !isContext({ [key]: options[key] })(context))
+      .map(
+        (key) =>
+          `${key}: expected '${toArray(options[key]).map(String).join("' | '")}' but got '${context[key]}'`,
       )
-    }
-    if (options.method != null) {
-      details.push(
-        `method: expected '${Array.isArray(options.method) ? options.method.join("' | '") : options.method}' but got '${context.method}'`,
-      )
-    }
-    if (options.path != null) {
-      details.push(
-        `path: expected '${Array.isArray(options.path) ? options.path.join("' | '") : options.path}' but got '${context.path}'`,
-      )
-    }
-    if (options.id !== undefined) {
-      details.push(
-        `id: expected '${Array.isArray(options.id) ? options.id.join("' | '") : options.id}' but got '${context.id}'`,
-      )
-    }
 
     throw new Error(
       `The '${hookLabel}' hook has invalid context (${details.join(', ')}).`,

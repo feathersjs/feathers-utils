@@ -9,7 +9,7 @@ import { expect, expectTypeOf } from 'vitest'
 import { copy } from 'fast-copy'
 import { gateParams } from '../../utils/gate-params/gate-params.util.js'
 import { isProvider } from '../../predicates/is-provider/is-provider.predicate.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 const setup = (options: CacheOptions, serviceOptions?: { id?: string }) => {
   const app = feathers<{
@@ -381,20 +381,19 @@ describe('cache hook', () => {
           map: new Map(),
           transformParams: ({ query }) => ({ query }),
         })
-        const service = { options: {} }
-        const createContext = (context?: object) =>
-          ({
-            type: 'before',
-            method: 'find',
-            params,
-            service,
-            ...context,
-          }) as any
 
-        await hook(createContext())
-        await hook(createContext({ type: 'after', result: [{ id: 1 }] }))
-        const hit = createContext()
-        await hook(hit)
+        await runHook(hook, {
+          type: 'around',
+          method: 'find',
+          params,
+          result: [{ id: 1 }],
+        })
+        const hit = await runHook(hook, {
+          type: 'around',
+          method: 'find',
+          params,
+          result: [{ id: 2 }],
+        })
         return hit.result
       },
     )

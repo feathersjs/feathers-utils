@@ -1,6 +1,6 @@
 import type { HookContext } from '@feathersjs/feathers'
 import { getPaginate } from './get-paginate.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('getPaginate', () => {
   it('returns service.options.paginate', function () {

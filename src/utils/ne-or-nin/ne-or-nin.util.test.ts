@@ -1,5 +1,5 @@
 import { neOrNin } from './ne-or-nin.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('neOrNin', function () {
   it('returns a $nin for multiple values', function () {

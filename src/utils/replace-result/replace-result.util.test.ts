@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { HookContext } from '@feathersjs/feathers'
 import { replaceResult } from './replace-result.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 const ctx = (method: string, result: any, dispatch?: any): HookContext =>
   ({ type: 'after', method, result, dispatch }) as any

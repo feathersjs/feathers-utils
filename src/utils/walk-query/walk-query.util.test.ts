@@ -1,5 +1,5 @@
 import { walkQuery } from './walk-query.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('walkQuery', () => {
   it('simple case', () => {

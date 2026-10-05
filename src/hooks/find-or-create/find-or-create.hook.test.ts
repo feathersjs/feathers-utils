@@ -3,7 +3,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { findOrCreate } from './find-or-create.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 const mockApp = () => {
   const app = feathers()
@@ -93,6 +93,25 @@ describe('hook - findOrCreate', function () {
 
     const tags = await tagsService.find({ query: {} })
     expect(tags).toHaveLength(1)
+  })
+
+  it('finds the record in a service that paginates despite paginate: false', async function () {
+    const app = feathers()
+    const existing = { id: 1, name: 'foo' }
+    const create = vi.fn(async (data: any) => data)
+    // e.g. a custom service, which knows nothing of `paginate: false`
+    app.use('tags', {
+      find: async () => ({ total: 1, limit: 10, skip: 0, data: [existing] }),
+      create,
+    })
+    app.service('tags').hooks({
+      before: {
+        create: [findOrCreate({ service: 'tags', uniqueBy: 'name' })],
+      },
+    })
+
+    expect(await app.service('tags').create({ name: 'foo' })).toEqual(existing)
+    expect(create).not.toHaveBeenCalled()
   })
 
   it('creates a new record when nothing matches', async function () {
@@ -311,17 +330,20 @@ describe('hook - findOrCreate', function () {
       async ({ params, findParams }) => {
         const app = feathers().use('tags', new MemoryService({ multi: true }))
         const find = vi.spyOn(app.service('tags'), 'find')
-        await findOrCreate({
-          service: 'tags',
-          uniqueBy: ['name', 'meta.lang'],
-          params: () => findParams,
-        })({
-          app,
-          type: 'before',
-          method: 'create',
-          params,
-          data: { name: 'a', meta: { lang: 'de' } },
-        } as any)
+        await runHook(
+          findOrCreate({
+            service: 'tags',
+            uniqueBy: ['name', 'meta.lang'],
+            params: () => findParams,
+          }),
+          {
+            type: 'before',
+            method: 'create',
+            data: { name: 'a', meta: { lang: 'de' } },
+            params,
+            app,
+          },
+        )
         return (find.mock.calls[0][0] as any).query
       },
     )

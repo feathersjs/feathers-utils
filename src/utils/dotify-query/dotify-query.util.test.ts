@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { dotifyQuery } from './dotify-query.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('dotifyQuery', () => {
   describe('basic conversion', () => {

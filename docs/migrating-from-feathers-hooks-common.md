@@ -307,7 +307,9 @@ The `required` hook has been replaced with [`checkRequired`](/hooks/check-requir
 
 ## `runHook`
 
-The `runHook` utility has been removed. If you need it please reach out to us in this [github issue](https://github.com/feathersjs/feathers-utils/issues/1).
+The `runHook` utility, which applied hooks to the result of a call outside the hook chain, has been removed. If you need it please reach out to us in this [github issue](https://github.com/feathersjs/feathers-utils/issues/1).
+
+`feathers-utils/testing` has a [`runHook`](/testing/run-hook.html) of its own, but with a different purpose: it runs a single hook in isolation, for tests.
 
 ## `runParallel`
 

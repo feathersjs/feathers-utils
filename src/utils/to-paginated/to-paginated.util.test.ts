@@ -1,5 +1,5 @@
 import { toPaginated } from './to-paginated.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('toPaginated', function () {
   it('converts an array to a paginated object', function () {

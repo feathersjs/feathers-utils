@@ -3,7 +3,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { transformData } from './transform-data.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 let hookBefore: any
 let hookCreateMulti: any
@@ -151,14 +151,14 @@ describe('transformData', () => {
     const data = await expectNoSideEffects(
       { query: { name: 'Jane' } },
       async (params) => {
-        const context = {
-          type: 'before',
-          method: 'create',
-          params,
-          data: { name: ' Jane ' },
-        } as any
-        await transformData((item: any) => ({ name: item.name.trim() }))(
-          context,
+        const context = await runHook(
+          transformData((item: any) => ({ name: item.name.trim() })),
+          {
+            type: 'before',
+            method: 'create',
+            data: { name: ' Jane ' },
+            params,
+          },
         )
         return context.data
       },

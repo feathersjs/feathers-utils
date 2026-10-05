@@ -1,4 +1,5 @@
 import type { HookContext } from '@feathersjs/feathers'
+import { getIdField } from '../../utils/get-id-field/get-id-field.util.js'
 import { getResultIsArray } from '../../utils/get-result-is-array/get-result-is-array.util.js'
 import { zipDataResult } from '../../utils/zip-data-result/zip-data-result.util.js'
 
@@ -20,7 +21,7 @@ export const getDataMatchIds = (
   context: HookContext,
   dataMatches: DataMatch[],
 ): Set<string> => {
-  const idField: string = context.service?.id ?? 'id'
+  const idField = getIdField(context.service)
   const ids = new Set<string>()
 
   // only what `zipDataResult` reads: a context can't be spread

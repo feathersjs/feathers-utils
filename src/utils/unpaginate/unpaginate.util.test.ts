@@ -1,6 +1,6 @@
 import { toPaginated } from '../to-paginated/to-paginated.util.js'
 import { unpaginate } from './unpaginate.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('unpaginate', function () {
   it('returns an array as-is (same reference, no copy)', function () {

@@ -1,7 +1,7 @@
 import { BadRequest } from '@feathersjs/errors'
 import { throwIfIsMulti } from './throw-if-is-multi.hook.js'
 import type { HookContext } from '@feathersjs/feathers'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 describe('throwIfIsMulti', () => {
   describe('general', () => {
@@ -148,13 +148,14 @@ describe('throwIfIsMulti', () => {
   })
 
   it('does not mutate params', async () => {
-    await expectNoSideEffects({ query: { name: 'Jane' } }, (params) =>
-      throwIfIsMulti()({
+    await expectNoSideEffects({ query: { name: 'Jane' } }, async (params) => {
+      const context = await runHook(throwIfIsMulti(), {
         type: 'before',
         method: 'create',
         data: { name: 'Jane' },
         params,
-      } as HookContext),
-    )
+      })
+      return context.params
+    })
   })
 })

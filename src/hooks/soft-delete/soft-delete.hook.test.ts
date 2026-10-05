@@ -5,7 +5,7 @@ import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { softDelete } from './soft-delete.hook.js'
 import type { SoftDeleteOptions } from './soft-delete.hook.js'
 import { isProvider } from '../../predicates/is-provider/is-provider.predicate.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 async function setup(options: { type: 'before' | 'around' }) {
   const app = feathers().use(
@@ -336,31 +336,26 @@ describe('softDelete', () => {
     const result = await expectNoSideEffects(
       { query: { name: 'Jane' } },
       async (params) => {
-        const app = feathers().use('users', new MemoryService({ multi: true }))
-        const service = app.service('users')
-        const jane = await service.create({ name: 'Jane', deletedAt: null })
+        const users = new MemoryService({ multi: true })
+        const jane = await users.create({ name: 'Jane', deletedAt: null })
         const hook = softDelete({
           deletedQuery: { deletedAt: null },
           removeData: { deletedAt: 1 },
         })
-        const find = {
-          app,
-          service,
+
+        const find = await runHook(hook, {
           type: 'before',
           method: 'find',
           params,
-        } as any
-        const remove = {
-          app,
-          service,
+          service: users,
+        })
+        const remove = await runHook(hook, {
           type: 'before',
           method: 'remove',
           id: jane.id,
           params,
-        } as any
-
-        await hook(find)
-        await hook(remove)
+          service: users,
+        })
 
         return { query: find.params.query, removed: remove.result }
       },

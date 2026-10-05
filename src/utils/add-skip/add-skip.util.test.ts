@@ -1,6 +1,6 @@
 import type { HookContext } from '@feathersjs/feathers'
 import { addSkip } from './add-skip.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('addSkip', function () {
   it('adds skipHooks to context.params', function () {
