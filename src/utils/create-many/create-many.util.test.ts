@@ -1,6 +1,6 @@
 import { expect, expectTypeOf } from 'vitest'
 import { feathers } from '@feathersjs/feathers'
-import type { HookContext } from '@feathersjs/feathers'
+import type { HookContext, Params } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { Multi } from '../../types.js'
 import { createMany } from './create-many.util.js'
@@ -132,6 +132,39 @@ describe('utils/createMany', function () {
     const created = await createMany(app, 'todos', data)
 
     expectTypeOf(created).toEqualTypeOf<Todo[]>()
+  })
+
+  it('passes `params` to every create call', async function () {
+    for (const [multi, calls] of [
+      [true, 2],
+      [false, 3],
+    ] as const) {
+      const { app, todosService } = mockApp(multi)
+      const create = vi.spyOn(todosService, 'create')
+      const params = { transaction: 'trx' } as Params
+
+      await createMany(app, 'todos', data, { params })
+      await createMany(app, 'todos', [data[0]], { params })
+
+      expect(create.mock.calls.map(([, params]) => params)).toStrictEqual(
+        Array(calls).fill(params),
+      )
+    }
+  })
+
+  it('types `params` by the service', function () {
+    type TodoParams = Params & { transaction?: string }
+    const app = feathers<{
+      todos: MemoryService<Todo, Partial<Todo>, TodoParams>
+    }>()
+
+    const _fits = () =>
+      createMany(app, 'todos', [], { params: { transaction: 'trx' } })
+    const _wrong = () =>
+      createMany(app, 'todos', [], {
+        // @ts-expect-error - the todos service takes its transaction as a string
+        params: { transaction: 1 },
+      })
   })
 
   it('does not mutate the data', async () => {

@@ -12,6 +12,13 @@ import { onDelete } from './on-delete.hook.js'
 import type { OnDeleteOptions } from './on-delete.hook.js'
 import { expectNoSideEffects } from '../../../test/utils/index.js'
 
+/** Forwards the caller's transaction, as a SQL adapter takes it. */
+const transactionOf = (context: HookContext) =>
+  ({
+    transaction: (context.params as Params & { transaction?: unknown })
+      .transaction,
+  }) as Params
+
 type User = {
   id: number
   name: string
@@ -485,6 +492,45 @@ describe('onDelete', function () {
         { id: 2, title: 'Buy eggs task', userId: 2 },
       ])
     })
+  })
+
+  it('changes the related items with the params of `params`, the relation winning', async function () {
+    const { usersService, todosService } = mockApp()
+    const remove = vi.spyOn(todosService, 'remove')
+
+    usersService.hooks({
+      after: {
+        remove: [
+          onDelete({
+            service: 'todos',
+            keyThere: 'userId',
+            keyHere: 'id',
+            onDelete: 'cascade',
+            blocking: true,
+            params: (context) => ({
+              ...transactionOf(context),
+              query: { title: 'Buy milk', userId: 99 },
+            }),
+          }),
+        ],
+      },
+    })
+
+    const user = await usersService.create({ name: 'John Doe' })
+    await todosService.create([
+      { title: 'Buy milk', userId: user.id },
+      { title: 'Buy eggs', userId: user.id },
+    ])
+
+    await usersService.remove(user.id, { transaction: 'trx' } as Params)
+
+    expect(remove.mock.calls[0][1]).toMatchObject({
+      transaction: 'trx',
+      query: { title: 'Buy milk', userId: user.id },
+    })
+    expect(await todosService.find({ query: {} })).toMatchObject([
+      { title: 'Buy eggs' },
+    ])
   })
 
   describe('set null', function () {

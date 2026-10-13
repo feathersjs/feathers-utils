@@ -56,6 +56,14 @@ export type InferCreateData<S> = S extends {
 
 export type InferCreateDataSingle<S> = UnwrapArray<InferCreateData<S>>
 
+export type InferCreateParams<S> = S extends {
+  create: (data: any, params: infer P) => any
+}
+  ? P extends Params
+    ? P
+    : Params
+  : Params
+
 export type InferCreateResult<S, D = unknown> = S extends {
   create: (data: any, params: any) => infer R
 }

@@ -26,6 +26,7 @@ export interface FindOrCreateOptions<
   H extends HookContext = HookContext,
   Services extends H['app']['services'] = H['app']['services'],
   S extends keyof Services = keyof Services,
+  Service = Services[S],
 > {
   /** The service to search before creating. Must be a service registered on the app. */
   service: S
@@ -34,12 +35,12 @@ export interface FindOrCreateOptions<
    * the lookup query — the upsert "conflict target". A path whose value is `undefined` in
    * the data is skipped.
    */
-  uniqueBy: MaybeArray<UniqueByPath<Services[S]>>
+  uniqueBy: MaybeArray<UniqueByPath<Service>>
   /**
    * Optional function returning extra `find` params. `query` is merged with (and overridden
    * by) the `uniqueBy` values; `paginate` is always forced to `false`.
    */
-  params?: (context: H) => InferFindParams<Services[S]>
+  params?: (context: H) => InferFindParams<Service>
   /**
    * What to do when more than one record matches the `uniqueBy` query.
    * - `'create'` (default): proceed to create a new record.

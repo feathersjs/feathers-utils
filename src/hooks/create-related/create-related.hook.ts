@@ -7,13 +7,17 @@ import {
 import { resolveBoolean } from '../../common/index.js'
 import type { MaybeArray, Promisable } from '../../internal.utils.js'
 import type { Multi, PredicateFn } from '../../types.js'
-import type { InferCreateDataSingle } from '../../utility-types/infer-service-methods.js'
+import type {
+  InferCreateDataSingle,
+  InferCreateParams,
+} from '../../utility-types/infer-service-methods.js'
 import type { ResultSingleHookContext } from '../../utility-types/hook-context.js'
 
 export interface CreateRelatedOptions<
   H extends HookContext = HookContext,
   Services extends H['app']['services'] = H['app']['services'],
   S extends keyof Services = keyof Services,
+  Service = Services[S],
 > {
   /**
    * The service the related records are created in — a key of `app.services`.
@@ -41,7 +45,18 @@ export interface CreateRelatedOptions<
   data: (
     item: ResultSingleHookContext<H>,
     context: H,
-  ) => Promisable<MaybeArray<InferCreateDataSingle<Services[S]>> | undefined>
+  ) => Promisable<MaybeArray<InferCreateDataSingle<Service>> | undefined>
+  /**
+   * Returns the params of the `create` call(s) in the related service - e.g.
+   * to create the related records in the call's transaction. Without it, they
+   * are created without params.
+   *
+   * A transaction only holds them while `blocking`: in the background, they
+   * may be created after it ended.
+   *
+   * @example (context) => ({ transaction: context.params.transaction })
+   */
+  params?: (context: H) => InferCreateParams<Service>
   /**
    * Whether the hook waits for the related records to be created before the
    * call continues. Can be a boolean or a predicate that receives the
@@ -104,7 +119,7 @@ export function createRelated<H extends HookContext = HookContext>(
 
     await Promise.all(
       entries.map(async (entry) => {
-        const { data, service, multi, blocking, onError } = entry
+        const { data, service, multi, blocking, onError, params } = entry
 
         const dataToCreate = (
           await Promise.all(result.map(async (item) => data(item, context)))
@@ -122,7 +137,7 @@ export function createRelated<H extends HookContext = HookContext>(
           context.app,
           service as string,
           dataToCreate as any,
-          { multi },
+          { multi, params: params?.(context) },
         )
 
         if (isBlocking) {
