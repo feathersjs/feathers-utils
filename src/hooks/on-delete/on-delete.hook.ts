@@ -20,6 +20,7 @@ export type OnDeleteAction = 'cascade' | 'set null'
 export interface OnDeleteOptions<
   H extends HookContext = HookContext,
   S extends keyof H['app']['services'] = keyof H['app']['services'],
+  Service = H['app']['services'][S],
 > {
   /**
    * The related service where related items should be manipulated
@@ -28,7 +29,7 @@ export interface OnDeleteOptions<
   /**
    * The propertyKey in the related service
    */
-  keyThere: NeverFallback<keyof InferGetResult<H['app']['services'][S]>, string>
+  keyThere: NeverFallback<keyof InferGetResult<Service>, string>
   /**
    * The propertyKey in the current service.
    */
@@ -44,7 +45,18 @@ export interface OnDeleteOptions<
    * Additional query to merge into the service call.
    * Typed based on the related service's query type.
    */
-  query?: InferFindParams<H['app']['services'][S]>['query']
+  query?: InferFindParams<Service>['query']
+  /**
+   * Returns the params of the `patch`/`remove` calls in the related service -
+   * e.g. to change the related items in the call's transaction. Their `query`
+   * is merged with `query` and the relation, which win.
+   *
+   * A transaction only holds them while `blocking`: in the background, they
+   * may be changed after it ended.
+   *
+   * @example (context) => ({ transaction: context.params.transaction })
+   */
+  params?: (context: H) => InferFindParams<Service>
   /**
    * Whether the related service allows manipulating multiple items in a single
    * `patch`/`remove` call.
@@ -151,7 +163,7 @@ export const onDelete = <H extends HookContext = HookContext>(
 
     for (const [
       i,
-      { keyHere, keyThere, onDelete, service, query, multi, onError },
+      { keyHere, keyThere, onDelete, service, query, multi, onError, params },
     ] of optionsMulti.entries()) {
       const ids = result.map((x) => x[keyHere]).filter((x) => !!x)
 
@@ -159,8 +171,11 @@ export const onDelete = <H extends HookContext = HookContext>(
         continue
       }
 
-      const params = {
+      const baseParams = params?.(context)
+      const relatedParams = {
+        ...baseParams,
         query: {
+          ...baseParams?.query,
           ...query,
           [keyThere]: eqOrIn(ids),
         },
@@ -170,12 +185,18 @@ export const onDelete = <H extends HookContext = HookContext>(
       let promise: Promise<any> | undefined = undefined
 
       if (onDelete === 'cascade') {
-        promise = removeMany(context.app, service as string, params, { multi })
-      } else if (onDelete === 'set null') {
-        const data = { [keyThere]: null }
-        promise = patchMany(context.app, service as string, data, params, {
+        promise = removeMany(context.app, service as string, relatedParams, {
           multi,
         })
+      } else if (onDelete === 'set null') {
+        const data = { [keyThere]: null }
+        promise = patchMany(
+          context.app,
+          service as string,
+          data,
+          relatedParams,
+          { multi },
+        )
       }
 
       if (!promise) {
