@@ -416,7 +416,7 @@ The new [`createRelated`](/hooks/create-related.html) hook allows you to create 
 
 ### [`checkMulti`](/hooks/check-multi.html)
 
-Early throw an error if the request is `.patch(null)` or `.remove(null)` and the service is defined as `multi: false`. This is useful to prevent accidental multi operations on services that are not configured for it.
+Early throw an error if the request is `.create([...])`, `.patch(null)` or `.remove(null)` and the service is defined as `multi: false`. This is useful to prevent accidental multi operations on services that are not configured for it. Pass `multi: false` to refuse multi operations the service allows - wrapped in [`iff`](/hooks/iff.html), for example only for calls from clients.
 
 ### [`onDelete`](/hooks/on-delete.html)
 
@@ -431,8 +431,6 @@ Also see [`shouldSkip`](/predicates/should-skip.html) and [`addSkip`](/utils/add
 The new [`throwIf`](/hooks/throw-if.html) hook allows you to throw an error if a certain condition is met. This can be useful for validating conditions before proceeding with the hook chain.
 
 ### [`throwIfIsProvider`](/hooks/throw-if-is-provider.html)
-
-### [`throwIfIsMulti`](/hooks/throw-if-is-multi.html)
 
 ### [`transformData`](/hooks/transform-data.html)
 

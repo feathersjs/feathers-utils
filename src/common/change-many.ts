@@ -49,7 +49,7 @@ export const changeMany = async (
 ): Promise<any[]> => {
   const multiParams = { ...params, paginate: false as const }
 
-  if (allowsMulti(service, method, multi)) {
+  if (allowsMulti(service, method, multi, params)) {
     const result =
       method === 'patch'
         ? await service.patch(null, data, multiParams)

@@ -97,6 +97,20 @@ describe('utils/patchMany', function () {
     expect(calls).toStrictEqual([null])
   })
 
+  it('patches with a single multi call if params.adapter allows multi', async function () {
+    const { app, todosService, calls } = mockApp(false)
+    await seed(todosService)
+
+    await patchMany(
+      app,
+      'todos',
+      { userId: null },
+      { query: { userId: 1 }, adapter: { multi: true } },
+    )
+
+    expect(calls).toStrictEqual([null])
+  })
+
   it('prefers an explicit multi option over the service option', async function () {
     const { app, todosService, calls } = mockApp(true)
     await seed(todosService)

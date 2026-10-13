@@ -34,6 +34,9 @@ const defaultError = (context: HookContext) =>
  * })
  * ```
  *
+ * @deprecated Use {@link checkMulti} with `multi: false` instead - and
+ * {@link iff} in place of `filter`.
+ *
  * @see https://utils.feathersjs.com/hooks/throw-if-is-multi.html
  */
 export const throwIfIsMulti = <H extends HookContext = HookContext>(
