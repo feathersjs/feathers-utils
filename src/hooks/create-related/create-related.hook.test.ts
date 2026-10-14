@@ -7,7 +7,10 @@ import type {
   Params,
 } from '@feathersjs/feathers'
 import { createRelated } from './create-related.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import {
+  expectNoSideEffects,
+  trackConcurrency,
+} from '../../../test/utils/index.js'
 
 /** Forwards the caller's transaction, as a SQL adapter takes it. */
 const transactionOf = (context: HookContext) =>
@@ -303,6 +306,33 @@ describe('hook - createRelated', function () {
       { id: 2, title: 'user2', userId: 2 },
       { id: 3, title: 'user3', userId: 3 },
     ])
+  })
+
+  it('creates at most `concurrency` related items at a time', async function () {
+    const { app, todosService } = mockApp({ multi: false })
+    const tracker = trackConcurrency()
+    todosService.hooks({ around: { create: [tracker.hook] } })
+
+    app.service('users').hooks({
+      after: {
+        create: [
+          createRelated({
+            service: 'todos',
+            data: (item) =>
+              [1, 2, 3, 4, 5].map((n) => ({
+                title: `${item.name} ${n}`,
+                userId: item.id,
+              })),
+            concurrency: 2,
+          }),
+        ],
+      },
+    })
+
+    await app.service('users').create({ name: 'user1' })
+
+    expect(tracker.max).toBe(2)
+    expect(await todosService.find({ query: {} })).toHaveLength(5)
   })
 
   it('creates with a single multi call if the related service allows multi', async function () {

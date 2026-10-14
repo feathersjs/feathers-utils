@@ -69,6 +69,14 @@ export interface OnDeleteOptions<
    */
   multi?: Multi
   /**
+   * How many `patch`/`remove` calls run at the same time when the related
+   * items are changed with one call per item, so a large cascade does not
+   * exhaust the database pool.
+   *
+   * @default 10
+   */
+  concurrency?: number
+  /**
    * Whether the hook waits for the related-service call to finish before the
    * call continues. Can be a boolean or a predicate that receives the
    * `HookContext`.
@@ -163,7 +171,17 @@ export const onDelete = <H extends HookContext = HookContext>(
 
     for (const [
       i,
-      { keyHere, keyThere, onDelete, service, query, multi, onError, params },
+      {
+        keyHere,
+        keyThere,
+        onDelete,
+        service,
+        query,
+        multi,
+        concurrency,
+        onError,
+        params,
+      },
     ] of optionsMulti.entries()) {
       // 0 is a valid id (the memory adapter starts there), but an empty string is
       // an unset key: cascading on it would hit every related item without one
@@ -191,6 +209,7 @@ export const onDelete = <H extends HookContext = HookContext>(
       if (onDelete === 'cascade') {
         promise = removeMany(context.app, service as string, relatedParams, {
           multi,
+          concurrency,
         })
       } else if (onDelete === 'set null') {
         const data = { [keyThere]: null }
@@ -199,7 +218,7 @@ export const onDelete = <H extends HookContext = HookContext>(
           service as string,
           data,
           relatedParams,
-          { multi },
+          { multi, concurrency },
         )
       }
 

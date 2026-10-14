@@ -4,7 +4,10 @@ import type { HookContext, Params } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { Multi } from '../../types.js'
 import { removeMany } from './remove-many.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import {
+  expectNoSideEffects,
+  trackConcurrency,
+} from '../../../test/utils/index.js'
 
 type Todo = {
   id: number
@@ -220,6 +223,38 @@ describe('utils/removeMany', function () {
     const removed = await removeMany(app, 'todos', { query: { userId: 1 } })
 
     expectTypeOf(removed).toEqualTypeOf<Todo[]>()
+  })
+
+  it('removes at most `concurrency` items at a time', async function () {
+    const { app, todosService } = mockApp(false)
+    const tracker = trackConcurrency()
+    todosService.hooks({ around: { remove: [tracker.hook] } })
+    for (let i = 0; i < 5; i++) {
+      await todosService.create({ title: `todo ${i}`, userId: 1 } as any)
+    }
+
+    const changed = await removeMany(
+      app,
+      'todos',
+      { query: { userId: 1 } },
+      { concurrency: 2 },
+    )
+
+    expect(tracker.max).toBe(2)
+    expect(changed.map((todo) => todo.id)).toStrictEqual([1, 2, 3, 4, 5])
+  })
+
+  it('removes at most 10 items at a time by default', async function () {
+    const { app, todosService } = mockApp(false)
+    const tracker = trackConcurrency()
+    todosService.hooks({ around: { remove: [tracker.hook] } })
+    for (let i = 0; i < 15; i++) {
+      await todosService.create({ title: `todo ${i}`, userId: 1 } as any)
+    }
+
+    await removeMany(app, 'todos', { query: { userId: 1 } }, {})
+
+    expect(tracker.max).toBe(10)
   })
 
   it('does not mutate params', async () => {

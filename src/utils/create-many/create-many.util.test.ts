@@ -4,7 +4,10 @@ import type { HookContext, Params } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { Multi } from '../../types.js'
 import { createMany } from './create-many.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import {
+  expectNoSideEffects,
+  trackConcurrency,
+} from '../../../test/utils/index.js'
 
 type Todo = {
   id: number
@@ -165,6 +168,37 @@ describe('utils/createMany', function () {
         // @ts-expect-error - the todos service takes its transaction as a string
         params: { transaction: 1 },
       })
+  })
+
+  it('creates at most `concurrency` items at a time', async function () {
+    const { app, todosService } = mockApp(false)
+    const tracker = trackConcurrency()
+    todosService.hooks({ around: { create: [tracker.hook] } })
+
+    const items = Array.from({ length: 5 }, (_, i) => ({
+      title: `todo ${i}`,
+      userId: 1,
+    }))
+    const created = await createMany(app, 'todos', items, { concurrency: 2 })
+
+    expect(tracker.max).toBe(2)
+    expect(created.map((todo) => todo.title)).toStrictEqual(
+      items.map((item) => item.title),
+    )
+  })
+
+  it('creates at most 10 items at a time by default', async function () {
+    const { app, todosService } = mockApp(false)
+    const tracker = trackConcurrency()
+    todosService.hooks({ around: { create: [tracker.hook] } })
+
+    const items = Array.from({ length: 15 }, (_, i) => ({
+      title: `todo ${i}`,
+      userId: 1,
+    }))
+    await createMany(app, 'todos', items)
+
+    expect(tracker.max).toBe(10)
   })
 
   it('does not mutate the data', async () => {

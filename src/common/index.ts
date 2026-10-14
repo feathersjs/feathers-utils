@@ -15,6 +15,7 @@ export function isPromise(p: any): p is Promise<any> {
 
 export { allowsMulti } from './allows-multi.js'
 export { changeMany } from './change-many.js'
+export { mapLimit, DEFAULT_CONCURRENCY } from './map-limit.js'
 export { traverse } from './traverse.js'
 export { clone } from './clone.js'
 export { setPath, setPathInPlace } from './set-path.js'

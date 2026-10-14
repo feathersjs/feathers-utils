@@ -10,7 +10,10 @@ import type {
 import { MemoryService } from '@feathersjs/memory'
 import { onDelete } from './on-delete.hook.js'
 import type { OnDeleteOptions } from './on-delete.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import {
+  expectNoSideEffects,
+  trackConcurrency,
+} from '../../../test/utils/index.js'
 
 /** Forwards the caller's transaction, as a SQL adapter takes it. */
 const transactionOf = (context: HookContext) =>
@@ -992,6 +995,37 @@ describe('onDelete', function () {
       expect(await todosService.find({ query: {} })).toStrictEqual([
         { id: 3, title: 'Buy bread', userId: 2 },
       ])
+    })
+
+    it('changes at most `concurrency` related items at a time', async function () {
+      const { usersService, todosService } = mockAppWithMulti(false)
+      const tracker = trackConcurrency()
+      todosService.hooks({ around: { remove: [tracker.hook] } })
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'cascade',
+              blocking: true,
+              concurrency: 2,
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe' })
+      for (let i = 0; i < 5; i++) {
+        await todosService.create({ title: `todo ${i}`, userId: user.id })
+      }
+
+      await usersService.remove(user.id)
+
+      expect(tracker.max).toBe(2)
+      expect(await todosService.find({ query: {} })).toStrictEqual([])
     })
 
     it('set null patches one by one if the related service disallows multi', async function () {

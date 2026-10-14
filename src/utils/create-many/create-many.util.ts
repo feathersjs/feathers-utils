@@ -1,5 +1,10 @@
 import type { Application, Params } from '@feathersjs/feathers'
-import { allowsMulti, toArray } from '../../common/index.js'
+import {
+  allowsMulti,
+  DEFAULT_CONCURRENCY,
+  mapLimit,
+  toArray,
+} from '../../common/index.js'
 import type { KeyOf } from '../../internal.utils.js'
 import type { Multi } from '../../types.js'
 import type {
@@ -17,6 +22,13 @@ export type CreateManyOptions<P extends Params = Params> = {
    */
   multi?: Multi
   /**
+   * How many `create` calls run at the same time when the items are created
+   * with one call per item, so a long list does not exhaust the database pool.
+   *
+   * @default 10
+   */
+  concurrency?: number
+  /**
    * The params of every `create` call - e.g. to create the items in the
    * caller's transaction.
    *
@@ -30,7 +42,8 @@ export type CreateManyOptions<P extends Params = Params> = {
  *
  * If the service does not allow multi creating (its `multi` option, or an
  * explicit `multi` option), the items are created with one call per item
- * instead - so it works regardless of the service's `multi` configuration.
+ * instead, at most `concurrency` at a time - so it works regardless of the
+ * service's `multi` configuration.
  * A single item is always created with a single call.
  *
  * @example
@@ -78,7 +91,9 @@ export async function createMany<
     return toArray(await service.create(data, params))
   }
 
-  return await Promise.all(
-    data.map(async (item) => service.create(item, params)),
+  return await mapLimit(
+    data,
+    options?.concurrency ?? DEFAULT_CONCURRENCY,
+    (item) => service.create(item, params),
   )
 }

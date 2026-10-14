@@ -9,8 +9,10 @@ import { dedupeValues } from '../../common/index.js'
  *
  * Deduplication compares primitives with `SameValueZero` and non-primitives
  * deep-equal, so value wrappers like `Date` or a mongo `ObjectId` collapse even
- * though they are distinct references. Note that deep equality ignores key order,
- * so two plain objects with the same entries in a different order count as one.
+ * though they are distinct references; an `ObjectId` (anything with
+ * `toHexString`) is compared by its hex string. Note that deep equality ignores
+ * key order, so two plain objects with the same entries in a different order
+ * count as one.
  *
  * @param values the values to exclude
  * @returns a `$ne` for a single value, otherwise a `$nin` over the deduplicated values

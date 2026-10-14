@@ -35,6 +35,14 @@ export interface CreateRelatedOptions<
    */
   multi?: Multi
   /**
+   * How many `create` calls run at the same time when the related records
+   * are created with one call per item, so a long list does not exhaust the
+   * database pool.
+   *
+   * @default 10
+   */
+  concurrency?: number
+  /**
    * A function that returns the data to be created in the related service.
    *
    * Receives the current item from the context result and the full hook context as arguments.
@@ -119,7 +127,8 @@ export function createRelated<H extends HookContext = HookContext>(
 
     await Promise.all(
       entries.map(async (entry) => {
-        const { data, service, multi, blocking, onError, params } = entry
+        const { data, service, multi, concurrency, blocking, onError, params } =
+          entry
 
         const dataToCreate = (
           await Promise.all(result.map(async (item) => data(item, context)))
@@ -137,7 +146,7 @@ export function createRelated<H extends HookContext = HookContext>(
           context.app,
           service as string,
           dataToCreate as any,
-          { multi, params: params?.(context) },
+          { multi, concurrency, params: params?.(context) },
         )
 
         if (isBlocking) {
