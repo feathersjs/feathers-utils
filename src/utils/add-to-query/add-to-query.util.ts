@@ -1,5 +1,5 @@
 import type { Query } from '@feathersjs/feathers'
-import { dequal as deepEqual } from 'dequal'
+import { isEqual } from '../../common/is-equal.js'
 import { extractQueryFilters } from '../../common/extract-query-filters.js'
 import { mergeSelect } from '../../common/merge-select.js'
 
@@ -81,7 +81,7 @@ export function addToQuery<Q extends Query>(targetQuery: Q, query: Q): Q {
   function isAlreadyInQuery(targetQuery: Q, entries: [keyof Q, any][]) {
     return entries.every(
       ([property, value]) =>
-        property in targetQuery && deepEqual(targetQuery[property], value),
+        property in targetQuery && isEqual(targetQuery[property], value),
     )
   }
 
@@ -95,7 +95,7 @@ export function addToQuery<Q extends Query>(targetQuery: Q, query: Q): Q {
   if (entries.length === 1 && Array.isArray(query.$and)) {
     const existing = (targetQuery.$and as any[]) ?? []
     const newBranches = (query.$and as any[]).filter(
-      (branch) => !existing.some((q) => deepEqual(q, branch)),
+      (branch) => !existing.some((q) => isEqual(q, branch)),
     )
     if (newBranches.length === 0) {
       return targetQuery

@@ -441,4 +441,20 @@ describe('dotifyQuery', () => {
       )
     })
   })
+
+  // sequelize uses symbols as operators
+  describe('symbol operators', () => {
+    it('merges colliding paths that differ only in symbol operators', () => {
+      const lt = Symbol('lt')
+      const gt = Symbol('gt')
+
+      const result: any = dotifyQuery({
+        a: { b: { [lt]: 1 } },
+        'a.b': { [gt]: 2 },
+      } as any)
+
+      expect(result['a.b'][lt]).toBe(1)
+      expect(result['a.b'][gt]).toBe(2)
+    })
+  })
 })

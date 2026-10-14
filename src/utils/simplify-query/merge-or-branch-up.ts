@@ -1,4 +1,4 @@
-import { dequal as deepEqual } from 'dequal'
+import { isEqual } from '../../common/index.js'
 
 type QueryRecord = Record<string, any>
 
@@ -19,7 +19,7 @@ export function mergeOrBranchUp(
   const rest = { ...result }
   delete rest.$or
   for (const key of Object.keys(branch)) {
-    if (key in rest && !deepEqual(rest[key], branch[key])) {
+    if (key in rest && !isEqual(rest[key], branch[key])) {
       return result
     }
   }

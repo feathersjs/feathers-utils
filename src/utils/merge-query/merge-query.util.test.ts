@@ -396,4 +396,22 @@ describe('mergeQuery', () => {
       },
     })
   })
+
+  // sequelize uses symbols as operators
+  describe('symbol operators', () => {
+    const lt = Symbol('lt')
+    const gt = Symbol('gt')
+
+    it('sees a conflict between values that differ only in symbol operators', () => {
+      const result: any = mergeQuery(
+        { age: { [lt]: 18 } } as any,
+        { age: { [gt]: 65 } } as any,
+      )
+
+      // the same as for `$lt` / `$gt`: both conditions, in an `$or`
+      expect(result.$or).toHaveLength(2)
+      expect(result.$or[0].age[lt]).toBe(18)
+      expect(result.$or[1].age[gt]).toBe(65)
+    })
+  })
 })

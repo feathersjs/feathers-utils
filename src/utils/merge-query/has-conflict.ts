@@ -1,4 +1,4 @@
-import { dequal as deepEqual } from 'dequal'
+import { isEqual } from '../../common/index.js'
 
 type QueryRecord = Record<string, any>
 
@@ -8,7 +8,7 @@ type QueryRecord = Record<string, any>
  */
 export function hasConflict(target: QueryRecord, source: QueryRecord): boolean {
   for (const key of Object.keys(target)) {
-    if (key in source && !deepEqual(target[key], source[key])) {
+    if (key in source && !isEqual(target[key], source[key])) {
       return true
     }
   }
