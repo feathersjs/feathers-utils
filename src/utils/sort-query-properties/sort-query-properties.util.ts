@@ -5,6 +5,8 @@ import { normalize } from './normalize.js'
  * Recursively normalizes a Feathers query object for order-independent comparison.
  * Sorts object keys and sorts arrays within `$or`, `$and`, `$nor`, `$not`, `$in`,
  * and `$nin` operators so that different orderings produce the same result.
+ * Symbol keys - sequelize uses them as operators - are kept, after the sorted
+ * string keys.
  *
  * This is useful for generating stable cache keys where
  * `{ $or: [{ a: 1 }, { b: 2 }] }` and `{ $or: [{ b: 2 }, { a: 1 }] }`

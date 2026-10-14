@@ -174,4 +174,41 @@ describe('stringifyParams', () => {
       stringifyParams({ query: { name: 'John' }, sym: Symbol('x') } as any),
     ).toBe(stringifyParams({ query: { name: 'John' } }))
   })
+
+  // sequelize uses symbols as operators - registered ones, `Symbol.for('gt')`
+  describe('symbol keys', () => {
+    const gt = Symbol.for('gt')
+    const lt = Symbol.for('lt')
+
+    it('tells queries apart that differ only in a symbol operator', () => {
+      expect(stringifyParams({ query: { age: { [gt]: 18 } } })).not.toBe(
+        stringifyParams({ query: { age: { [lt]: 18 } } }),
+      )
+    })
+
+    it('tells queries apart that differ only in a symbol key at the top', () => {
+      const or = Symbol.for('or')
+      expect(stringifyParams({ query: { [or]: [{ a: 1 }] } })).not.toBe(
+        stringifyParams({ query: { [or]: [{ a: 2 }] } }),
+      )
+    })
+
+    it('is order-independent for symbol keys', () => {
+      expect(stringifyParams({ query: { age: { [gt]: 18, [lt]: 65 } } })).toBe(
+        stringifyParams({ query: { age: { [lt]: 65, [gt]: 18 } } }),
+      )
+    })
+
+    it('serializes a registered symbol the same in every process', () => {
+      expect(stringifyParams({ query: { age: { [gt]: 18 } } })).toBe(
+        '{"query":{"age":{"Symbol.for(gt)":18}}}',
+      )
+    })
+
+    it('tells a registered symbol apart from one with the same description', () => {
+      expect(stringifyParams({ query: { age: { [gt]: 18 } } })).not.toBe(
+        stringifyParams({ query: { age: { [Symbol('gt')]: 18 } } }),
+      )
+    })
+  })
 })

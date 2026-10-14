@@ -106,4 +106,30 @@ describe('sortQueryProperties', () => {
       (query) => sortQueryProperties(query),
     )
   })
+
+  // sequelize uses symbols as operators
+  describe('symbol keys', () => {
+    it('keeps them, after the sorted string keys', () => {
+      const gt = Symbol.for('gt')
+      const lt = Symbol.for('lt')
+      const result: any = sortQueryProperties({
+        age: { [lt]: 65, [gt]: 18 },
+        name: 'a',
+      } as any)
+
+      expect(result.age[gt]).toBe(18)
+      expect(result.age[lt]).toBe(65)
+      expect(Reflect.ownKeys(result.age)).toStrictEqual([gt, lt])
+    })
+
+    it('keeps a `__proto__` key a key', () => {
+      const result: any = sortQueryProperties(
+        JSON.parse('{"name":"a","__proto__":{"role":"admin"}}'),
+      )
+
+      expect(Object.getPrototypeOf(result)).toBe(Object.prototype)
+      expect(result.role).toBeUndefined()
+      expect(Object.keys(result)).toStrictEqual(['__proto__', 'name'])
+    })
+  })
 })

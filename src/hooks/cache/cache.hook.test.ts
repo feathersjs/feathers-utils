@@ -1688,3 +1688,31 @@ describe('cache hook invalidate', () => {
     expectTypeOf(clear).returns.resolves.toBeVoid()
   })
 })
+
+// sequelize uses registered symbols as operators
+describe('cache hook with symbol operators', () => {
+  it('does not serve a query from the entry of one with another operator', async () => {
+    const gt = Symbol.for('gt')
+    const lt = Symbol.for('lt')
+    const app = feathers()
+    app.use('people', {
+      // answers with the operator it was asked with
+      async find(params: any) {
+        const [operator] = Object.getOwnPropertySymbols(params.query.age)
+        return [{ operator: Symbol.keyFor(operator) }]
+      },
+    } as any)
+    const people = app.service('people')
+    people.hooks({
+      around: {
+        all: [cache({ map: new Map(), transformParams: (params) => params })],
+      },
+    })
+
+    const adults = await people.find({ query: { age: { [gt]: 18 } } })
+    const minors = await people.find({ query: { age: { [lt]: 18 } } })
+
+    expect(adults).toStrictEqual([{ operator: 'gt' }])
+    expect(minors).toStrictEqual([{ operator: 'lt' }])
+  })
+})
