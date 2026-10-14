@@ -1,22 +1,10 @@
 import type { PropertyPath } from '../types.js'
 import { castPath, reIsIndex } from './to-path.js'
-import { isPlainObject } from './is-plain-object.js'
+import { shallowClone } from './shallow-clone.js'
 
 /** Keys that would let a path write reach `Object.prototype`. */
 const isUnsafeKey = (key: PropertyKey) =>
   key === '__proto__' || key === 'constructor' || key === 'prototype'
-
-/**
- * Shallow copy of an object on a write path: the copy carries the original's own
- * enumerable properties and its prototype, so the write lands on a fresh object
- * while everything hanging off it stays shared by reference.
- */
-const shallowClone = (value: any): any => {
-  if (Array.isArray(value)) return value.slice()
-  if (isPlainObject(value)) return { ...value }
-  if (value instanceof Date) return new Date(value)
-  return Object.assign(Object.create(Object.getPrototypeOf(value)), value)
-}
 
 const write = <T>(
   target: T,

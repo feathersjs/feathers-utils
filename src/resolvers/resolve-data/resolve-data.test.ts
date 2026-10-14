@@ -228,6 +228,41 @@ describe('resolve-data', () => {
   })
 })
 
+describe('resolve with data keys from Object.prototype', () => {
+  // the data comes from the client, so its keys must never be looked up on the
+  // prototype of the resolver object
+  const resolveBody = async (body: string) => {
+    const context = {
+      type: 'before',
+      method: 'create',
+      params: {},
+      data: JSON.parse(body),
+    } as unknown as HookContext
+    await resolveData({ name: ({ value }: any) => value?.toUpperCase() })(
+      context,
+    )
+    return context.data
+  }
+
+  it.each(['constructor', 'toString', 'hasOwnProperty', 'valueOf'])(
+    'keeps a `%s` key as plain data',
+    async (key) => {
+      const data = await resolveBody(`{"name":"dave","${key}":"x"}`)
+      expect(data).toStrictEqual({ name: 'DAVE', [key]: 'x' })
+    },
+  )
+
+  it('keeps a `__proto__` key a key instead of inheriting from it', async () => {
+    const data = await resolveBody(
+      '{"name":"dave","__proto__":{"role":"admin"}}',
+    )
+
+    expect(Object.getPrototypeOf(data)).toBe(Object.prototype)
+    expect(data.role).toBeUndefined()
+    expect(Object.keys(data)).toStrictEqual(['name', '__proto__'])
+  })
+})
+
 describe('resolve stack (circular dependency prevention)', () => {
   // Real-world scenario: a user has a "manager" who is also a user.
   // We want to apply the same resolver to strip passwords from both

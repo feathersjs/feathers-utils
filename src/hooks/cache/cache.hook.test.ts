@@ -152,6 +152,27 @@ describe('cache hook', () => {
       expect(before.get).toHaveBeenCalledTimes(3)
     })
 
+    it('invalidates only the get of id 0 on patch, not the whole cache', async () => {
+      const { usersService, before } = setup({
+        map: new LRUCache({ max: 10 }),
+        transformParams: (params) => params,
+      })
+
+      await usersService.create({ id: 0, name: 'John' })
+      await usersService.create({ id: 1, name: 'Jane' })
+      await usersService.get(0)
+      await usersService.get(1)
+      expect(before.get).toHaveBeenCalledTimes(2)
+
+      await usersService.patch(0, { name: 'John Doe' })
+
+      await usersService.get(1)
+      expect(before.get).toHaveBeenCalledTimes(2) // id 1 is still cached
+
+      await usersService.get(0)
+      expect(before.get).toHaveBeenCalledTimes(3)
+    })
+
     it('considers query params in cache', async () => {
       const { usersService, before } = setup({
         map: new LRUCache({ max: 10 }),

@@ -82,7 +82,7 @@ describe('generated options tables', () => {
     expect(byName.id).toMatchObject({
       type: 'string',
       optional: true,
-      default: "service.options.id ?? 'id'",
+      default: "'id'",
     })
     expect(byName.clone.default).toBe('true')
     expect(byName.transformParams.examples?.[0]).toContain('gateParams')
