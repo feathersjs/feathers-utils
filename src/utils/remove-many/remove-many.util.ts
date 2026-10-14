@@ -15,6 +15,13 @@ export type RemoveManyOptions = {
    * allowed, the matching items are fetched and removed with one call per item.
    */
   multi?: Multi
+  /**
+   * How many `remove` calls run at the same time when the items are removed with
+   * one call per item, so a large match does not exhaust the database pool.
+   *
+   * @default 10
+   */
+  concurrency?: number
 }
 
 /**
@@ -22,8 +29,8 @@ export type RemoveManyOptions = {
  *
  * If the service does not allow multi removing (its `multi` option, or an
  * explicit `multi` option), the matching items are fetched with `find` and
- * removed with one call per item instead - so it works regardless of the
- * service's `multi` configuration.
+ * removed with one call per item instead, at most `concurrency` at a time - so
+ * it works regardless of the service's `multi` configuration.
  *
  * The `params` only select which items are affected: the query is consumed by
  * the `find` - which only collects the ids - and is not applied again for the
@@ -57,5 +64,5 @@ export async function removeMany<
     throw new Error(`Service '${servicePath}' does not have a 'remove' method.`)
   }
 
-  return await changeMany(service, 'remove', undefined, params, options?.multi)
+  return await changeMany(service, 'remove', undefined, params, options)
 }

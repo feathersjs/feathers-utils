@@ -4,7 +4,10 @@ import type { HookContext, Params } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { Multi } from '../../types.js'
 import { patchMany } from './patch-many.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import {
+  expectNoSideEffects,
+  trackConcurrency,
+} from '../../../test/utils/index.js'
 
 type Todo = {
   id: number
@@ -245,6 +248,45 @@ describe('utils/patchMany', function () {
     )
 
     expectTypeOf(patched).toEqualTypeOf<Todo[]>()
+  })
+
+  it('patches at most `concurrency` items at a time', async function () {
+    const { app, todosService } = mockApp(false)
+    const tracker = trackConcurrency()
+    todosService.hooks({ around: { patch: [tracker.hook] } })
+    for (let i = 0; i < 5; i++) {
+      await todosService.create({ title: `todo ${i}`, userId: 1 } as any)
+    }
+
+    const changed = await patchMany(
+      app,
+      'todos',
+      { userId: null },
+      { query: { userId: 1 } },
+      { concurrency: 2 },
+    )
+
+    expect(tracker.max).toBe(2)
+    expect(changed.map((todo) => todo.id)).toStrictEqual([1, 2, 3, 4, 5])
+  })
+
+  it('patches at most 10 items at a time by default', async function () {
+    const { app, todosService } = mockApp(false)
+    const tracker = trackConcurrency()
+    todosService.hooks({ around: { patch: [tracker.hook] } })
+    for (let i = 0; i < 15; i++) {
+      await todosService.create({ title: `todo ${i}`, userId: 1 } as any)
+    }
+
+    await patchMany(
+      app,
+      'todos',
+      { userId: null },
+      { query: { userId: 1 } },
+      {},
+    )
+
+    expect(tracker.max).toBe(10)
   })
 
   it('does not mutate params or data', async () => {
