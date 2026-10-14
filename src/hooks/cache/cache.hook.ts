@@ -1,14 +1,8 @@
-import type {
-  HookContext,
-  Id,
-  NextFunction,
-  Params,
-} from '@feathersjs/feathers'
+import type { HookContext, NextFunction, Params } from '@feathersjs/feathers'
 import { stringifyParams } from '../../utils/stringify-params/stringify-params.util.js'
 import { getResultIsArray } from '../../utils/get-result-is-array/get-result-is-array.util.js'
-import { toArray } from '../../common/index.js'
 import { copy } from 'fast-copy'
-import type { MaybeArray, Promisable } from '../../internal.utils.js'
+import type { Promisable } from '../../internal.utils.js'
 import type { PredicateFn } from '../../types.js'
 
 type Cache = {
@@ -162,21 +156,24 @@ export type CacheOptions<H extends HookContext = HookContext> = {
 export type CacheHook<H extends HookContext = HookContext> = {
   (context: H, next?: NextFunction): Promise<void>
   /**
-   * Invalidates the cache after a write the hook does not see - by `_patch`
-   * & co., or straight to the database: deletes the cached `get`s of `ids` and
-   * every cached `find`. Without `ids`, the whole cache is cleared; an empty
-   * list deletes only the `find`s.
+   * Invalidates the cache for a write the hook does not see - `_create`,
+   * `_update`, `_patch` or `_remove`: wrap the call, or pass its result. It
+   * deletes the cached `get`s of the written items and every cached `find`,
+   * and resolves to the result of the write.
    *
-   * Pass the ids as `get` is called with them - an `ObjectId` is matched by its
-   * string form.
+   * Without a write, or when its result shows no items with ids (`[]`, none at
+   * all - e.g. feathers-sequelize with `$returning: false`), the whole cache is
+   * cleared. A write that fails is rethrown and invalidates nothing.
    *
    * @example
    * ```ts
-   * await app.service('todos')._patch(1, { done: true })
-   * await todosCache.invalidate(1)
+   * const todo = await todosCache.invalidate(todos._patch(1, { done: true }))
+   *
+   * // after a bulk write straight to the database
+   * await todosCache.invalidate()
    * ```
    */
-  invalidate: (ids?: MaybeArray<Id | object>) => Promise<void>
+  invalidate: <T = void>(write?: T) => Promise<Awaited<T>>
 }
 
 /**
@@ -186,7 +183,7 @@ export type CacheHook<H extends HookContext = HookContext> = {
  *
  * Use the `iff` option to restrict *caching* to certain calls (e.g. internal
  * ones) — invalidation always runs, for every call. For writes that skip the
- * hooks (`_patch` & co.), call the returned hook's `invalidate`.
+ * hooks (`_patch` & co.), wrap them in the returned hook's `invalidate`.
  *
  * @example
  * ```ts
@@ -228,12 +225,10 @@ export const cache = <H extends HookContext = HookContext>(
     }
   }
 
-  const invalidate: CacheHook<H>['invalidate'] = async (ids) => {
-    if (ids == null) {
-      await cacheMap.clearAll('invalidate')
-    } else {
-      await cacheMap.invalidate('invalidate', toArray(ids))
-    }
+  const invalidate: CacheHook<H>['invalidate'] = async (write?: any) => {
+    const result = await write
+    await cacheMap.invalidateResult(result)
+    return result
   }
 
   return Object.assign(hook, { invalidate })
@@ -288,6 +283,12 @@ class ContextCacheMap {
   private iff: boolean | PredicateFn<any>
   /** The calls served from the cache, whose result `set` must not store again. */
   private hits = new WeakSet<HookContext>()
+  /**
+   * The id field of the service the cached entries came from, for
+   * `invalidateResult` - which has no context, and has nothing to invalidate
+   * before an entry was stored.
+   */
+  private idField: string | undefined
 
   constructor(options: CacheOptions<any>) {
     this.map = options.map
@@ -346,9 +347,12 @@ class ContextCacheMap {
     return key.substring(0, index)
   }
 
-  private getId(item: Record<string, any>, context: HookContext) {
-    const idField = context.service.options?.id || this.options.id || 'id'
-    const id = item[idField]
+  private idFieldOf(context: HookContext): string {
+    return context.service.options?.id || this.options.id || 'id'
+  }
+
+  private getId(item: any, idField: string) {
+    const id = item?.[idField]
     return id && id.toString ? id.toString() : id
   }
 
@@ -381,6 +385,7 @@ class ContextCacheMap {
     }
 
     const key = this.stringifyCacheKey(context)
+    this.idField = this.idFieldOf(context)
     this.log?.({ type: 'set', method: context.method, key })
     // clone to avoid later mutation of the cached result
     return this.map.set(key, this.clone(context.result))
@@ -388,27 +393,44 @@ class ContextCacheMap {
 
   // Called after create(), update(), patch(), and remove()
   async clear<H extends HookContext>(context: H): Promise<H> {
-    const { result: results } = getResultIsArray(context)
+    const { result: items } = getResultIsArray(context)
+    await this.invalidateItems(context.method, items, this.idFieldOf(context))
+    return context
+  }
 
-    const itemIds = results
-      .map((item: any) => this.getId(item, context))
-      .filter((id: any) => id != null)
+  /** Called by the hook's `invalidate` with the result of a write it did not see. */
+  async invalidateResult(result: unknown) {
+    const items =
+      result == null ? [] : Array.isArray(result) ? result : [result]
+    await this.invalidateItems(
+      'invalidate',
+      items,
+      this.idField ?? this.options.id ?? 'id',
+    )
+  }
+
+  private async invalidateItems(
+    method: string,
+    items: readonly unknown[],
+    idField: string,
+  ) {
+    const itemIds = items
+      .map((item) => this.getId(item, idField))
+      .filter((id) => id != null)
 
     // the written items are unknown, so clear the entire cache to avoid stale
     // data: no result, items without ids, or none at all - which does not mean
     // nothing changed, adapters can skip returning them (`$returning: false`
     // in feathers-sequelize, `kysely.returning: false` in feathers-kysely)
     if (!itemIds.length) {
-      await this.clearAll(context.method)
-      return context
+      await this.clearAll(method)
+      return
     }
 
-    await this.invalidate(context.method, itemIds)
-
-    return context
+    await this.invalidateIds(method, itemIds)
   }
 
-  async clearAll(method: string) {
+  private async clearAll(method: string) {
     this.log?.({ type: 'clear', method })
     await this.map.clear()
   }
@@ -417,7 +439,7 @@ class ContextCacheMap {
    * Deletes every cached `find` and - unless `method` is `create` - the cached
    * `get`s of `ids`.
    */
-  async invalidate(method: string, ids: readonly unknown[]) {
+  private async invalidateIds(method: string, ids: readonly unknown[]) {
     const promises: Promise<any>[] = []
 
     // O(1) membership instead of an O(ids) scan per cached key.

@@ -114,7 +114,7 @@ cache({
 
 ## Invalidating Manually
 
-For the writes the hook does not see, the hook that `cache()` returns has an `invalidate` function. Given the ids of the changed items, it deletes their cached `get`s and every cached `find`. Without ids, it clears the whole cache.
+For the writes the hook does not see, the hook that `cache()` returns has an `invalidate` function. Wrap the write in it, or pass its result. It deletes the cached `get`s of the written items and every cached `find`, and resolves to the result of the write. Without a write, it clears the whole cache.
 
 ```ts
 import { cache } from 'feathers-utils/hooks'
@@ -128,15 +128,17 @@ export const todosCache = cache({
 app.service('todos').hooks({ around: { all: [todosCache] } })
 
 // elsewhere, past the hooks of `todos`
-await app.service('todos')._patch(1, { done: true })
-await todosCache.invalidate(1)
+const todo = await todosCache.invalidate(
+  app.service('todos')._patch(1, { done: true }),
+)
 
-// the changed ids are unknown, e.g. after a bulk write straight to the database
+// the changed items are unknown, e.g. after a bulk write straight to the database
 await todosCache.invalidate()
 ```
 
-- Pass the ids as `get` is called with them. An `ObjectId` is matched by its string form.
-- An empty list deletes only the cached `find`s, e.g. after `_create`.
+- The ids are read from the id field of the service the hook runs on.
+- A result without items with ids clears the whole cache, as it does for a call through the hooks. That covers `[]` and no result at all, e.g. feathers-sequelize with `$returning: false`.
+- A write that fails is rethrown and invalidates nothing.
 - The `logger` events of `invalidate` carry `method: 'invalidate'`.
 
 ## Cache Interface

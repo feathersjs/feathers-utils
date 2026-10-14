@@ -1,5 +1,6 @@
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { feathers } from '@feathersjs/feathers'
+import { NotFound } from '@feathersjs/errors'
 import type { CacheHook, CacheOptions } from './cache.hook.js'
 import { cache } from './cache.hook.js'
 import { LRUCache } from 'lru-cache'
@@ -1537,14 +1538,20 @@ describe('cache hook iff option with logger', () => {
 })
 
 describe('cache hook invalidate', () => {
-  const setupInvalidate = (logger?: CacheOptions['logger']) => {
+  const setupInvalidate = (options?: {
+    logger?: CacheOptions['logger']
+    id?: string
+  }) => {
     const app = feathers<{ users: MemoryService }>()
-    app.use('users', new MemoryService({ multi: true }))
+    app.use(
+      'users',
+      new MemoryService({ id: options?.id ?? 'id', multi: true }),
+    )
     const usersService = app.service('users')
     const cacheHook = cache({
       map: new Map(),
       transformParams: (params) => params,
-      logger,
+      logger: options?.logger,
     })
     // the calls that were not served from the cache
     const calls = { get: 0, find: 0 }
@@ -1566,15 +1573,18 @@ describe('cache hook invalidate', () => {
     await usersService.find({ query: {} })
   }
 
-  it('deletes the gets of the given ids and every find', async () => {
+  it('wraps a write: deletes the gets of its items and every find', async () => {
     const { usersService, cacheHook, calls } = setupInvalidate()
     await fill(usersService)
 
     await usersService._patch(1, { name: 'John Doe' })
-    // the hook did not see the write
+    // the hook did not see that write
     expect(await usersService.get(1)).toEqual({ id: 1, name: 'John' })
 
-    await cacheHook.invalidate(1)
+    const patched = await cacheHook.invalidate(
+      usersService._patch(1, { name: 'John Doe' }),
+    )
+    expect(patched).toEqual({ id: 1, name: 'John Doe' })
 
     expect(await usersService.get(1)).toEqual({ id: 1, name: 'John Doe' })
     await usersService.get(2)
@@ -1582,23 +1592,24 @@ describe('cache hook invalidate', () => {
     expect(calls).toEqual({ get: 3, find: 2 })
   })
 
-  it('clears the whole cache without ids', async () => {
+  it('takes the result of a multi write as well', async () => {
     const { usersService, cacheHook, calls } = setupInvalidate()
     await fill(usersService)
 
-    await cacheHook.invalidate()
+    const removed = await usersService._remove(null, { query: { id: 2 } })
+    await cacheHook.invalidate(removed)
 
     await usersService.get(1)
-    await usersService.get(2)
     await usersService.find({ query: {} })
-    expect(calls).toEqual({ get: 4, find: 2 })
+    await expect(usersService.get(2)).rejects.toThrow()
+    expect(calls).toEqual({ get: 3, find: 2 })
   })
 
-  it('deletes only the finds for an empty list', async () => {
+  it('keeps the gets after a create', async () => {
     const { usersService, cacheHook, calls } = setupInvalidate()
     await fill(usersService)
 
-    await cacheHook.invalidate([])
+    await cacheHook.invalidate(usersService._create({ id: 3, name: 'Jack' }))
 
     await usersService.get(1)
     await usersService.get(2)
@@ -1606,30 +1617,54 @@ describe('cache hook invalidate', () => {
     expect(calls).toEqual({ get: 2, find: 2 })
   })
 
-  it('matches an ObjectId by its string form', async () => {
-    class ObjectId {
-      constructor(private hex: string) {}
-      toString() {
-        return this.hex
-      }
-    }
-    const { usersService, cacheHook, calls } = setupInvalidate()
-    await usersService.create({ id: 'a1', name: 'John' })
+  it('reads the ids from the id field of the service', async () => {
+    const { usersService, cacheHook, calls } = setupInvalidate({ id: '_id' })
+    await usersService.create({ _id: 'a1', name: 'John' })
     await usersService.get('a1')
 
-    await cacheHook.invalidate([new ObjectId('a1')])
+    await cacheHook.invalidate(usersService._patch('a1', { name: 'x' }))
 
     await usersService.get('a1')
     expect(calls.get).toBe(2)
   })
 
+  it.each([
+    ['without a write', undefined],
+    // e.g. feathers-sequelize with `$returning: false`
+    ['for a write without items', []],
+    ['for items without ids', [{ name: 'x' }]],
+  ])('clears the whole cache %s', async (_, write) => {
+    const { usersService, cacheHook, calls } = setupInvalidate()
+    await fill(usersService)
+
+    await cacheHook.invalidate(write)
+
+    await usersService.get(1)
+    await usersService.get(2)
+    await usersService.find({ query: {} })
+    expect(calls).toEqual({ get: 4, find: 2 })
+  })
+
+  it('rethrows a failing write and invalidates nothing', async () => {
+    const { usersService, cacheHook, calls } = setupInvalidate()
+    await fill(usersService)
+
+    await expect(
+      cacheHook.invalidate(usersService._patch(99, { name: 'x' })),
+    ).rejects.toThrow(NotFound)
+
+    await usersService.get(1)
+    await usersService.find({ query: {} })
+    expect(calls).toEqual({ get: 2, find: 1 })
+  })
+
   it("logs its events with `method: 'invalidate'`", async () => {
     const logger = vi.fn()
-    const { usersService, cacheHook } = setupInvalidate(logger)
+    const { usersService, cacheHook } = setupInvalidate({ logger })
     await fill(usersService)
     logger.mockClear()
 
-    await cacheHook.invalidate(1)
+    await cacheHook.invalidate({ id: 1 })
     await cacheHook.invalidate()
 
     expect(logger.mock.calls.map(([event]) => event)).toStrictEqual([
@@ -1639,12 +1674,17 @@ describe('cache hook invalidate', () => {
     ])
   })
 
-  it('types `invalidate`', () => {
+  it('types `invalidate` by the write', () => {
+    const app = feathers<{ users: MemoryService<{ id: number }> }>()
+    app.use('users', new MemoryService<{ id: number }>())
     const cacheHook = cache({ map: new Map(), transformParams: (p) => p })
 
+    // never called: only their types are checked
+    const patch = () => cacheHook.invalidate(app.service('users')._patch(1, {}))
+    const clear = () => cacheHook.invalidate()
+
     expectTypeOf(cacheHook).toEqualTypeOf<CacheHook>()
-    expectTypeOf(cacheHook.invalidate).returns.resolves.toBeVoid()
-    // @ts-expect-error - an id is a string, a number or an object like an ObjectId
-    void cacheHook.invalidate(true)
+    expectTypeOf(patch).returns.resolves.toEqualTypeOf<{ id: number }>()
+    expectTypeOf(clear).returns.resolves.toBeVoid()
   })
 })
