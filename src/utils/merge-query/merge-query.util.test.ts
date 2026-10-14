@@ -414,4 +414,19 @@ describe('mergeQuery', () => {
       expect(result.$or[1].age[gt]).toBe(65)
     })
   })
+
+  // sequelize's operators at the top, e.g. `{ [Op.or]: [...] }`
+  describe('symbol keys at the top', () => {
+    it('sees a conflict between symbol keys', () => {
+      const or = Symbol.for('or')
+      const result: any = mergeQuery(
+        { [or]: [{ a: 1 }] } as any,
+        { [or]: [{ b: 2 }] } as any,
+      )
+
+      expect(result.$or).toHaveLength(2)
+      expect(result.$or[0][or]).toEqual([{ a: 1 }])
+      expect(result.$or[1][or]).toEqual([{ b: 2 }])
+    })
+  })
 })

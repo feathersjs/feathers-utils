@@ -1,3 +1,5 @@
+const isEnumerable = Object.prototype.propertyIsEnumerable
+
 /**
  * The own enumerable keys of an object, symbols included - sequelize uses
  * them as query operators.
@@ -8,10 +10,14 @@
  * ownEnumerableKeys({ a: 1, [gt]: 2 }) // => ['a', gt]
  * ```
  */
-export const ownEnumerableKeys = (obj: object): PropertyKey[] =>
-  Reflect.ownKeys(obj).filter((key) =>
-    Object.prototype.propertyIsEnumerable.call(obj, key),
-  )
+export const ownEnumerableKeys = (obj: object): (string | symbol)[] => {
+  // `Object.keys` is the fast path for string keys; symbols are rare
+  const keys: (string | symbol)[] = Object.keys(obj)
+  for (const symbol of Object.getOwnPropertySymbols(obj)) {
+    if (isEnumerable.call(obj, symbol)) keys.push(symbol)
+  }
+  return keys
+}
 
 if (import.meta.vitest) {
   const { describe, it, expect } = import.meta.vitest

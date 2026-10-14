@@ -50,4 +50,27 @@ describe('queryDefaults', () => {
       ({ query, defaults }) => queryDefaults(query, defaults),
     )
   })
+
+  // sequelize's operators, e.g. `{ [Op.or]: [...] }`
+  describe('symbol keys', () => {
+    const or = Symbol.for('or')
+
+    it('adds a default with a symbol key', () => {
+      const result: any = queryDefaults({ a: 1 }, { [or]: [{ x: 1 }] } as any)
+
+      expect(result.a).toBe(1)
+      expect(result[or]).toEqual([{ x: 1 }])
+    })
+
+    it('does not add it when the query has the symbol key', () => {
+      const result: any = queryDefaults(
+        { [or]: [{ y: 1 }] } as any,
+        {
+          [or]: [{ x: 1 }],
+        } as any,
+      )
+
+      expect(result[or]).toEqual([{ y: 1 }])
+    })
+  })
 })

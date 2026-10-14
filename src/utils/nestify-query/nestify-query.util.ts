@@ -165,6 +165,13 @@ const nestifyBody = (
     }
   }
 
+  // symbol keys - sequelize's operators - pass through like custom `$` operators
+  for (const symbol of Object.getOwnPropertySymbols(query)) {
+    if (Object.prototype.propertyIsEnumerable.call(query, symbol)) {
+      ;(result as Record<symbol, any>)[symbol] = query[symbol as any]
+    }
+  }
+
   if (conflicts.length > 0) {
     state.changed = true
     mergeAndBranches(result, conflicts)

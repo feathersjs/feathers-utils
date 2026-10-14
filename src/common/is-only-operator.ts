@@ -1,3 +1,4 @@
+import { hasSymbolKeys } from './has-symbol-keys.js'
 import { isPlainObject } from './is-plain-object.js'
 
 /**
@@ -19,13 +20,19 @@ export function isOnlyOperator(value: unknown, operator: string): boolean {
     return false
   }
   const keys = Object.keys(value)
-  return keys.length === 1 && keys[0] === operator
+  return keys.length === 1 && keys[0] === operator && !hasSymbolKeys(value)
 }
 
 if (import.meta.vitest) {
   const { describe, it, expect } = import.meta.vitest
 
   describe('isOnlyOperator', () => {
+    it('is false with symbol keys beside the operator', () => {
+      expect(isOnlyOperator({ $in: [1], [Symbol.for('ne')]: 2 }, '$in')).toBe(
+        false,
+      )
+    })
+
     it('is true for a value with just that operator', () => {
       expect(isOnlyOperator({ $in: [1] }, '$in')).toBe(true)
       expect(isOnlyOperator({ $or: [{ a: 1 }] }, '$or')).toBe(true)

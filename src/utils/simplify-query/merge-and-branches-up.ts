@@ -1,4 +1,4 @@
-import { isEqual } from '../../common/index.js'
+import { isEqual, ownEnumerableKeys } from '../../common/index.js'
 
 type QueryRecord = Record<string, any>
 
@@ -17,9 +17,12 @@ export function mergeAndBranchesUp(
   }
   const rest = { ...result }
   delete rest.$and
-  const seen = new Map<string, any>(Object.entries(rest))
+  // symbol keys included - sequelize's operators
+  const seen = new Map<PropertyKey, any>()
+  for (const key of ownEnumerableKeys(rest)) seen.set(key, rest[key as string])
   for (const branch of result.$and) {
-    for (const [key, value] of Object.entries(branch)) {
+    for (const key of ownEnumerableKeys(branch)) {
+      const value = branch[key as string]
       if (seen.has(key) && !isEqual(seen.get(key), value)) {
         return result
       }

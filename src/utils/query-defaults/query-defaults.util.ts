@@ -1,5 +1,6 @@
 import type { Query } from '@feathersjs/feathers'
 import { addToQuery } from '../add-to-query/add-to-query.util.js'
+import { ownEnumerableKeys, setOwnProperty } from '../../common/index.js'
 import { queryHasProperty } from '../query-has-property/query-has-property.util.js'
 
 /**
@@ -29,9 +30,13 @@ export const queryDefaults = (
   const source: Query = query ?? {}
 
   const toAdd: Query = {}
-  for (const key in defaults) {
-    if (!queryHasProperty(source, key)) {
-      toAdd[key] = defaults[key]
+  for (const key of ownEnumerableKeys(defaults)) {
+    // a symbol key is one of sequelize's operators: added unless the query
+    // has it at the top already
+    const present =
+      typeof key === 'symbol' ? key in source : queryHasProperty(source, key)
+    if (!present) {
+      setOwnProperty(toAdd, key, defaults[key as string])
     }
   }
 

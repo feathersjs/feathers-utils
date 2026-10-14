@@ -351,4 +351,68 @@ describe('simplifyQuery', () => {
       expect(result.age[gt]).toBe(18)
     })
   })
+
+  // sequelize's operators at the top of a branch, e.g. `{ [Op.or]: [...] }`
+  describe('symbol keys at the top', () => {
+    const or = Symbol.for('or')
+    const and = Symbol.for('and')
+    const gt = Symbol.for('gt')
+
+    it('does not take an $and branch of only symbol keys for empty', () => {
+      const result: any = simplifyQuery({
+        $and: [{ [or]: [{ a: 1 }] }, { [or]: [{ b: 2 }] }],
+      } as any)
+
+      expect(result.$and).toHaveLength(2)
+      expect(result.$and[0][or]).toEqual([{ a: 1 }])
+      expect(result.$and[1][or]).toEqual([{ b: 2 }])
+    })
+
+    it('does not take an $or branch of only symbol keys for one matching all', () => {
+      const result: any = simplifyQuery({
+        $or: [{ [or]: [{ a: 1 }] }, { x: 1 }],
+      } as any)
+
+      expect(result.$or).toHaveLength(2)
+      expect(result.$or[0][or]).toEqual([{ a: 1 }])
+    })
+
+    it('does not merge up an $or branch whose symbol key collides', () => {
+      const result: any = simplifyQuery({
+        [or]: [{ a: 1 }],
+        $or: [{ [or]: [{ b: 2 }] }],
+      } as any)
+
+      expect(result[or]).toEqual([{ a: 1 }])
+      expect(result.$or[0][or]).toEqual([{ b: 2 }])
+    })
+
+    it('does not hoist an $or branch that has symbol keys beside it', () => {
+      const result: any = simplifyQuery({
+        $or: [{ $or: [{ a: 1 }, { b: 1 }], [and]: [{ c: 1 }] }, { d: 1 }],
+      } as any)
+
+      expect(result.$or).toHaveLength(2)
+      expect(result.$or[0][and]).toEqual([{ c: 1 }])
+    })
+
+    it('does not collapse a branch with symbol keys into an $in', () => {
+      const result: any = simplifyQuery({
+        $or: [{ a: 1 }, { a: 2, [gt]: 5 }],
+      } as any)
+
+      expect(result.$or).toHaveLength(2)
+      expect(result.$or[1][gt]).toBe(5)
+    })
+
+    it('keeps symbol keys when a property collapses to an equality', () => {
+      const result: any = simplifyQuery({
+        a: { $in: [1] },
+        [or]: [{ b: 1 }],
+      } as any)
+
+      expect(result.a).toBe(1)
+      expect(result[or]).toEqual([{ b: 1 }])
+    })
+  })
 })

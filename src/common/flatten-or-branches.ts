@@ -1,3 +1,5 @@
+import { isOnlyOperator } from './is-only-operator.js'
+
 type QueryRecord = Record<string, any>
 
 /**
@@ -10,8 +12,8 @@ type QueryRecord = Record<string, any>
 export function flattenOrBranches(branches: QueryRecord[]): QueryRecord[] {
   const result: QueryRecord[] = []
   for (const branch of branches) {
-    const keys = Object.keys(branch)
-    if (keys.length === 1 && keys[0] === '$or' && Array.isArray(branch.$or)) {
+    // only a pure `$or` - not one beside symbol keys (sequelize's operators)
+    if (isOnlyOperator(branch, '$or') && Array.isArray(branch.$or)) {
       for (const nested of flattenOrBranches(branch.$or)) result.push(nested)
     } else {
       result.push(branch)
