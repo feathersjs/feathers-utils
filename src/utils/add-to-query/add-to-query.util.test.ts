@@ -195,4 +195,31 @@ describe('addToQuery', () => {
 
     expect(result).toEqual({ id: 1, $and: [{ id: 2 }] })
   })
+
+  // sequelize uses symbols as operators
+  describe('symbol operators', () => {
+    const lt = Symbol('lt')
+    const gt = Symbol('gt')
+
+    it('adds a condition that differs only in symbol operators', () => {
+      const result: any = addToQuery(
+        { age: { [lt]: 18 } } as any,
+        { age: { [gt]: 65 } } as any,
+      )
+
+      expect(result.age[lt]).toBe(18)
+      expect(result.$and).toHaveLength(1)
+      expect(result.$and[0].age[gt]).toBe(65)
+    })
+
+    it('does not add a condition that is already there', () => {
+      const result: any = addToQuery(
+        { age: { [gt]: 18 } } as any,
+        { age: { [gt]: 18 } } as any,
+      )
+
+      expect(result.$and).toBeUndefined()
+      expect(result.age[gt]).toBe(18)
+    })
+  })
 })

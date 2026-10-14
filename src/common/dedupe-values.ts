@@ -1,13 +1,11 @@
-import { dequal as deepEqual } from 'dequal'
+import { isEqual } from './is-equal.js'
 
 /**
  * The bucket a non-primitive is compared in. Values that are equal share it, so
  * only the values of one bucket need the deep comparison:
  *
  * - a `Date` by its time,
- * - a mongo `ObjectId` (anything with `toHexString`) by its hex string — bson 4
- *   keeps the id in a symbol key, so deep equality alone would find all of them
- *   equal,
+ * - a mongo `ObjectId` (anything with `toHexString`) by its hex string,
  * - anything else by its constructor.
  */
 const bucketOf = (value: object): unknown => {
@@ -21,9 +19,9 @@ const bucketOf = (value: object): unknown => {
 /**
  * Removes duplicates from a list of query values, preserving the order of first
  * occurrence. Primitives are compared with `SameValueZero` (`Set` semantics),
- * non-primitives deep-equal — so value wrappers like `Date` or a mongo
- * `ObjectId` collapse even though they are distinct references. An `ObjectId`
- * is compared by its hex string.
+ * non-primitives with {@link isEqual} - so a `Date` or a mongo `ObjectId`
+ * collapses even though they are distinct references, while other class
+ * instances only collapse when they are the same instance.
  *
  * Primitives never hit the deep comparison, so the common case of a large list
  * of scalar ids stays a single `Set` pass. Non-primitives are only compared
@@ -43,7 +41,7 @@ export function dedupeValues<T>(values: readonly T[]): T[] {
       const bucket = buckets.get(key)
       if (!bucket) {
         buckets.set(key, [value])
-      } else if (bucket.some((seen) => deepEqual(seen, value))) {
+      } else if (bucket.some((seen) => isEqual(seen, value))) {
         continue
       } else {
         bucket.push(value)
@@ -92,16 +90,15 @@ if (import.meta.vitest) {
       expect(dedupeValues(values)).toEqual([new Date(5), new Date(6)])
     })
 
-    it('dedupes equal class instances by value', () => {
+    it('keeps class instances apart unless they are the same instance', () => {
+      // their state may live in private fields, so equal looking instances
+      // aren't necessarily equal
       class Id {
         constructor(public buffer: Uint8Array) {}
       }
-      const values = [
-        new Id(new Uint8Array([1])),
-        new Id(new Uint8Array([1])),
-        new Id(new Uint8Array([2])),
-      ]
-      expect(dedupeValues(values)).toHaveLength(2)
+      const id = new Id(new Uint8Array([1]))
+      const values = [id, id, new Id(new Uint8Array([1]))]
+      expect(dedupeValues(values)).toStrictEqual([id, values[2]])
     })
 
     it('keeps ObjectIds apart whose id deep equality cannot see', () => {

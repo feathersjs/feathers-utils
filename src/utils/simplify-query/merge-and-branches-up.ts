@@ -1,4 +1,4 @@
-import { dequal as deepEqual } from 'dequal'
+import { isEqual } from '../../common/index.js'
 
 type QueryRecord = Record<string, any>
 
@@ -20,7 +20,7 @@ export function mergeAndBranchesUp(
   const seen = new Map<string, any>(Object.entries(rest))
   for (const branch of result.$and) {
     for (const [key, value] of Object.entries(branch)) {
-      if (seen.has(key) && !deepEqual(seen.get(key), value)) {
+      if (seen.has(key) && !isEqual(seen.get(key), value)) {
         return result
       }
       seen.set(key, value)

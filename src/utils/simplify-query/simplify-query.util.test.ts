@@ -316,4 +316,39 @@ describe('simplifyQuery', () => {
       (query) => simplifyQuery(query),
     )
   })
+
+  // sequelize uses symbols as operators
+  describe('symbol operators', () => {
+    const lt = Symbol('lt')
+    const gt = Symbol('gt')
+
+    it('keeps $or branches that differ only in symbol operators', () => {
+      const result: any = simplifyQuery({
+        $or: [{ age: { [lt]: 18 } }, { age: { [gt]: 65 } }],
+      } as any)
+
+      expect(result.$or).toHaveLength(2)
+      expect(result.$or[0].age[lt]).toBe(18)
+      expect(result.$or[1].age[gt]).toBe(65)
+    })
+
+    it('keeps $and branches that differ only in symbol operators', () => {
+      const result: any = simplifyQuery({
+        $and: [{ age: { [gt]: 18 } }, { age: { [lt]: 65 } }],
+      } as any)
+
+      expect(result.$and).toHaveLength(2)
+      expect(result.$and[0].age[gt]).toBe(18)
+      expect(result.$and[1].age[lt]).toBe(65)
+    })
+
+    it('still dedupes branches with the same symbol operators', () => {
+      const result: any = simplifyQuery({
+        $or: [{ age: { [gt]: 18 } }, { age: { [gt]: 18 } }],
+      } as any)
+
+      expect(result.$or).toBeUndefined()
+      expect(result.age[gt]).toBe(18)
+    })
+  })
 })
