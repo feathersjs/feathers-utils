@@ -222,4 +222,31 @@ describe('addToQuery', () => {
       expect(result.age[gt]).toBe(18)
     })
   })
+
+  // sequelize's operators at the top, e.g. `{ [Op.or]: [...] }`
+  describe('symbol keys at the top', () => {
+    const or = Symbol.for('or')
+
+    it('adds a query of only symbol keys', () => {
+      const result: any = addToQuery(
+        { a: 1 } as any,
+        {
+          [or]: [{ b: 2 }],
+        } as any,
+      )
+
+      expect(result.a).toBe(1)
+      expect(result[or]).toEqual([{ b: 2 }])
+    })
+
+    it('adds a colliding symbol key to the $and', () => {
+      const result: any = addToQuery(
+        { [or]: [{ a: 1 }] } as any,
+        { [or]: [{ b: 2 }] } as any,
+      )
+
+      expect(result[or]).toEqual([{ a: 1 }])
+      expect(result.$and[0][or]).toEqual([{ b: 2 }])
+    })
+  })
 })

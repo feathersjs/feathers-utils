@@ -1,5 +1,6 @@
 import type { Query } from '@feathersjs/feathers'
 import { isEqual } from '../../common/is-equal.js'
+import { ownEnumerableKeys } from '../../common/own-enumerable-keys.js'
 import { extractQueryFilters } from '../../common/extract-query-filters.js'
 import { mergeSelect } from '../../common/merge-select.js'
 
@@ -64,11 +65,16 @@ export function addToQuery<Q extends Query>(targetQuery: Q, query: Q): Q {
     return addFiltersToQuery(targetQuery, query)
   }
 
-  if (Object.keys(query).length === 0) {
+  // symbol keys included - sequelize's operators
+  const keys = ownEnumerableKeys(query)
+  if (keys.length === 0) {
     return targetQuery
   }
 
-  const entries = Object.entries(query) as [keyof Q, any][]
+  const entries = keys.map((key) => [key, query[key as string]]) as [
+    keyof Q,
+    any,
+  ][]
 
   if (entries.every(([property]) => !(property in targetQuery))) {
     // if none of the properties exist, merge them directly
