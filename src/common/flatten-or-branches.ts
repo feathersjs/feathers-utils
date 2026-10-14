@@ -12,7 +12,7 @@ export function flattenOrBranches(branches: QueryRecord[]): QueryRecord[] {
   for (const branch of branches) {
     const keys = Object.keys(branch)
     if (keys.length === 1 && keys[0] === '$or' && Array.isArray(branch.$or)) {
-      result.push(...flattenOrBranches(branch.$or))
+      for (const nested of flattenOrBranches(branch.$or)) result.push(nested)
     } else {
       result.push(branch)
     }

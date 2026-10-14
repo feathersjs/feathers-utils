@@ -15,7 +15,7 @@ export function flattenAndBranches(branches: QueryRecord[]): QueryRecord[] {
       if (Object.keys(rest).length > 0) {
         result.push(rest)
       }
-      result.push(...flattenAndBranches($and))
+      for (const nested of flattenAndBranches($and)) result.push(nested)
     } else {
       result.push(branch)
     }

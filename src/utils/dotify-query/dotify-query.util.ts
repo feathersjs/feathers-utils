@@ -149,7 +149,7 @@ const dotifyBody = (
       // the sub-object's own conflicts belong to this level's implicit `$and`,
       // because its keys just became keys of this level
       if (dottedKey === '$and') {
-        conflicts.push(...dotted.$and)
+        for (const conflict of dotted.$and) conflicts.push(conflict)
         continue
       }
 

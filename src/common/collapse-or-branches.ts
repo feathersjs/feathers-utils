@@ -32,7 +32,8 @@ export function collapseOrBranches(branches: QueryRecord[]): QueryRecord[] {
     const [property, values] = entry
     const group = groups.get(property)
     if (group) {
-      group.values.push(...values)
+      // a loop, not a spread: one argument per value overflows the stack
+      for (const value of values) group.values.push(value)
       group.branches++
     } else {
       groups.set(property, { values: [...values], branches: 1 })
@@ -97,6 +98,18 @@ if (import.meta.vitest) {
   const { describe, it, expect } = import.meta.vitest
 
   describe('collapseOrBranches', () => {
+    it('unions $in lists too long to spread into arguments', () => {
+      const first = Array.from({ length: 200_000 }, (_, i) => i)
+      const second = Array.from({ length: 200_000 }, (_, i) => i + 200_000)
+
+      const [collapsed] = collapseOrBranches([
+        { a: { $in: first } },
+        { a: { $in: second } },
+      ])
+
+      expect(collapsed.a.$in).toHaveLength(400_000)
+    })
+
     it('unions two $in on the same property', () => {
       expect(
         collapseOrBranches([{ a: { $in: ['a'] } }, { a: { $in: ['b'] } }]),
