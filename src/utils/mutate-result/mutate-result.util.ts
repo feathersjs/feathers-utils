@@ -31,10 +31,6 @@ export function mutateResult<H extends HookContext = HookContext>(
   transformer: TransformerInputFn<any, H>,
   options?: MutateResultOptions,
 ): Promisable<H> {
-  if (!!options?.dispatch && !context.dispatch) {
-    context.dispatch = copy(context.result)
-  }
-
   function forResult(dispatch: boolean): Promisable<H> {
     const { result } = getResultIsArray(context, { dispatch })
 
@@ -72,6 +68,12 @@ export function mutateResult<H extends HookContext = HookContext>(
   }
 
   function run(): Promisable<H> {
+    // seeded here, after `next`: before it, an around hook has no result yet,
+    // and both `getResultIsArray` and `replaceResult` would copy it again
+    if (!!options?.dispatch && !context.dispatch) {
+      context.dispatch = copy(context.result)
+    }
+
     if (options?.dispatch === 'both') {
       const a = forResult(true)
       const b = forResult(false)

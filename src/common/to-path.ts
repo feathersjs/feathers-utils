@@ -30,8 +30,19 @@ export const toKey = (value: unknown): PropertyKey => {
   return result === '0' && 1 / (value as number) === -Infinity ? '-0' : result
 }
 
-/** Splits a string path into its segments. */
-const stringToPath = (string: string): PropertyKey[] => {
+/**
+ * The parsed string paths. Paths are mostly static (hook options), so parsing
+ * each once saves the regex pass per item; the cache is cleared when it grows
+ * past {@link MAX_CACHED_PATHS}, like lodash's `memoizeCapped`.
+ */
+const pathCache = new Map<string, readonly PropertyKey[]>()
+const MAX_CACHED_PATHS = 500
+
+/** Splits a string path into its segments. The result is shared - never mutate it. */
+const stringToPath = (string: string): readonly PropertyKey[] => {
+  const cached = pathCache.get(string)
+  if (cached) return cached
+
   const result: PropertyKey[] = []
   if (string.charCodeAt(0) === 46 /* . */) result.push('')
   string.replace(rePropName, (match, number, quote, subString) => {
@@ -42,6 +53,9 @@ const stringToPath = (string: string): PropertyKey[] => {
     )
     return match
   })
+
+  if (pathCache.size >= MAX_CACHED_PATHS) pathCache.clear()
+  pathCache.set(string, result)
   return result
 }
 
@@ -76,7 +90,7 @@ const isKey = (value: unknown, object: unknown): boolean => {
  * toPath('a["b.c"]') // => ['a', 'b.c']
  * ```
  */
-export const toPath = (value: PropertyPath): PropertyKey[] => {
+export const toPath = (value: PropertyPath): readonly PropertyKey[] => {
   if (Array.isArray(value)) return value.map(toKey)
   if (typeof value === 'symbol') return [value]
   return stringToPath(`${value as any}`)
@@ -97,7 +111,7 @@ export const toPath = (value: PropertyPath): PropertyKey[] => {
 export const castPath = (
   value: PropertyPath,
   object: unknown,
-): PropertyKey[] => {
+): readonly PropertyKey[] => {
   if (Array.isArray(value)) return value.map(toKey)
   return isKey(value, object) ? [toKey(value)] : stringToPath(`${value as any}`)
 }
@@ -145,6 +159,21 @@ if (import.meta.vitest) {
 
     it('does not consult an object — a dotted key is always split', () => {
       expect(toPath('a.b')).toEqual(['a', 'b'])
+    })
+  })
+
+  describe('the path cache', () => {
+    it('parses a path once', () => {
+      expect(toPath('cached.a.b')).toBe(toPath('cached.a.b'))
+    })
+
+    it('stays bounded', () => {
+      const first = toPath('bounded.first')
+      for (let i = 0; i < 500; i++) toPath(`bounded.${i}`)
+
+      const again = toPath('bounded.first')
+      expect(again).not.toBe(first)
+      expect(again).toEqual(first)
     })
   })
 

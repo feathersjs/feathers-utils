@@ -4,7 +4,7 @@ import { getPath } from './get-path.js'
 import { setPathInPlace } from './set-path.js'
 
 /** Whether `path` resolves at all, inherited properties included (`in`). */
-const hasIn = (object: unknown, keys: PropertyKey[]): boolean => {
+const hasIn = (object: unknown, keys: readonly PropertyKey[]): boolean => {
   let current: any = object
   for (const key of keys) {
     if (current == null || !(key in Object(current))) return false
@@ -36,11 +36,7 @@ export const pickPaths = <T extends Record<PropertyKey, any>>(
   for (const path of paths) {
     const keys = castPath(path, object)
     if (hasIn(object, keys)) {
-      setPathInPlace(
-        result,
-        keys as PropertyKey[] as PropertyPath,
-        getPath(object, keys),
-      )
+      setPathInPlace(result, keys as PropertyPath, getPath(object, keys))
     }
   }
 

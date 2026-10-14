@@ -1,6 +1,7 @@
 import { isEqual } from './is-equal.js'
 import { isPlainObject } from './is-plain-object.js'
 import { ownEnumerableKeys } from './own-enumerable-keys.js'
+import { setOwnProperty } from './set-own-property.js'
 
 /**
  * A copy of `value` that doesn't change along with it, to compare it with
@@ -19,7 +20,8 @@ export const snapshot = <T>(value: T): T => copy(value, new Map())
 
 const copy = <T>(value: T, copies: Map<object, unknown>): T => {
   if (!Array.isArray(value) && !isPlainObject(value)) return value
-  if (copies.has(value)) return copies.get(value) as T
+  const seen = copies.get(value)
+  if (seen) return seen as T
 
   const result = Array.isArray(value)
     ? []
@@ -27,13 +29,8 @@ const copy = <T>(value: T, copies: Map<object, unknown>): T => {
   copies.set(value, result)
 
   for (const key of ownEnumerableKeys(value)) {
-    // defined instead of assigned, so a `__proto__` key stays a key
-    Object.defineProperty(result, key, {
-      value: copy((value as any)[key], copies),
-      enumerable: true,
-      writable: true,
-      configurable: true,
-    })
+    // a `__proto__` key stays a key
+    setOwnProperty(result, key, copy((value as any)[key], copies))
   }
 
   return result
