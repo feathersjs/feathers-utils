@@ -1,8 +1,14 @@
-import type { HookContext, NextFunction, Params } from '@feathersjs/feathers'
+import type {
+  HookContext,
+  Id,
+  NextFunction,
+  Params,
+} from '@feathersjs/feathers'
 import { stringifyParams } from '../../utils/stringify-params/stringify-params.util.js'
 import { getResultIsArray } from '../../utils/get-result-is-array/get-result-is-array.util.js'
+import { toArray } from '../../common/index.js'
 import { copy } from 'fast-copy'
-import type { Promisable } from '../../internal.utils.js'
+import type { MaybeArray, Promisable } from '../../internal.utils.js'
 import type { PredicateFn } from '../../types.js'
 
 type Cache = {
@@ -23,10 +29,15 @@ export type CacheEvent =
 
 export type CacheOptions<H extends HookContext = HookContext> = {
   /**
-   * The cache implementation to use. It should implement the methods `get`, `set`, `delete`, `clear`, and `keys`.
-   * This can be a Map, Redis client, or any other cache implementation.
+   * The cache implementation to use. It should implement the methods `get`,
+   * `set`, `delete`, `clear`, and `keys` - e.g. an `LRUCache` from `lru-cache`,
+   * a `Map`, or an adapter to Redis.
    *
-   * Use 'lru-cache' for an LRU cache implementation.
+   * Bound its size: the client chooses the `find` params (`$skip`, search
+   * terms, ...), so with a plain `Map` every distinct query stays in memory
+   * until the next write to the service.
+   *
+   * @example new LRUCache({ max: 500 })
    */
   map: Cache
   /**
@@ -51,7 +62,7 @@ export type CacheOptions<H extends HookContext = HookContext> = {
    * import { gateParams } from 'feathers-utils/utils'
    *
    * cache({
-   *   map: new Map(),
+   *   map: new LRUCache({ max: 500 }),
    *   transformParams: (params) => gateParams(params, { rateLimit: false }),
    * })
    * ```
@@ -87,12 +98,13 @@ export type CacheOptions<H extends HookContext = HookContext> = {
   serialize?: (params: Params) => string
   /**
    * Optional logger callback for cache events (hit, miss, set, invalidate,
-   * clear, skip). Useful for debugging and monitoring cache behavior.
+   * clear, skip). Useful for debugging and monitoring cache behavior. The
+   * events of the hook's `invalidate` function carry `method: 'invalidate'`.
    *
    * @example
    * ```ts
    * cache({
-   *   map: new Map(),
+   *   map: new LRUCache({ max: 500 }),
    *   transformParams: (params) => ({ query: params.query }),
    *   logger: (event) => console.log(`cache ${event.type}`, event),
    * })
@@ -134,7 +146,7 @@ export type CacheOptions<H extends HookContext = HookContext> = {
    *
    * // only serve internal calls from the cache
    * cache({
-   *   map: new Map(),
+   *   map: new LRUCache({ max: 500 }),
    *   transformParams: (params) => ({ query: params.query }),
    *   iff: isProvider('server'),
    * })
@@ -144,23 +156,52 @@ export type CacheOptions<H extends HookContext = HookContext> = {
 }
 
 /**
+ * The hook {@link cache} returns: usable as a `before`, `after` or `around`
+ * hook, with an `invalidate` function for the writes it does not see.
+ */
+export type CacheHook<H extends HookContext = HookContext> = {
+  (context: H, next?: NextFunction): Promise<void>
+  /**
+   * Invalidates the cache after a write the hook does not see - by `_patch`
+   * & co., or straight to the database: deletes the cached `get`s of `ids` and
+   * every cached `find`. Without `ids`, the whole cache is cleared; an empty
+   * list deletes only the `find`s.
+   *
+   * Pass the ids as `get` is called with them - an `ObjectId` is matched by its
+   * string form.
+   *
+   * @example
+   * ```ts
+   * await app.service('todos')._patch(1, { done: true })
+   * await todosCache.invalidate(1)
+   * ```
+   */
+  invalidate: (ids?: MaybeArray<Id | object>) => Promise<void>
+}
+
+/**
  * Caches `get` and `find` results based on `params`. On mutating methods (`create`, `update`,
  * `patch`, `remove`), affected cache entries are automatically invalidated.
  * Works as a `before`, `after`, or `around` hook.
  *
  * Use the `iff` option to restrict *caching* to certain calls (e.g. internal
- * ones) — invalidation always runs, for every call.
+ * ones) — invalidation always runs, for every call. For writes that skip the
+ * hooks (`_patch` & co.), call the returned hook's `invalidate`.
  *
  * @example
  * ```ts
  * import { cache } from 'feathers-utils/hooks'
- *
- * const myCache = new Map()
+ * import { LRUCache } from 'lru-cache'
  *
  * app.service('users').hooks({
  *   around: {
- *     all: [cache({ map: myCache, transformParams: (params) => ({ query: params.query }) })]
- *   }
+ *     all: [
+ *       cache({
+ *         map: new LRUCache({ max: 500 }),
+ *         transformParams: (params) => ({ query: params.query }),
+ *       }),
+ *     ],
+ *   },
  * })
  * ```
  *
@@ -168,9 +209,10 @@ export type CacheOptions<H extends HookContext = HookContext> = {
  */
 export const cache = <H extends HookContext = HookContext>(
   options: CacheOptions<H>,
-) => {
+): CacheHook<H> => {
   const cacheMap = new ContextCacheMap(options)
-  return async (context: H, next?: NextFunction): Promise<void> => {
+
+  const hook = async (context: H, next?: NextFunction): Promise<void> => {
     if (context.type === 'before') {
       return await cacheBefore(context, cacheMap)
     }
@@ -185,6 +227,16 @@ export const cache = <H extends HookContext = HookContext>(
       return
     }
   }
+
+  const invalidate: CacheHook<H>['invalidate'] = async (ids) => {
+    if (ids == null) {
+      await cacheMap.clearAll('invalidate')
+    } else {
+      await cacheMap.invalidate('invalidate', toArray(ids))
+    }
+  }
+
+  return Object.assign(hook, { invalidate })
 }
 
 const cacheBefore = async (
@@ -234,6 +286,8 @@ class ContextCacheMap {
   private serialize: (params: Params) => string
   private clone: <T>(value: T) => T
   private iff: boolean | PredicateFn<any>
+  /** The calls served from the cache, whose result `set` must not store again. */
+  private hits = new WeakSet<HookContext>()
 
   constructor(options: CacheOptions<any>) {
     this.map = options.map
@@ -307,6 +361,7 @@ class ContextCacheMap {
     const key = this.stringifyCacheKey(context)
     const result = await this.map.get(key)
     if (result) {
+      this.hits.add(context)
       this.log?.({ type: 'hit', method: context.method, key })
       return this.clone(result) // clone to avoid mutation of the cached result
     }
@@ -316,9 +371,15 @@ class ContextCacheMap {
   /**
    * Called after get() and find()
    *
-   * Caches the result for the given context.
+   * Caches the result for the given context - unless it was served from the
+   * cache: storing it again would only cost a key and a clone, and reset the
+   * entry's TTL, so a frequently read entry would never expire.
    */
   async set(context: HookContext) {
+    if (this.hits.delete(context)) {
+      return
+    }
+
     const key = this.stringifyCacheKey(context)
     this.log?.({ type: 'set', method: context.method, key })
     // clone to avoid later mutation of the cached result
@@ -329,48 +390,63 @@ class ContextCacheMap {
   async clear<H extends HookContext>(context: H): Promise<H> {
     const { result: results } = getResultIsArray(context)
 
-    const promises: Promise<any>[] = []
-
     const itemIds = results
       .map((item: any) => this.getId(item, context))
       .filter((id: any) => id != null)
 
-    // If no itemIds are found, clear the entire cache to avoid stale data
+    // the written items are unknown, so clear the entire cache to avoid stale
+    // data: no result, items without ids, or none at all - which does not mean
+    // nothing changed, adapters can skip returning them (`$returning: false`
+    // in feathers-sequelize, `kysely.returning: false` in feathers-kysely)
     if (!itemIds.length) {
-      this.log?.({ type: 'clear', method: context.method })
-      await this.map.clear()
+      await this.clearAll(context.method)
       return context
     }
 
-    // O(1) membership instead of an O(itemIds) scan per cached key.
-    const idSet = new Set<string>(itemIds.map((id: any) => `${id}`))
+    await this.invalidate(context.method, itemIds)
+
+    return context
+  }
+
+  async clearAll(method: string) {
+    this.log?.({ type: 'clear', method })
+    await this.map.clear()
+  }
+
+  /**
+   * Deletes every cached `find` and - unless `method` is `create` - the cached
+   * `get`s of `ids`.
+   */
+  async invalidate(method: string, ids: readonly unknown[]) {
+    const promises: Promise<any>[] = []
+
+    // O(1) membership instead of an O(ids) scan per cached key.
+    const idSet = new Set<string>(ids.map((id) => `${id}`))
 
     for (const key of this.map.keys()) {
       const cachedId = this.getCachedId(key)
       if (cachedId === 'null') {
         // This is a cached `find` request. Any create/patch/update/del
         // could affect the results of this query so it should be deleted
-        this.log?.({ type: 'invalidate', method: context.method, key })
+        this.log?.({ type: 'invalidate', method, key })
         promises.push(this.map.delete(key))
         continue
       }
 
       // This is a cached `get` request
 
-      if (context.method === 'create') {
+      if (method === 'create') {
         // If this is a create, we don't need to delete any cached get requests
         continue
       }
 
       if (idSet.has(cachedId)) {
         // If the cached id matches a mutated item id, delete the cached get
-        this.log?.({ type: 'invalidate', method: context.method, key })
+        this.log?.({ type: 'invalidate', method, key })
         promises.push(this.map.delete(key))
       }
     }
 
     await Promise.all(promises)
-
-    return context
   }
 }

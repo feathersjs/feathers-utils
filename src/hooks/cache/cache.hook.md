@@ -21,6 +21,16 @@ The `cache` hook caches `get` and `find` results based on `params`. On mutating 
 - Cached `find` entries are invalidated on any mutation, since any change could affect query results.
 - `create` does not invalidate cached `get` entries (only `find`).
 - The `iff` option restricts *which calls are cached* (e.g. internal ones only); invalidation always runs.
+- When a write does not show which items it changed (no result, items without ids, or none at all, e.g. feathers-sequelize with `$returning: false`), the whole cache is cleared.
+
+::: warning Only writes through the hooks invalidate
+The hook only sees the calls that run the service's hooks. These writes leave stale entries behind until they are evicted or their `ttl` runs out:
+
+- the adapter methods without hooks: `_create`, `_update`, `_patch` and `_remove`,
+- writes straight to the database, or from another process.
+
+Give the cache a `ttl` that bounds how stale an entry may get, and [invalidate it yourself](#invalidating-manually) after such a write.
+:::
 
 <!-- options -->
 
@@ -31,12 +41,13 @@ The `cache` hook caches `get` and `find` results based on `params`. On mutating 
 ```ts
 import { cache } from 'feathers-utils/hooks'
 import { isProvider } from 'feathers-utils/predicates'
+import { LRUCache } from 'lru-cache'
 
 app.service('users').hooks({
   around: {
     all: [
       cache({
-        map: new Map(),
+        map: new LRUCache({ max: 500 }),
         transformParams: (params) => ({ query: params.query }),
         // only internal calls are served from / written to the cache
         iff: isProvider('server'),
@@ -73,7 +84,7 @@ Cache on everything except the keys you explicitly drop with `false`. This is th
 import { gateParams } from 'feathers-utils/utils'
 
 cache({
-  map: new Map(),
+  map: new LRUCache({ max: 500 }),
   transformParams: (params) =>
     gateParams(params, { rateLimit: false, skipHooks: false }),
 })
@@ -87,7 +98,7 @@ Set `dropUnknownParams: true` so only `query` (always) and the listed paths form
 import { gateParams } from 'feathers-utils/utils'
 
 cache({
-  map: new Map(),
+  map: new LRUCache({ max: 500 }),
   transformParams: (params) =>
     gateParams(
       params,
@@ -100,6 +111,33 @@ cache({
     ),
 })
 ```
+
+## Invalidating Manually
+
+For the writes the hook does not see, the hook that `cache()` returns has an `invalidate` function. Given the ids of the changed items, it deletes their cached `get`s and every cached `find`. Without ids, it clears the whole cache.
+
+```ts
+import { cache } from 'feathers-utils/hooks'
+import { LRUCache } from 'lru-cache'
+
+export const todosCache = cache({
+  map: new LRUCache({ max: 500 }),
+  transformParams: (params) => ({ query: params.query }),
+})
+
+app.service('todos').hooks({ around: { all: [todosCache] } })
+
+// elsewhere, past the hooks of `todos`
+await app.service('todos')._patch(1, { done: true })
+await todosCache.invalidate(1)
+
+// the changed ids are unknown, e.g. after a bulk write straight to the database
+await todosCache.invalidate()
+```
+
+- Pass the ids as `get` is called with them. An `ObjectId` is matched by its string form.
+- An empty list deletes only the cached `find`s, e.g. after `_create`.
+- The `logger` events of `invalidate` carry `method: 'invalidate'`.
 
 ## Cache Interface
 
@@ -117,26 +155,11 @@ type Cache = {
 
 A plain `Map` satisfies this interface out of the box, as do many popular cache libraries.
 
+::: warning Bound the cache
+A `Map` never evicts. For external `find` calls the client chooses the params that form the key (`$skip`, search terms, `$in` lists, ...), so every distinct query stays in memory until the next write to the service. Use a cache with a size limit, like `lru-cache` below.
+:::
+
 ## Examples of storages
-
-### Basic Usage with Map
-
-```ts
-import { cache } from 'feathers-utils/hooks'
-
-const myCache = new Map()
-
-app.service('users').hooks({
-  around: {
-    all: [
-      cache({
-        map: myCache,
-        transformParams: (params) => ({ query: params.query }),
-      }),
-    ],
-  },
-})
-```
 
 ### LRU Cache (lru-cache)
 
@@ -163,9 +186,32 @@ app.service('users').hooks({
 })
 ```
 
+The `ttl` bounds how stale an entry can get through writes the hook does not see, e.g. from another process or straight to the database. Serving an entry from the cache does not reset it.
+
+### Map
+
+A `Map` is enough when the set of keys is small and fixed, e.g. for a few internal calls with known params, or in tests:
+
+```ts
+import { cache } from 'feathers-utils/hooks'
+import { isProvider } from 'feathers-utils/predicates'
+
+app.service('settings').hooks({
+  around: {
+    all: [
+      cache({
+        map: new Map(),
+        transformParams: (params) => ({ query: params.query }),
+        iff: isProvider('server'),
+      }),
+    ],
+  },
+})
+```
+
 ### Redis
 
-Redis (via [ioredis](https://github.com/redis/ioredis)) requires a thin adapter since its API is slightly different from the `Cache` interface.
+Redis (via [ioredis](https://github.com/redis/ioredis)) needs a thin adapter. The hook iterates `keys()` synchronously on every write, so the adapter tracks the keys it set, together with their expiry:
 
 ```ts
 import { cache } from 'feathers-utils/hooks'
@@ -175,28 +221,33 @@ const redis = new Redis()
 const prefix = 'users-cache:'
 const ttl = 60 * 5 // 5 minutes in seconds
 
+// key -> expiry, so the keys Redis expired are dropped here too
+const tracked = new Map<string, number>()
+
 const redisCache = {
   async get(key: string) {
     const value = await redis.get(prefix + key)
     return value ? JSON.parse(value) : undefined
   },
   async set(key: string, value: any) {
+    tracked.set(key, Date.now() + ttl * 1000)
     await redis.set(prefix + key, JSON.stringify(value), 'EX', ttl)
   },
   async delete(key: string) {
+    tracked.delete(key)
     await redis.del(prefix + key)
   },
   async clear() {
-    const keys = await redis.keys(prefix + '*')
-    if (keys.length) await redis.del(...keys)
+    const keys = [...tracked.keys()]
+    tracked.clear()
+    if (keys.length) await redis.del(...keys.map((key) => prefix + key))
   },
   *keys() {
-    // Redis keys() is async, so we track keys locally for invalidation.
-    // For production use, consider maintaining a local Set of active keys.
-    throw new Error(
-      'Synchronous keys iteration is not supported with Redis. ' +
-        'Use clear() for full invalidation instead.',
-    )
+    const now = Date.now()
+    for (const [key, expires] of tracked) {
+      if (expires <= now) tracked.delete(key)
+      else yield key
+    }
   },
 }
 
@@ -206,46 +257,21 @@ app.service('users').hooks({
       cache({
         map: redisCache,
         transformParams: (params) => ({ query: params.query }),
+        // the JSON round trip already hands out a fresh copy
+        clone: false,
       }),
     ],
   },
 })
 ```
 
-::: warning
-The `keys()` method is called during invalidation of mutating methods to find entries that match the affected ids. Since Redis does not support synchronous iteration, the adapter above throws on `keys()`. This means mutations will fail unless you provide a working `keys()` implementation — for example by tracking active keys in a local `Set`:
+::: warning One process only
+The keys are tracked per process. With several instances, a write on one does not invalidate the entries another one set: they stay until their `ttl` runs out. Keep the `ttl` short, or share the invalidation between the instances, e.g. via Redis pub/sub.
 :::
-
-```ts
-const trackedKeys = new Set<string>()
-
-const redisCache = {
-  async get(key: string) {
-    const value = await redis.get(prefix + key)
-    return value ? JSON.parse(value) : undefined
-  },
-  async set(key: string, value: any) {
-    trackedKeys.add(key)
-    await redis.set(prefix + key, JSON.stringify(value), 'EX', ttl)
-  },
-  async delete(key: string) {
-    trackedKeys.delete(key)
-    await redis.del(prefix + key)
-  },
-  async clear() {
-    const keys = [...trackedKeys]
-    trackedKeys.clear()
-    if (keys.length) await redis.del(...keys.map((k) => prefix + k))
-  },
-  *keys() {
-    yield* trackedKeys
-  },
-}
-```
 
 ### Custom Cache
 
-You can build any custom cache as long as it implements the `Cache` interface. Here is an example of a simple time-based cache:
+You can build any custom cache as long as it implements the `Cache` interface. Here is an example of a simple time-based cache. It drops an expired entry when it is read, and on every write, when the hook iterates `keys()`:
 
 ```ts
 import { cache } from 'feathers-utils/hooks'
@@ -275,7 +301,11 @@ const timedCache = () => {
       store.clear()
     },
     *keys() {
-      yield* store.keys()
+      const now = Date.now()
+      for (const [key, entry] of store) {
+        if (now > entry.expires) store.delete(key)
+        else yield key
+      }
     },
   }
 }

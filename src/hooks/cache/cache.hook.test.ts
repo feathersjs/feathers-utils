@@ -1,6 +1,6 @@
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { feathers } from '@feathersjs/feathers'
-import type { CacheOptions } from './cache.hook.js'
+import type { CacheHook, CacheOptions } from './cache.hook.js'
 import { cache } from './cache.hook.js'
 import { LRUCache } from 'lru-cache'
 import { TTLCache } from '@isaacs/ttlcache'
@@ -151,6 +151,61 @@ describe('cache hook', () => {
       await usersService.get(2)
       expect(before.get).toHaveBeenCalledTimes(3)
     })
+
+    it('does not store a hit again, so its TTL keeps running', async () => {
+      const map = new Map()
+      const setSpy = vi.spyOn(map, 'set')
+      const { usersService, before } = setup({
+        map,
+        transformParams: (params) => params,
+      })
+
+      await usersService.create({ id: 1, name: 'John' })
+      await usersService.get(1)
+      await usersService.get(1)
+      await usersService.get(1)
+
+      expect(before.get).toHaveBeenCalledTimes(1)
+      expect(setSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([
+      // adapters can skip returning the written items, e.g. feathers-sequelize
+      // with `$returning: false` - a multi patch then resolves to `[]`
+      ['no items', []],
+      ['items without ids', [{ name: 'x' }]],
+      ['no result', undefined],
+    ])(
+      'clears the whole cache when a write returns %s',
+      async (_, patchResult) => {
+        const app = feathers()
+        let gets = 0
+        app.use('things', {
+          async get(id: number) {
+            gets++
+            return { id }
+          },
+          async patch() {
+            return patchResult
+          },
+        } as any)
+        const things = app.service('things')
+        things.hooks({
+          around: {
+            all: [
+              cache({ map: new Map(), transformParams: (params) => params }),
+            ],
+          },
+        })
+
+        await things.get(1)
+        await things.get(2)
+        await things.patch(null, {})
+
+        await things.get(2)
+        expect(gets).toBe(3)
+      },
+    )
 
     it('invalidates only the get of id 0 on patch, not the whole cache', async () => {
       const { usersService, before } = setup({
@@ -771,14 +826,10 @@ describe('cache hook logger', () => {
     logger.mockClear()
 
     await usersService.get(1)
-    // hit in before hook, then set again in after hook (re-caches same result)
-    expect(logger).toHaveBeenCalledTimes(2)
+    // a hit is not stored again
+    expect(logger).toHaveBeenCalledTimes(1)
     expect(logger.mock.calls[0][0]).toMatchObject({
       type: 'hit',
-      method: 'get',
-    })
-    expect(logger.mock.calls[1][0]).toMatchObject({
-      type: 'set',
       method: 'get',
     })
   })
@@ -808,14 +859,10 @@ describe('cache hook logger', () => {
     logger.mockClear()
 
     await usersService.find()
-    // hit in before hook, then set again in after hook (re-caches same result)
-    expect(logger).toHaveBeenCalledTimes(2)
+    // a hit is not stored again
+    expect(logger).toHaveBeenCalledTimes(1)
     expect(logger.mock.calls[0][0]).toMatchObject({
       type: 'hit',
-      method: 'find',
-    })
-    expect(logger.mock.calls[1][0]).toMatchObject({
-      type: 'set',
       method: 'find',
     })
   })
@@ -1170,13 +1217,10 @@ describe('cache hook as an around hook', () => {
     expect(logger.mock.calls.map((c) => c[0].type)).toEqual(['miss', 'set'])
 
     logger.mockClear()
-    // hit (still re-set after)
+    // hit, not stored again
     item = await usersService.get(1)
     expect(item).toEqual({ id: 1, name: 'John' })
-    expect(logger.mock.calls[0][0]).toMatchObject({
-      type: 'hit',
-      method: 'get',
-    })
+    expect(logger.mock.calls.map((c) => c[0].type)).toEqual(['hit'])
 
     logger.mockClear()
     // mutation invalidates the get cache
@@ -1489,5 +1533,118 @@ describe('cache hook iff option with logger', () => {
     await usersService.patch(1, { name: 'John Doe' }, { provider: 'rest' })
     expect(logger.mock.calls.map((c) => c[0].type)).toContain('invalidate')
     expect(logger.mock.calls[0][0]).toMatchObject({ method: 'patch' })
+  })
+})
+
+describe('cache hook invalidate', () => {
+  const setupInvalidate = (logger?: CacheOptions['logger']) => {
+    const app = feathers<{ users: MemoryService }>()
+    app.use('users', new MemoryService({ multi: true }))
+    const usersService = app.service('users')
+    const cacheHook = cache({
+      map: new Map(),
+      transformParams: (params) => params,
+      logger,
+    })
+    // the calls that were not served from the cache
+    const calls = { get: 0, find: 0 }
+    usersService.hooks({
+      around: { all: [cacheHook] },
+      before: {
+        get: [(context: HookContext) => void (context.result || calls.get++)],
+        find: [(context: HookContext) => void (context.result || calls.find++)],
+      },
+    })
+    return { usersService, cacheHook, calls }
+  }
+
+  const fill = async (usersService: MemoryService) => {
+    await usersService.create({ id: 1, name: 'John' })
+    await usersService.create({ id: 2, name: 'Jane' })
+    await usersService.get(1)
+    await usersService.get(2)
+    await usersService.find({ query: {} })
+  }
+
+  it('deletes the gets of the given ids and every find', async () => {
+    const { usersService, cacheHook, calls } = setupInvalidate()
+    await fill(usersService)
+
+    await usersService._patch(1, { name: 'John Doe' })
+    // the hook did not see the write
+    expect(await usersService.get(1)).toEqual({ id: 1, name: 'John' })
+
+    await cacheHook.invalidate(1)
+
+    expect(await usersService.get(1)).toEqual({ id: 1, name: 'John Doe' })
+    await usersService.get(2)
+    await usersService.find({ query: {} })
+    expect(calls).toEqual({ get: 3, find: 2 })
+  })
+
+  it('clears the whole cache without ids', async () => {
+    const { usersService, cacheHook, calls } = setupInvalidate()
+    await fill(usersService)
+
+    await cacheHook.invalidate()
+
+    await usersService.get(1)
+    await usersService.get(2)
+    await usersService.find({ query: {} })
+    expect(calls).toEqual({ get: 4, find: 2 })
+  })
+
+  it('deletes only the finds for an empty list', async () => {
+    const { usersService, cacheHook, calls } = setupInvalidate()
+    await fill(usersService)
+
+    await cacheHook.invalidate([])
+
+    await usersService.get(1)
+    await usersService.get(2)
+    await usersService.find({ query: {} })
+    expect(calls).toEqual({ get: 2, find: 2 })
+  })
+
+  it('matches an ObjectId by its string form', async () => {
+    class ObjectId {
+      constructor(private hex: string) {}
+      toString() {
+        return this.hex
+      }
+    }
+    const { usersService, cacheHook, calls } = setupInvalidate()
+    await usersService.create({ id: 'a1', name: 'John' })
+    await usersService.get('a1')
+
+    await cacheHook.invalidate([new ObjectId('a1')])
+
+    await usersService.get('a1')
+    expect(calls.get).toBe(2)
+  })
+
+  it("logs its events with `method: 'invalidate'`", async () => {
+    const logger = vi.fn()
+    const { usersService, cacheHook } = setupInvalidate(logger)
+    await fill(usersService)
+    logger.mockClear()
+
+    await cacheHook.invalidate(1)
+    await cacheHook.invalidate()
+
+    expect(logger.mock.calls.map(([event]) => event)).toStrictEqual([
+      { type: 'invalidate', method: 'invalidate', key: expect.any(String) },
+      { type: 'invalidate', method: 'invalidate', key: expect.any(String) },
+      { type: 'clear', method: 'invalidate' },
+    ])
+  })
+
+  it('types `invalidate`', () => {
+    const cacheHook = cache({ map: new Map(), transformParams: (p) => p })
+
+    expectTypeOf(cacheHook).toEqualTypeOf<CacheHook>()
+    expectTypeOf(cacheHook.invalidate).returns.resolves.toBeVoid()
+    // @ts-expect-error - an id is a string, a number or an object like an ObjectId
+    void cacheHook.invalidate(true)
   })
 })
