@@ -165,7 +165,11 @@ export const onDelete = <H extends HookContext = HookContext>(
       i,
       { keyHere, keyThere, onDelete, service, query, multi, onError, params },
     ] of optionsMulti.entries()) {
-      const ids = result.map((x) => x[keyHere]).filter((x) => !!x)
+      // 0 is a valid id (the memory adapter starts there), but an empty string is
+      // an unset key: cascading on it would hit every related item without one
+      const ids = result
+        .map((x) => x[keyHere])
+        .filter((x) => x != null && x !== '')
 
       if (ids.length <= 0) {
         continue

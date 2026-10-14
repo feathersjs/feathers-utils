@@ -376,6 +376,69 @@ describe('onDelete', function () {
       expect(todos).toStrictEqual([{ id: 3, title: 'Buy bread', userId: 3 }])
     })
 
+    it('removes the related items of id 0', async function () {
+      // the memory adapter hands out ids starting at 0 by default
+      const app = feathers()
+      app.use('users', new MemoryService({ multi: true }))
+      app.use('todos', new MemoryService({ multi: true }))
+      const usersService = app.service('users')
+      const todosService = app.service('todos')
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'cascade',
+              blocking: true,
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe' })
+      expect(user.id).toBe(0)
+
+      await todosService.create({ title: 'Buy milk', userId: 0 })
+      await todosService.create({ title: 'Buy eggs', userId: 1 })
+
+      await usersService.remove(0)
+
+      const todos = await todosService.find({ query: {} })
+
+      expect(todos).toStrictEqual([{ id: 1, title: 'Buy eggs', userId: 1 }])
+    })
+
+    it('treats an empty string key as unset instead of cascading on it', async function () {
+      const { usersService, todosService } = mockApp()
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'groupKey',
+              keyHere: 'groupKey',
+              onDelete: 'cascade',
+              blocking: true,
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe', groupKey: '' })
+      await todosService.create({ title: 'Buy milk', groupKey: '' })
+      await todosService.create({ title: 'Buy eggs', groupKey: '' })
+
+      await usersService.remove(user.id)
+
+      const todos = await todosService.find({ query: {} })
+
+      expect(todos).toHaveLength(2)
+    })
+
     it('does not remove items if not found', async function () {
       const { app, usersService, todosService } = mockApp()
 

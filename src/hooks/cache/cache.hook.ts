@@ -30,9 +30,11 @@ export type CacheOptions<H extends HookContext = HookContext> = {
    */
   map: Cache
   /**
-   * The id field to use for caching.
+   * The id field of the items, read to invalidate cached `get`s. Only a
+   * fallback for services without `options.id`: a service that has one (every
+   * database adapter) uses it, since that is the field `get` is called with.
    *
-   * @default service.options.id ?? 'id'
+   * @default 'id'
    */
   id?: string
   /**
@@ -331,7 +333,7 @@ class ContextCacheMap {
 
     const itemIds = results
       .map((item: any) => this.getId(item, context))
-      .filter(Boolean)
+      .filter((id: any) => id != null)
 
     // If no itemIds are found, clear the entire cache to avoid stale data
     if (!itemIds.length) {

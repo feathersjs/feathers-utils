@@ -1,5 +1,6 @@
 import { BadRequest } from '@feathersjs/errors'
 import type { Promisable } from '../internal.utils.js'
+import { setOwnProperty } from '../common/index.js'
 
 export interface ResolverPropertyOptions<T, V, C> {
   value: V | undefined
@@ -65,9 +66,11 @@ export const resolve = <T, D extends Record<string, any>, C>(
   for (const name of propertyList) {
     const value = (data as any)[name]
 
-    if (!(name in resolvers)) {
+    // own keys only: `name` comes from the data, and `in` would also match
+    // `constructor`, `toString` & co. of `Object.prototype`
+    if (!Object.hasOwn(resolvers, name)) {
       if (value !== undefined) {
-        result[name] = value
+        setOwnProperty(result, name, value)
       }
       continue
     }
@@ -98,19 +101,19 @@ export const resolve = <T, D extends Record<string, any>, C>(
           resolved
             .then((val) => {
               if (val !== undefined) {
-                result[name] = val
+                setOwnProperty(result, name, val)
               }
             })
             .catch((error: any) => {
-              errors[name] = toError(error)
+              setOwnProperty(errors, name, toError(error))
               hasErrors = true
             }),
         )
       } else if (resolved !== undefined) {
-        result[name] = resolved
+        setOwnProperty(result, name, resolved)
       }
     } catch (error: any) {
-      errors[name] = toError(error)
+      setOwnProperty(errors, name, toError(error))
       hasErrors = true
     }
   }
