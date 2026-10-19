@@ -468,8 +468,10 @@ describe('cache hook', () => {
             ...context,
           }) as any
 
-        await hook(createContext())
-        await hook(createContext({ type: 'after', result: [{ id: 1 }] }))
+        // before and after of one call share their context
+        const miss = createContext()
+        await hook(miss)
+        await hook(Object.assign(miss, { type: 'after', result: [{ id: 1 }] }))
         const hit = createContext()
         await hook(hit)
         return hit.result
@@ -1714,5 +1716,69 @@ describe('cache hook with symbol operators', () => {
 
     expect(adults).toStrictEqual([{ operator: 'gt' }])
     expect(minors).toStrictEqual([{ operator: 'lt' }])
+  })
+})
+
+// a read that runs into a write: its result predates the write
+describe('cache hook with a read a write overtakes', () => {
+  const setupSlowRead = () => {
+    const app = feathers<{ users: MemoryService }>()
+    app.use('users', new MemoryService({ id: 'id', multi: true }))
+    const usersService = app.service('users')
+    const cacheHook = cache({
+      map: new Map(),
+      transformParams: (params) => ({ query: params.query }),
+    })
+    const { promise: read, resolve: hasRead } = Promise.withResolvers<void>()
+    const { promise: released, resolve: release } =
+      Promise.withResolvers<void>()
+    usersService.hooks({
+      around: { all: [cacheHook] },
+      after: {
+        // holds the slow read between the database and the cache
+        find: [
+          async (context: HookContext) => {
+            if (context.params.slow) {
+              hasRead()
+              await released
+            }
+          },
+        ],
+      },
+    })
+    const slowFind = async (write: () => Promise<unknown>) => {
+      const stale = usersService.find({ query: {}, slow: true } as any)
+      await read
+      await write()
+      release()
+      return await stale
+    }
+    return { usersService, cacheHook, slowFind }
+  }
+
+  it('does not store it over a write the hook saw', async () => {
+    const { usersService, slowFind } = setupSlowRead()
+
+    expect(
+      await slowFind(() => usersService.create({ id: 1, name: 'John' })),
+    ).toStrictEqual([])
+
+    expect(await usersService.find({ query: {} })).toStrictEqual([
+      { id: 1, name: 'John' },
+    ])
+  })
+
+  it('does not store it over `invalidate`', async () => {
+    const { usersService, cacheHook, slowFind } = setupSlowRead()
+
+    expect(
+      await slowFind(() =>
+        cacheHook.invalidate(usersService._create({ id: 1, name: 'John' })),
+      ),
+    ).toStrictEqual([])
+
+    expect(await usersService.find({ query: {} })).toStrictEqual([
+      { id: 1, name: 'John' },
+    ])
   })
 })

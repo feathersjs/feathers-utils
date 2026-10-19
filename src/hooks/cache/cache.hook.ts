@@ -281,8 +281,14 @@ class ContextCacheMap {
   private serialize: (params: Params) => string
   private clone: <T>(value: T) => T
   private iff: boolean | PredicateFn<any>
-  /** The calls served from the cache, whose result `set` must not store again. */
-  private hits = new WeakSet<HookContext>()
+  /** Bumped by every invalidation, so `set` can tell a read that predates one. */
+  private generation = 0
+  /**
+   * The calls that missed the cache, with the generation they started reading
+   * in. A hit is not here: storing it again would only cost a key and a clone,
+   * and reset the entry's TTL, so a frequently read entry would never expire.
+   */
+  private misses = new WeakMap<HookContext, number>()
   /**
    * The id field of the service the cached entries came from, for
    * `invalidateResult` - which has no context, and has nothing to invalidate
@@ -365,22 +371,24 @@ class ContextCacheMap {
     const key = this.stringifyCacheKey(context)
     const result = await this.map.get(key)
     if (result) {
-      this.hits.add(context)
       this.log?.({ type: 'hit', method: context.method, key })
       return this.clone(result) // clone to avoid mutation of the cached result
     }
+    this.misses.set(context, this.generation)
     this.log?.({ type: 'miss', method: context.method, key })
   }
 
   /**
    * Called after get() and find()
    *
-   * Caches the result for the given context - unless it was served from the
-   * cache: storing it again would only cost a key and a clone, and reset the
-   * entry's TTL, so a frequently read entry would never expire.
+   * Caches the result of a miss - unless an invalidation ran while it was
+   * read: the result may predate that write, and storing it would bring back
+   * what the invalidation removed.
    */
   async set(context: HookContext) {
-    if (this.hits.delete(context)) {
+    const generation = this.misses.get(context)
+    this.misses.delete(context)
+    if (generation !== this.generation) {
       return
     }
 
@@ -414,6 +422,7 @@ class ContextCacheMap {
     items: readonly unknown[],
     idField: string,
   ) {
+    this.generation++
     const itemIds = items
       .map((item) => this.getId(item, idField))
       .filter((id) => id != null)

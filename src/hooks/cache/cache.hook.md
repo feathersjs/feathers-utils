@@ -22,6 +22,7 @@ The `cache` hook caches `get` and `find` results based on `params`. On mutating 
 - `create` does not invalidate cached `get` entries (only `find`).
 - The `iff` option restricts *which calls are cached* (e.g. internal ones only); invalidation always runs.
 - When a write does not show which items it changed (no result, items without ids, or none at all, e.g. feathers-sequelize with `$returning: false`), the whole cache is cleared.
+- A `get`/`find` that was still reading while an invalidation ran is not stored: its result may predate that write.
 
 ::: warning Only writes through the hooks invalidate
 The hook only sees the calls that run the service's hooks. These writes leave stale entries behind until they are evicted or their `ttl` runs out:
