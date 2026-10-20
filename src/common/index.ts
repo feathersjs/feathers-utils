@@ -1,3 +1,4 @@
+export { getContextPath, MISSING_PATH } from './get-context-path.js'
 export { isPromise } from '../helpers/is-promise/is-promise.helper.js'
 export { allowsMulti } from './allows-multi.js'
 export { changeMany } from './change-many.js'

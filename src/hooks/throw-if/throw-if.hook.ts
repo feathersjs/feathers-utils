@@ -1,3 +1,4 @@
+import { isPromise } from '../../common/index.js'
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import type { PredicateFn } from '../../types.js'
 import { BadRequest } from '@feathersjs/errors'
@@ -33,7 +34,10 @@ export const throwIf = <H extends HookContext = HookContext>(
   options?: ThrowIfOptions,
 ) => {
   return async (context: H, next?: NextFunction): Promise<void> => {
-    const result = await predicate(context)
+    // only a pending predicate is awaited: `await` on a plain value still
+    // costs a microtask
+    const pending = predicate(context)
+    const result = isPromise(pending) ? await pending : pending
 
     if (result) {
       throw options?.error

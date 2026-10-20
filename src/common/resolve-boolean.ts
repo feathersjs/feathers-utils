@@ -10,15 +10,15 @@ import type { PredicateFn } from '../types.js'
  * const isBlocking = await resolveBoolean(options.blocking, context, true)
  * ```
  */
-export const resolveBoolean = async <H extends HookContext>(
+export const resolveBoolean = <H extends HookContext>(
   value: boolean | PredicateFn<H> | undefined,
   context: H,
   fallback: boolean,
-): Promise<boolean> =>
+): boolean | Promise<boolean> =>
   value === undefined
     ? fallback
     : typeof value === 'function'
-      ? await value(context)
+      ? value(context)
       : value
 
 if (import.meta.vitest) {
