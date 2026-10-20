@@ -1,6 +1,6 @@
 import { branchOperators } from '../../common/query-operators.js'
 import { collapseToEqOrNe } from '../../common/collapse-to-eq-or-ne.js'
-import { isPlainObject } from '../../common/is-plain-object.js'
+import { isPlainObject } from '../../helpers/is-plain-object/is-plain-object.helper.js'
 import { ownEnumerableKeys } from '../../common/own-enumerable-keys.js'
 import { setOwnProperty } from '../../common/set-own-property.js'
 

@@ -1,5 +1,5 @@
 import type { Query } from '@feathersjs/feathers'
-import { isEmptyObject } from '../../common/is-empty-object.js'
+import { isEmptyObject } from '../../helpers/is-empty-object/is-empty-object.helper.js'
 import { collapseOrBranches } from '../../common/collapse-or-branches.js'
 import { dedupeBranches } from '../../common/dedupe-branches.js'
 import { flattenAndBranches } from '../../common/flatten-and-branches.js'

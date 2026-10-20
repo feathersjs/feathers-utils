@@ -1,7 +1,7 @@
 import { collapseToEqOrNe } from './collapse-to-eq-or-ne.js'
 import { dedupeValues } from './dedupe-values.js'
 import { isOnlyOperator } from './is-only-operator.js'
-import { isPlainObject } from './is-plain-object.js'
+import { isPlainObject } from '../helpers/is-plain-object/is-plain-object.helper.js'
 import { singleProperty } from './single-property.js'
 
 type QueryRecord = Record<string, any>

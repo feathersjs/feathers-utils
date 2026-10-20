@@ -1,5 +1,5 @@
 import type { Query } from '@feathersjs/feathers'
-import { isEqual } from '../../common/is-equal.js'
+import { isEqual } from '../../helpers/is-equal/is-equal.helper.js'
 import { ownEnumerableKeys } from '../../common/own-enumerable-keys.js'
 import { extractQueryFilters } from '../../common/extract-query-filters.js'
 import { mergeSelect } from '../../common/merge-select.js'

@@ -1,5 +1,5 @@
 import { hasSymbolKeys } from './has-symbol-keys.js'
-import { isPlainObject } from './is-plain-object.js'
+import { isPlainObject } from '../helpers/is-plain-object/is-plain-object.helper.js'
 
 /**
  * The one property a query branch constrains, as a `[property, value]` entry —

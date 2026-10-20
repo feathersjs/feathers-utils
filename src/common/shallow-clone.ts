@@ -1,4 +1,4 @@
-import { isPlainObject } from './is-plain-object.js'
+import { isPlainObject } from '../helpers/is-plain-object/is-plain-object.helper.js'
 
 /**
  * Shallow copy of an object on a write path: the copy carries the original's own

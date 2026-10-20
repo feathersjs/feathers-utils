@@ -1,5 +1,5 @@
-import { isEqual } from './is-equal.js'
-import { isPlainObject } from './is-plain-object.js'
+import { isEqual } from '../helpers/is-equal/is-equal.helper.js'
+import { isPlainObject } from '../helpers/is-plain-object/is-plain-object.helper.js'
 import { ownEnumerableKeys } from './own-enumerable-keys.js'
 import { setOwnProperty } from './set-own-property.js'
 

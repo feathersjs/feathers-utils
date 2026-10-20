@@ -1,5 +1,5 @@
 import { hasSymbolKeys } from './has-symbol-keys.js'
-import { isPlainObject } from './is-plain-object.js'
+import { isPlainObject } from '../helpers/is-plain-object/is-plain-object.helper.js'
 
 /**
  * Whether a query value constrains its property with exactly this one operator:

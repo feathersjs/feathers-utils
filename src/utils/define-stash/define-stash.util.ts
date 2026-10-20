@@ -4,7 +4,7 @@ import type {
   NextFunction,
   Params,
 } from '@feathersjs/feathers'
-import { isEqual } from '../../common/is-equal.js'
+import { isEqual } from '../../helpers/is-equal/is-equal.helper.js'
 import { snapshot } from '../../common/snapshot.js'
 import { addToQuery } from '../add-to-query/add-to-query.util.js'
 import { checkContext } from '../check-context/check-context.util.js'
