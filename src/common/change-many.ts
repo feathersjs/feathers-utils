@@ -2,7 +2,7 @@ import type { Params } from '@feathersjs/feathers'
 import type { Multi } from '../types.js'
 import { allowsMulti } from './allows-multi.js'
 import { DEFAULT_CONCURRENCY, mapLimit } from './map-limit.js'
-import { toArray } from './to-array.js'
+import { toArray } from '../helpers/to-array/to-array.helper.js'
 import { unpaginate } from '../utils/unpaginate/unpaginate.util.js'
 
 /**

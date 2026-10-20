@@ -44,6 +44,10 @@
     "./testing": {
       "types": "./dist/testing.d.mts",
       "import": "./dist/testing.mjs"
+    },
+    "./helpers": {
+      "types": "./dist/helpers.d.mts",
+      "import": "./dist/helpers.mjs"
     }
   },
   "scripts": {

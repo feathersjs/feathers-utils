@@ -54,6 +54,7 @@ const categoryColors: Record<string, string> = {
   utils: "bg-sky-700 text-white",
   predicates: "bg-emerald-600 text-white",
   guards: "bg-amber-600 text-white",
+  helpers: "bg-slate-600 text-white",
   transformers: "bg-pink-600 text-white",
   resolvers: "bg-violet-600 text-white",
 };

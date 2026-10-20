@@ -1,6 +1,6 @@
 import type { Params } from '@feathersjs/feathers'
 import { addToQuery } from '../utils/add-to-query/add-to-query.util.js'
-import { isEqual } from './is-equal.js'
+import { isEqual } from '../helpers/is-equal/is-equal.helper.js'
 
 type PaginateOption = { default?: number; max?: number }
 

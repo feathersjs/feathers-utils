@@ -1,4 +1,4 @@
-import { isEmptyObject } from './is-empty-object.js'
+import { isEmptyObject } from '../helpers/is-empty-object/is-empty-object.helper.js'
 
 type QueryRecord = Record<string, any>
 

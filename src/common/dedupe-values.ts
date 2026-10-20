@@ -1,4 +1,4 @@
-import { isEqual } from './is-equal.js'
+import { isEqual } from '../helpers/is-equal/is-equal.helper.js'
 
 /**
  * The bucket a non-primitive is compared in. Values that are equal share it, so

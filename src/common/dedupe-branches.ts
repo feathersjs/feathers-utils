@@ -1,6 +1,6 @@
 import safeStringify from 'safe-stable-stringify'
-import { isEqual } from './is-equal.js'
-import { isEmptyObject } from './is-empty-object.js'
+import { isEqual } from '../helpers/is-equal/is-equal.helper.js'
+import { isEmptyObject } from '../helpers/is-empty-object/is-empty-object.helper.js'
 
 type QueryRecord = Record<string, any>
 

@@ -22,6 +22,7 @@ export default defineConfig({
     transformers: 'src/transformers/index.ts',
     guards: 'src/guards/index.ts',
     testing: 'src/testing/index.ts',
+    helpers: 'src/helpers/index.ts',
   },
   define: {
     'import.meta.vitest': 'undefined',
