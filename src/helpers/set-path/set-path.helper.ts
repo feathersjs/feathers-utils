@@ -3,7 +3,7 @@ import { castPath, reIsIndex } from '../../common/to-path.js'
 import { shallowClone } from '../../common/shallow-clone.js'
 
 /** Keys that would let a path write reach `Object.prototype`. */
-const isUnsafeKey = (key: PropertyKey) =>
+export const isUnsafeKey = (key: PropertyKey): boolean =>
   key === '__proto__' || key === 'constructor' || key === 'prototype'
 
 const write = <T>(

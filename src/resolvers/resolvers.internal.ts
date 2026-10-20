@@ -32,6 +32,8 @@ export interface ResolveOptions<T, D extends Record<string, any>, C> {
   i?: number
 }
 
+const isEnumerable = Object.prototype.propertyIsEnumerable
+
 const toError = (error: any) =>
   typeof error.toJSON === 'function'
     ? error.toJSON()
@@ -53,9 +55,18 @@ export const resolve = <T, D extends Record<string, any>, C>(
     return data as any as T
   }
 
-  const propertyList = [
-    ...new Set(Object.keys(data).concat(propertyNames as string[])),
-  ]
+  // the data's keys, then the requested names it lacks — built in place,
+  // since this runs for every item
+  const propertyList = Object.keys(data)
+  for (let j = 0; j < propertyNames.length; j++) {
+    const name = propertyNames[j] as string
+    if (
+      !isEnumerable.call(data, name) &&
+      propertyNames.indexOf(name as keyof T) === j
+    ) {
+      propertyList.push(name)
+    }
+  }
 
   const result: any = {}
   const errors: any = {}
@@ -81,11 +92,9 @@ export const resolve = <T, D extends Record<string, any>, C>(
       continue
     }
 
-    const properties: ResolverStatus<T, C> = {
-      ...status,
-      path: [...path, name],
-      stack: [...stack, resolver],
-    }
+    const properties: ResolverStatus<T, C> = status
+      ? { ...status, path: [...path, name], stack: [...stack, resolver] }
+      : { path: [name], stack: [resolver] }
 
     try {
       const resolved = resolver({

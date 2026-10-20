@@ -1,6 +1,6 @@
 import safeStringify from 'safe-stable-stringify'
 import type { Params } from '@feathersjs/feathers'
-import { normalize } from '../sort-query-properties/normalize.js'
+import { normalizeForStringify } from '../sort-query-properties/normalize.js'
 
 /**
  * Serializes Feathers `params` into a stable, deterministic string — built for
@@ -33,5 +33,8 @@ import { normalize } from '../sort-query-properties/normalize.js'
  * @see https://utils.feathersjs.com/utils/stringify-params.html
  */
 export const stringifyParams = (params: Params): string => {
-  return safeStringify(normalize(params, { encodeSymbols: true })) ?? ''
+  const { value, jsonSafe } = normalizeForStringify(params)
+  // the native stringify is several times faster, and prints the same for a
+  // tree `normalizeForStringify` vouched for
+  return (jsonSafe ? JSON.stringify(value) : safeStringify(value)) ?? ''
 }

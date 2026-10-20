@@ -9,9 +9,13 @@ import type {
   DispatchOption,
   PredicateItemWithContext,
 } from '../../types.js'
-import { contextToJson } from '../../utils/context-to-json/context-to-json.util.js'
 import { getResultIsArray } from '../../utils/index.js'
-import { getPath, hasPath, setPathInPlace } from '../../common/index.js'
+import {
+  getContextPath,
+  hasPath,
+  MISSING_PATH,
+  setPathInPlace,
+} from '../../common/index.js'
 
 export interface SetResultOptions {
   /**
@@ -88,9 +92,9 @@ export function setResult<H extends HookContext = HookContext>(
   const forResultOrDispatch = (context: H, dispatch: boolean) => {
     const { result } = getResultIsArray(context, { dispatch })
 
-    const contextJson = contextToJson(context)
+    const val = getContextPath(context, from)
 
-    if (!hasPath(contextJson, from)) {
+    if (val === MISSING_PATH) {
       if (!context.params?.provider || allowUndefined === true) {
         return context
       }
@@ -106,8 +110,6 @@ export function setResult<H extends HookContext = HookContext>(
         ? options.error(context, from)
         : new Forbidden(`Expected field ${from.toString()} not available`)
     }
-
-    const val = getPath(contextJson, from)
 
     for (let i = 0; i < result.length; i++) {
       const item: Record<string, unknown> = result[i]

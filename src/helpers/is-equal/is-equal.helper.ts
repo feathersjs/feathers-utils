@@ -100,9 +100,24 @@ const compareArrays = (a: unknown[], b: unknown[], stack: Stack): boolean => {
 /** By their own enumerable keys, symbols included. */
 const compareObjects = (a: any, b: any, stack: Stack): boolean => {
   const keys = Object.keys(a)
-  if (keys.length !== Object.keys(b).length) return false
+  const keysB = Object.keys(b)
+  if (keys.length !== keysB.length) return false
+
+  // the same keys in the same order — the common case for objects built by the
+  // same code — are the same key set, which saves a lookup in `b` per key
+  let sameOrder = true
+  for (let i = 0; i < keys.length; i++) {
+    if (keys[i] !== keysB[i]) {
+      sameOrder = false
+      break
+    }
+  }
+
   for (const key of keys) {
-    if (!isEnumerable.call(b, key) || !compare(a[key], b[key], stack)) {
+    if (
+      (!sameOrder && !isEnumerable.call(b, key)) ||
+      !compare(a[key], b[key], stack)
+    ) {
       return false
     }
   }

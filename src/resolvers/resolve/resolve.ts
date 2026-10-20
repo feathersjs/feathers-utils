@@ -1,3 +1,4 @@
+import { isPromise } from '../../common/index.js'
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import type { ResolverObject } from '../resolvers.internal.js'
 import { resolveData } from '../resolve-data/resolve-data.js'
@@ -66,18 +67,12 @@ export const resolve = <
   }
 
   return async (context: H, next?: NextFunction) => {
-    if (queryResolver || dataResolver) {
-      const promisesBefore: Promise<any>[] = []
-
-      if (queryResolver) {
-        promisesBefore.push(Promise.resolve(queryResolver(context)))
-      }
-
-      if (dataResolver) {
-        promisesBefore.push(Promise.resolve(dataResolver(context)))
-      }
-
-      await Promise.all(promisesBefore)
+    // the resolvers stay synchronous where they can, so only a pending one is
+    // awaited: `await` on a plain value still costs a microtask
+    const query = queryResolver ? queryResolver(context) : undefined
+    const data = dataResolver ? dataResolver(context) : undefined
+    if (isPromise(query) || isPromise(data)) {
+      await Promise.all([query, data])
     }
 
     if (next) {
@@ -85,7 +80,8 @@ export const resolve = <
     }
 
     if (resultResolver) {
-      await resultResolver(context)
+      const result = resultResolver(context)
+      if (isPromise(result)) await result
     }
 
     return

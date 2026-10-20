@@ -1,16 +1,21 @@
 import type { PropertyPath } from '../../types.js'
 import { castPath } from '../../common/to-path.js'
-import { getPath } from '../get-path/get-path.helper.js'
-import { setPathInPlace } from '../set-path/set-path.helper.js'
+import { isUnsafeKey, setPathInPlace } from '../set-path/set-path.helper.js'
 
-/** Whether `path` resolves at all, inherited properties included (`in`). */
-const hasIn = (object: unknown, keys: readonly PropertyKey[]): boolean => {
+/** Marks a path that does not resolve, so `undefined` stays a pickable value. */
+const MISSING = Symbol('missing')
+
+/**
+ * The value at `keys`, or `MISSING` when a segment is absent — inherited
+ * properties count (`in`), as in `_.pick`.
+ */
+const resolve = (object: unknown, keys: readonly PropertyKey[]): unknown => {
   let current: any = object
   for (const key of keys) {
-    if (current == null || !(key in Object(current))) return false
+    if (current == null || !(key in Object(current))) return MISSING
     current = current[key]
   }
-  return keys.length > 0
+  return keys.length > 0 ? current : MISSING
 }
 
 /**
@@ -38,10 +43,32 @@ export const pickPaths = <T extends Record<PropertyKey, any>>(
   const result: Record<PropertyKey, any> = {}
   if (object == null) return result as Partial<T>
 
+  const source = Object(object)
+
   for (const path of paths) {
-    const keys = castPath(path, object)
-    if (hasIn(object, keys)) {
-      setPathInPlace(result, keys as PropertyPath, getPath(object, keys))
+    // fast path: a string without `.` or `[` is always one key, so it skips
+    // `castPath` and its array (picking flat fields is the common case)
+    let key: PropertyKey | undefined
+    let keys: readonly PropertyKey[] | undefined
+    if (
+      typeof path === 'string' &&
+      path.indexOf('.') === -1 &&
+      path.indexOf('[') === -1
+    ) {
+      key = path
+    } else {
+      keys = castPath(path, object)
+      if (keys.length === 1) key = keys[0]
+    }
+
+    if (key !== undefined) {
+      if (key in source && !isUnsafeKey(key)) result[key] = source[key]
+      continue
+    }
+
+    const value = resolve(object, keys!)
+    if (value !== MISSING) {
+      setPathInPlace(result, keys as PropertyPath, value)
     }
   }
 

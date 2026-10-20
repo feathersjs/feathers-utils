@@ -30,6 +30,20 @@ describe('isEqual', () => {
     expect(isEqual(Object.create(null), {})).toBe(false)
   })
 
+  it('does not count a non-enumerable key in `b` as a match', () => {
+    const b: any = { b: 2, c: 3 }
+    Object.defineProperty(b, 'a', { value: 1, enumerable: false })
+
+    expect(isEqual({ a: 1, b: 2 }, b)).toBe(false)
+  })
+
+  it('compares objects with the same keys in a different order', () => {
+    expect(
+      isEqual({ a: 1, b: { c: 2, d: 3 } }, { b: { d: 3, c: 2 }, a: 1 }),
+    ).toBe(true)
+    expect(isEqual({ a: 1, b: 2 }, { b: 2, c: 1 })).toBe(false)
+  })
+
   it('compares primitives, BigInt included', () => {
     expect(isEqual(1n, 1n)).toBe(true)
     expect(isEqual({ id: 1n }, { id: 2n })).toBe(false)

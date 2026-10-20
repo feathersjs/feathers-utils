@@ -30,19 +30,35 @@ export const omitPaths = <T extends Record<PropertyKey, any>>(
   const result: Record<PropertyKey, any> = {}
   if (object == null) return result as Partial<T>
 
+  // a top-level key is left out while copying instead of deleted afterwards:
+  // `delete` drops the result into V8's slow dictionary mode
+  let skip: PropertyKey[] | undefined
+  let nested: (readonly PropertyKey[])[] | undefined
+  for (const path of paths) {
+    const keys = castPath(path, object)
+    if (keys.length === 1) (skip ??= []).push(keys[0])
+    else (nested ??= []).push(keys)
+  }
+
   // own AND inherited enumerable keys, plus own enumerable symbols
-  for (const key in object) setOwnProperty(result, key, object[key])
+  for (const key in object) {
+    if (!skip?.includes(key)) setOwnProperty(result, key, object[key])
+  }
   for (const sym of Object.getOwnPropertySymbols(object)) {
-    if (Object.prototype.propertyIsEnumerable.call(object, sym)) {
+    if (
+      !skip?.includes(sym) &&
+      Object.prototype.propertyIsEnumerable.call(object, sym)
+    ) {
       result[sym] = object[sym]
     }
   }
 
+  if (!nested) return result as Partial<T>
+
   // the containers copied so far, so paths sharing a prefix copy it only once
   let copies: Set<object> | undefined
 
-  for (const path of paths) {
-    const keys = castPath(path, object)
+  for (const keys of nested) {
     let parent: any = result
 
     for (let i = 0; i < keys.length - 1; i++) {

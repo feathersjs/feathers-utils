@@ -58,4 +58,47 @@ describe('pickPaths', () => {
     )
     expect(value).toEqual({ id: 1, user: { email: 'a@b.c' } })
   })
+
+  // the flat-key fast path has to read keys exactly like the nested path
+  describe('key edge cases', () => {
+    it('picks an inherited property, like `_.pick`', () => {
+      expect(pickPaths({}, ['toString'])).toEqual({
+        toString: Object.prototype.toString,
+      })
+    })
+
+    it('skips keys that would reach a prototype', () => {
+      const source = JSON.parse('{"__proto__":{"x":1},"constructor":2,"a":3}')
+      const out = pickPaths(source, ['__proto__', 'constructor', 'prototype'])
+
+      expect(Object.keys(out)).toEqual([])
+      expect(Object.getPrototypeOf(out)).toBe(Object.prototype)
+    })
+
+    it('prefers a key that literally contains a dot or bracket', () => {
+      expect(pickPaths({ 'a.b': 1, a: { b: 2 } }, ['a.b'])).toEqual({
+        'a.b': 1,
+      })
+      expect(pickPaths({ 'a[0]': 1 }, ['a[0]'])).toEqual({ 'a[0]': 1 })
+    })
+
+    it('reads an unmatched bracket as a plain key', () => {
+      expect(pickPaths({ 'a[b': 1 }, ['a[b'])).toEqual({ 'a[b': 1 })
+    })
+
+    it('picks symbol, numeric and empty keys', () => {
+      const sym = Symbol('s')
+      expect(pickPaths({ [sym]: 1, a: 2 }, [sym])).toEqual({ [sym]: 1 })
+      expect(pickPaths({ 0: 'zero', 1: 'one' }, [0])).toEqual({ 0: 'zero' })
+      expect(pickPaths({ '': 1, a: 2 }, [''])).toEqual({ '': 1 })
+    })
+
+    it('skips an empty segment array', () => {
+      expect(pickPaths({ a: 1 }, [[]])).toEqual({})
+    })
+
+    it('picks from a primitive-wrapped source', () => {
+      expect(pickPaths('abc' as any, ['length'])).toEqual({ length: 3 })
+    })
+  })
 })

@@ -131,4 +131,32 @@ describe('omitPaths', () => {
     )
     expect(value).toEqual({ id: 1, user: { name: 'a' }, list: [{}] })
   })
+
+  // flat keys are skipped while copying, nested ones deleted from the copy
+  describe('key edge cases', () => {
+    it('omits an inherited enumerable property', () => {
+      const source = Object.create({ inherited: 1 })
+      source.own = 2
+      expect(omitPaths(source, ['inherited'])).toEqual({ own: 2 })
+    })
+
+    it('omits a key that literally contains a dot', () => {
+      expect(omitPaths({ 'a.b': 1, a: { b: 2 } }, ['a.b'])).toEqual({
+        a: { b: 2 },
+      })
+    })
+
+    it('omits symbol and numeric keys', () => {
+      const sym = Symbol('s')
+      const out = omitPaths({ [sym]: 1, 0: 'zero', a: 2 }, [sym, 0])
+      expect(out).toEqual({ a: 2 })
+      expect(sym in out).toBe(false)
+    })
+
+    it('mixes flat and nested paths', () => {
+      expect(
+        omitPaths({ a: 1, b: 2, u: { x: 1, y: 2 } }, ['a', 'u.x']),
+      ).toEqual({ b: 2, u: { y: 2 } })
+    })
+  })
 })

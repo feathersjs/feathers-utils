@@ -3,9 +3,13 @@ import { Forbidden } from '@feathersjs/errors'
 
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import type { PropertyPath, PredicateItemWithContext } from '../../types.js'
-import { contextToJson } from '../../utils/context-to-json/context-to-json.util.js'
 import { getDataIsArray } from '../../utils/index.js'
-import { getPath, hasPath, setPathInPlace } from '../../common/index.js'
+import {
+  getContextPath,
+  hasPath,
+  MISSING_PATH,
+  setPathInPlace,
+} from '../../common/index.js'
 
 export interface HookSetDataOptions {
   /**
@@ -76,9 +80,9 @@ export function setData<H extends HookContext = HookContext>(
   function hook(context: H, next?: NextFunction): void | Promise<void> {
     const { data } = getDataIsArray(context)
 
-    const contextJson = contextToJson(context)
+    const val = getContextPath(context, from)
 
-    if (!hasPath(contextJson, from)) {
+    if (val === MISSING_PATH) {
       if (!context.params?.provider || allowUndefined === true) {
         if (next) return next()
         return
@@ -96,8 +100,6 @@ export function setData<H extends HookContext = HookContext>(
         ? options.error(context, from)
         : new Forbidden(`Expected field ${from.toString()} not available`)
     }
-
-    const val = getPath(contextJson, from)
 
     for (let i = 0, len = data.length; i < len; i++) {
       const item: Record<string, unknown> = data[i]

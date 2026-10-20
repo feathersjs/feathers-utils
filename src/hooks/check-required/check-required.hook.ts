@@ -42,14 +42,15 @@ export function checkRequired<H extends HookContext = HookContext>(
       for (let j = 0; j < fieldNamesArray.length; j++) {
         const name = fieldNamesArray[j]
 
-        if (!hasPath(item, name)) {
-          throw new BadRequest(`Field ${name} does not exist. (required)`)
-        }
-
         const value = getPath(item, name)
 
         if (!value && value !== 0 && value !== false) {
-          throw new BadRequest(`Field ${name} is null. (required)`)
+          // only a failing field pays for the second walk the message needs
+          throw new BadRequest(
+            hasPath(item, name)
+              ? `Field ${name} is null. (required)`
+              : `Field ${name} does not exist. (required)`,
+          )
         }
       }
     }
