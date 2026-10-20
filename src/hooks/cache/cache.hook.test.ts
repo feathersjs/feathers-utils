@@ -1186,6 +1186,51 @@ describe('cache hook clone option', () => {
   })
 })
 
+describe('cache hook with params changed after it', () => {
+  // the key is made from the params the call came in with, so a later hook
+  // that changes them must not move the entry to a key no call looks up
+  it('stores a miss under the key it was looked up with', async () => {
+    const logger = vi.fn()
+    const app = feathers<{ users: MemoryService }>()
+    app.use('users', new MemoryService({ id: 'id', multi: true }))
+    const usersService = app.service('users')
+    const cacheHook = cache({
+      map: new Map(),
+      transformParams: (params) => ({ query: params.query }),
+      logger,
+    })
+    usersService.hooks({
+      before: {
+        find: [
+          cacheHook,
+          (context: HookContext) => {
+            context.params = {
+              ...context.params,
+              query: { ...context.params.query, $limit: 100 },
+            }
+          },
+        ],
+      },
+      after: { find: [cacheHook] },
+    })
+
+    await usersService.create({ id: 1, name: 'John' })
+    logger.mockClear()
+
+    await usersService.find({ query: { name: 'John' } })
+    const [miss, set] = logger.mock.calls.map(([event]) => event)
+    expect(miss).toMatchObject({ type: 'miss' })
+    expect(set).toMatchObject({ type: 'set', key: miss.key })
+
+    logger.mockClear()
+    await usersService.find({ query: { name: 'John' } })
+    expect(logger.mock.calls[0][0]).toMatchObject({
+      type: 'hit',
+      key: miss.key,
+    })
+  })
+})
+
 describe('cache hook as an around hook', () => {
   const setupAround = (options: CacheOptions) => {
     const app = feathers<{ users: MemoryService }>()

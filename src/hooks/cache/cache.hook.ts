@@ -285,10 +285,18 @@ class ContextCacheMap {
   private generation = 0
   /**
    * The calls that missed the cache, with the generation they started reading
-   * in. A hit is not here: storing it again would only cost a key and a clone,
-   * and reset the entry's TTL, so a frequently read entry would never expire.
+   * in and the key they were looked up with. A hit is not here: storing it
+   * again would only cost a key and a clone, and reset the entry's TTL, so a
+   * frequently read entry would never expire.
+   *
+   * The result is stored under that same key — not one made from the params
+   * at `set` time, which later hooks may have changed, so the next identical
+   * call would never find the entry. It also saves serializing twice.
    */
-  private misses = new WeakMap<HookContext, number>()
+  private misses = new WeakMap<
+    HookContext,
+    { generation: number; key: string }
+  >()
   /**
    * The id field of the service the cached entries came from, for
    * `invalidateResult` - which has no context, and has nothing to invalidate
@@ -374,7 +382,7 @@ class ContextCacheMap {
       this.log?.({ type: 'hit', method: context.method, key })
       return this.clone(result) // clone to avoid mutation of the cached result
     }
-    this.misses.set(context, this.generation)
+    this.misses.set(context, { generation: this.generation, key })
     this.log?.({ type: 'miss', method: context.method, key })
   }
 
@@ -386,13 +394,13 @@ class ContextCacheMap {
    * what the invalidation removed.
    */
   async set(context: HookContext) {
-    const generation = this.misses.get(context)
+    const miss = this.misses.get(context)
     this.misses.delete(context)
-    if (generation !== this.generation) {
+    if (!miss || miss.generation !== this.generation) {
       return
     }
 
-    const key = this.stringifyCacheKey(context)
+    const { key } = miss
     this.idField = this.idFieldOf(context)
     this.log?.({ type: 'set', method: context.method, key })
     // clone to avoid later mutation of the cached result

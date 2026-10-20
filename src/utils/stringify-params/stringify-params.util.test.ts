@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import safeStringify from 'safe-stable-stringify'
+import { normalize } from '../sort-query-properties/normalize.js'
 import { stringifyParams } from './stringify-params.util.js'
 import { expectNoSideEffects } from '../../../test/utils/index.js'
 
@@ -209,6 +211,60 @@ describe('stringifyParams', () => {
       expect(stringifyParams({ query: { age: { [gt]: 18 } } })).not.toBe(
         stringifyParams({ query: { age: { [Symbol('gt')]: 18 } } }),
       )
+    })
+  })
+
+  // `JSON.stringify` is only used where it prints what `safeStringify` would
+  describe('fast path', () => {
+    const reference = (params: any) =>
+      safeStringify(normalize(params, { encodeSymbols: true })) ?? ''
+
+    class Unsorted {
+      b = 1
+      a = 2
+    }
+    class ObjectId {
+      constructor(private hex: string) {}
+      toJSON() {
+        return this.hex
+      }
+    }
+    const cyclic: any = { query: { a: 1 } }
+    cyclic.query.self = cyclic.query
+
+    it.each([
+      ['plain', { query: { b: 1, a: { $in: [3, 1, 2] } }, provider: 'rest' }],
+      [
+        'strings to escape',
+        { query: { a: 'q"u\\o\nte', b: '\ud800', c: 'ü' } },
+      ],
+      ['special numbers', { query: { a: NaN, b: -0, c: Infinity, d: 1e21 } }],
+      [
+        'undefined and functions',
+        { query: { a: undefined, b: [undefined], c: () => 1 } },
+      ],
+      ['dates', { query: { a: new Date(0), b: new Date(Number.NaN) } }],
+      ['a class instance', { query: { a: new Unsorted() } }],
+      ['an ObjectId', { query: { _id: new ObjectId('a1') } }],
+      ['a toJSON key', { query: { a: { toJSON: () => ({ b: 1, a: 2 }) } } }],
+      ['a BigInt', { query: { a: 1n } }],
+      ['a cycle', cyclic],
+      ['symbol keys', { query: { [Symbol.for('or')]: [{ a: 1 }], b: 1 } }],
+      ['integer-like keys', { query: { 10: 'a', 2: 'b', $limit: 1, a: 1 } }],
+      ['a key starting with a digit', { query: { '1a': 1, $b: 2, '01': 3 } }],
+      ['a __proto__ key', JSON.parse('{"query":{"__proto__":{"a":1}}}')],
+    ])('prints the same as safeStringify for %s', (_, params) => {
+      expect(stringifyParams(params)).toBe(reference(params))
+    })
+
+    it('sorts $in elements like their safeStringify output', () => {
+      const values = [10, 9, 'b', 'a', true, null, -0, 'a"b', NaN, { x: 1 }]
+      const expected = values
+        .map((v) => ({ k: safeStringify(v) ?? '', v }))
+        .sort((a, b) => (a.k < b.k ? -1 : a.k > b.k ? 1 : 0))
+        .map((e) => e.v)
+
+      expect(normalize({ $in: values }).$in).toStrictEqual(expected)
     })
   })
 })
