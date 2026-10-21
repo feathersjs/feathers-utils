@@ -40,6 +40,7 @@ import { resolveData, trim, omit } from 'feathers-utils/resolvers'
 import { isMulti, isProvider } from 'feathers-utils/predicates'
 import { pick, lowercase, setNow } from 'feathers-utils/transformers'
 import { isObjectOrArray, isPaginated } from 'feathers-utils/guards'
+import { getPath, setPath, isEqual } from 'feathers-utils/helpers'
 ```
 
 ## Categories
@@ -67,6 +68,10 @@ Pure functions that modify data objects. Use them with `transformData`, `transfo
 ### [Type Guards](/guards/)
 
 Runtime type checking functions that narrow types in TypeScript. Useful for safely handling paginated results, arrays, and other polymorphic values.
+
+### [Helpers](/helpers/)
+
+Generic object and path helpers — `getPath`, `setPath`, `pickPaths`, `isEqual` and friends. They replace what a Feathers app usually pulls in lodash for, without ever writing into a caller's `params`.
 
 ### [Utility Types](/utility-types/)
 

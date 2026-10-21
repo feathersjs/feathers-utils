@@ -1,4 +1,5 @@
 import type { Application, Params } from '@feathersjs/feathers'
+import { findPages } from '../../common/index.js'
 import type { KeyOf } from '../../internal.utils.js'
 import type {
   InferFindParams,
@@ -7,8 +8,28 @@ import type {
 
 type PaginateOption = { default?: number; max?: number }
 
-type IterateFindOptions<P extends Params = Params> = {
+export type IterateFindOptions<P extends Params = Params> = {
+  /**
+   * The params of every `find` call. `query.$limit` is the page size, capped by
+   * `paginate.max`; `paginate` defaults to `{ default: 10, max: 100 }`.
+   */
   params?: P & { paginate?: PaginateOption }
+  /**
+   * Page by the id instead of by `$skip`: every page asks for the items after
+   * the last id of the page before, sorted by id.
+   *
+   * Use it when the loop changes items so that they leave the query, or when
+   * others write to the service meanwhile - with `$skip` the pages shift, so
+   * items are skipped or seen twice. It also stays linear on large tables,
+   * where the database reads and discards every skipped row per page, and it
+   * needs no `total`, so the `find` calls run with `paginate: false`.
+   *
+   * The items come sorted by id, so a `query.$sort` throws. The id is added to
+   * a `query.$select` that leaves it out.
+   *
+   * @default false
+   */
+  keyset?: boolean
 }
 
 /**
@@ -50,40 +71,9 @@ export async function* iterateFind<
     throw new Error(`Service '${servicePath}' does not have a 'find' method.`)
   }
 
-  const params = {
-    ...options?.params,
-    query: {
-      ...(options?.params?.query ?? {}),
-      $limit: options?.params?.query?.$limit,
-      $skip: options?.params?.query?.$skip ?? 0,
-    },
-    paginate: {
-      default: options?.params?.paginate?.default ?? 10,
-      max: options?.params?.paginate?.max ?? 100,
-    },
-  }
-
-  let $skip = params.query.$skip
-  let result
-
-  do {
-    // a fresh params object per page: the service may hold on to the last one
-    result = await (service as any).find({
-      ...params,
-      query: { ...params.query, $skip },
-    })
-
-    // Guard against an infinite loop: an empty page never advances $skip, so
-    // `total > $skip` could stay true forever (e.g. $limit:0, or a stale total
-    // when items are concurrently removed / filtered out by hooks).
-    if (!result.data.length) {
-      break
-    }
-
-    for (const item of result.data) {
+  for await (const page of findPages(service, options)) {
+    for (const item of page) {
       yield item
     }
-
-    $skip += result.data.length
-  } while (result.total > $skip)
+  }
 }

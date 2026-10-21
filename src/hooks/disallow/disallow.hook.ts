@@ -28,16 +28,21 @@ export const disallow = <H extends HookContext = HookContext>(
   transports?: MaybeArray<TransportName>,
 ) => {
   const transportsArr = toArray(transports)
+  // built once; `isProvider` throws for an empty list, which blocks anyway
+  const fromProvider =
+    transports && transportsArr.length
+      ? isProvider(...(transportsArr as TransportName[]))
+      : undefined
   function hook(context: H): void
   function hook(context: H, next: NextFunction): Promise<void>
   function hook(context: H, next?: NextFunction): void | Promise<void> {
     // No transports (undefined) or an empty list means "block completely".
     // Fail closed for a guard hook rather than throwing a confusing internal error.
-    if (!transports || transportsArr.length === 0) {
+    if (!fromProvider) {
       throw new MethodNotAllowed('Method not allowed')
     }
 
-    if (isProvider(...(transportsArr as TransportName[]))(context)) {
+    if (fromProvider(context)) {
       throw new MethodNotAllowed(
         `Provider '${context.params.provider}' can not call '${context.method}' on '${context.path}'. (disallow)`,
       )

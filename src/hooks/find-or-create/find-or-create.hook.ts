@@ -27,6 +27,7 @@ export interface FindOrCreateOptions<
   H extends HookContext = HookContext,
   Services extends H['app']['services'] = H['app']['services'],
   S extends keyof Services = keyof Services,
+  Service = Services[S],
 > {
   /** The service to search before creating. Must be a service registered on the app. */
   service: S
@@ -35,12 +36,13 @@ export interface FindOrCreateOptions<
    * the lookup query — the upsert "conflict target". A path whose value is `undefined` in
    * the data is skipped.
    */
-  uniqueBy: MaybeArray<UniqueByPath<Services[S]>>
+  uniqueBy: MaybeArray<UniqueByPath<Service>>
   /**
    * Optional function returning extra `find` params. `query` is merged with (and overridden
-   * by) the `uniqueBy` values; `paginate` is always forced to `false`.
+   * by) the `uniqueBy` values; `paginate` is always forced to `false`. Its `$limit` defaults
+   * to `2`: telling one match from several needs no more.
    */
-  params?: (context: H) => InferFindParams<Services[S]>
+  params?: (context: H) => InferFindParams<Service>
   /**
    * What to do when more than one record matches the `uniqueBy` query.
    * - `'create'` (default): proceed to create a new record.
@@ -56,7 +58,7 @@ export interface FindOrCreateOptions<
  * A `before:create` (or `around:create`) hook that looks for an existing record before creating one.
  *
  * It builds a query from the `uniqueBy` paths read out of `context.data`, runs
- * `find({ paginate: false })` on the target service, and if **exactly one** record matches, sets
+ * `find({ paginate: false })` with `$limit: 2` on the target service, and if **exactly one** record matches, sets
  * `context.result` to that record — short-circuiting the create. With zero matches (or array data)
  * the create proceeds; with multiple matches the `onMultiple` option decides.
  *
@@ -102,6 +104,8 @@ export function findOrCreate<H extends HookContext = HookContext>(
       // a nested path clones the objects it passes, which the `params` option owns
       setPath(query, path, val)
     }
+    // telling one match from several needs no more than two
+    if (query.$limit === undefined) query.$limit = 2
 
     const items = await findAll(context.app, service as string, {
       ...baseParams,
@@ -117,7 +121,7 @@ export function findOrCreate<H extends HookContext = HookContext>(
 
     if (items.length > 1 && onMultiple === 'throw') {
       throw new BadRequest(
-        `findOrCreate: found ${items.length} records matching the unique query on '${String(service)}'`,
+        `findOrCreate: found more than one record matching the unique query on '${String(service)}'`,
       )
     }
 

@@ -1,5 +1,6 @@
 import { BadRequest } from '@feathersjs/errors'
 import type { Promisable } from '../internal.utils.js'
+import { setOwnProperty } from '../common/index.js'
 
 export interface ResolverPropertyOptions<T, V, C> {
   value: V | undefined
@@ -31,6 +32,8 @@ export interface ResolveOptions<T, D extends Record<string, any>, C> {
   i?: number
 }
 
+const isEnumerable = Object.prototype.propertyIsEnumerable
+
 const toError = (error: any) =>
   typeof error.toJSON === 'function'
     ? error.toJSON()
@@ -52,9 +55,18 @@ export const resolve = <T, D extends Record<string, any>, C>(
     return data as any as T
   }
 
-  const propertyList = [
-    ...new Set(Object.keys(data).concat(propertyNames as string[])),
-  ]
+  // the data's keys, then the requested names it lacks — built in place,
+  // since this runs for every item
+  const propertyList = Object.keys(data)
+  for (let j = 0; j < propertyNames.length; j++) {
+    const name = propertyNames[j] as string
+    if (
+      !isEnumerable.call(data, name) &&
+      propertyNames.indexOf(name as keyof T) === j
+    ) {
+      propertyList.push(name)
+    }
+  }
 
   const result: any = {}
   const errors: any = {}
@@ -65,9 +77,11 @@ export const resolve = <T, D extends Record<string, any>, C>(
   for (const name of propertyList) {
     const value = (data as any)[name]
 
-    if (!(name in resolvers)) {
+    // own keys only: `name` comes from the data, and `in` would also match
+    // `constructor`, `toString` & co. of `Object.prototype`
+    if (!Object.hasOwn(resolvers, name)) {
       if (value !== undefined) {
-        result[name] = value
+        setOwnProperty(result, name, value)
       }
       continue
     }
@@ -78,11 +92,9 @@ export const resolve = <T, D extends Record<string, any>, C>(
       continue
     }
 
-    const properties: ResolverStatus<T, C> = {
-      ...status,
-      path: [...path, name],
-      stack: [...stack, resolver],
-    }
+    const properties: ResolverStatus<T, C> = status
+      ? { ...status, path: [...path, name], stack: [...stack, resolver] }
+      : { path: [name], stack: [resolver] }
 
     try {
       const resolved = resolver({
@@ -98,19 +110,19 @@ export const resolve = <T, D extends Record<string, any>, C>(
           resolved
             .then((val) => {
               if (val !== undefined) {
-                result[name] = val
+                setOwnProperty(result, name, val)
               }
             })
             .catch((error: any) => {
-              errors[name] = toError(error)
+              setOwnProperty(errors, name, toError(error))
               hasErrors = true
             }),
         )
       } else if (resolved !== undefined) {
-        result[name] = resolved
+        setOwnProperty(result, name, resolved)
       }
     } catch (error: any) {
-      errors[name] = toError(error)
+      setOwnProperty(errors, name, toError(error))
       hasErrors = true
     }
   }

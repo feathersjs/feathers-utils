@@ -9,6 +9,7 @@ import PredicatesTable from './components/PredicatesTable.vue'
 import TransformersTable from './components/TransformersTable.vue'
 import GuardsTable from './components/GuardsTable.vue'
 import TestingTable from './components/TestingTable.vue'
+import HelpersTable from './components/HelpersTable.vue'
 import HooksTable from './components/HooksTable.vue'
 import UtilsTable from './components/UtilsTable.vue'
 import ResolversTable from './components/ResolversTable.vue'
@@ -33,6 +34,7 @@ export default {
     app.component('TransformersTable', TransformersTable)
     app.component('GuardsTable', GuardsTable)
     app.component('TestingTable', TestingTable)
+    app.component('HelpersTable', HelpersTable)
     app.component('HooksTable', HooksTable)
     app.component('UtilsTable', UtilsTable)
     app.component('ResolversTable', ResolversTable)

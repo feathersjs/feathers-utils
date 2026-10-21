@@ -7,10 +7,13 @@ import { dedupeValues } from '../../common/index.js'
  * list yields `{ $in: [] }`, matching nothing — check for emptiness first if your
  * adapter dislikes an empty `IN ()`.
  *
- * Deduplication compares primitives with `SameValueZero` and non-primitives
- * deep-equal, so value wrappers like `Date` or a mongo `ObjectId` collapse even
- * though they are distinct references. Note that deep equality ignores key order,
- * so two plain objects with the same entries in a different order count as one.
+ * Deduplication compares primitives with `SameValueZero`, plain objects and
+ * arrays by content (symbol keys included - sequelize uses them as operators),
+ * a `Date` by its time and a mongo `ObjectId` (anything with `toHexString`) by
+ * its hex string, so those collapse even though they are distinct references.
+ * Other class instances only collapse when they are the same instance. Key
+ * order doesn't matter: two plain objects with the same entries in a different
+ * order count as one.
  *
  * @param values the values to match against
  * @returns the single value, or a `$in` over the deduplicated values

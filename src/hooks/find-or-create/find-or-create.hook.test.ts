@@ -168,11 +168,67 @@ describe('hook - findOrCreate', function () {
     })
 
     await expect(tagsService.create({ name: 'dup' })).rejects.toThrow(
-      /findOrCreate: found 2 records/,
+      /findOrCreate: found more than one record/,
     )
 
     const tags = await tagsService.find({ query: {} })
     expect(tags).toHaveLength(2)
+  })
+
+  it('finds at most two records', async function () {
+    const { app, tagsService } = mockApp()
+    await tagsService.create([
+      { name: 'dup' },
+      { name: 'dup' },
+      { name: 'dup' },
+    ])
+
+    const limits: unknown[] = []
+    app.service('tags').hooks({
+      before: {
+        find: [
+          (context: HookContext) =>
+            void limits.push(context.params.query?.$limit),
+        ],
+        create: [
+          findOrCreate({
+            service: 'tags',
+            uniqueBy: 'name',
+            onMultiple: 'first',
+          }),
+        ],
+      },
+    })
+
+    const result = await tagsService.create({ name: 'dup' })
+
+    expect(limits).toStrictEqual([2])
+    expect(result).toMatchObject({ id: 1, name: 'dup' })
+  })
+
+  it('keeps a `$limit` from `params`', async function () {
+    const { app, tagsService } = mockApp()
+
+    const limits: unknown[] = []
+    app.service('tags').hooks({
+      before: {
+        find: [
+          (context: HookContext) =>
+            void limits.push(context.params.query?.$limit),
+        ],
+        create: [
+          findOrCreate({
+            service: 'tags',
+            uniqueBy: 'name',
+            params: () => ({ query: { $limit: 1 } }),
+          }),
+        ],
+      },
+    })
+
+    await tagsService.create({ name: 'tag' })
+
+    expect(limits).toStrictEqual([1])
   })
 
   it("returns the first match when onMultiple is 'first'", async function () {
@@ -347,6 +403,10 @@ describe('hook - findOrCreate', function () {
         return (find.mock.calls[0][0] as any).query
       },
     )
-    expect(query).toEqual({ name: 'a', meta: { kind: 'label', lang: 'de' } })
+    expect(query).toEqual({
+      name: 'a',
+      meta: { kind: 'label', lang: 'de' },
+      $limit: 2,
+    })
   })
 })

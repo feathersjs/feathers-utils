@@ -1,28 +1,19 @@
-/**
- * Type guard that checks if a value is a `Promise` instance.
- *
- * @example
- * ```ts
- * const result = maybeSyncFn()
- * if (isPromise(result)) {
- *   await result
- * }
- * ```
- */
-export function isPromise(p: any): p is Promise<any> {
-  return p instanceof Promise
-}
-
+export { getContextPath, MISSING_PATH } from './get-context-path.js'
+export { isPromise } from '../helpers/is-promise/is-promise.helper.js'
 export { allowsMulti } from './allows-multi.js'
 export { changeMany } from './change-many.js'
+export { findPages } from './find-pages.js'
+export type { FindPagesOptions } from './find-pages.js'
+export { mapLimit, DEFAULT_CONCURRENCY } from './map-limit.js'
 export { traverse } from './traverse.js'
 export { clone } from './clone.js'
-export { setPath, setPathInPlace } from './set-path.js'
+export { setPath, setPathInPlace } from '../helpers/set-path/set-path.helper.js'
+export { setOwnProperty } from './set-own-property.js'
 export { toPath, castPath } from './to-path.js'
-export { getPath } from './get-path.js'
-export { hasPath } from './has-path.js'
-export { omitPaths } from './omit-paths.js'
-export { pickPaths } from './pick-paths.js'
+export { getPath } from '../helpers/get-path/get-path.helper.js'
+export { hasPath } from '../helpers/has-path/has-path.helper.js'
+export { omitPaths } from '../helpers/omit-paths/omit-paths.helper.js'
+export { pickPaths } from '../helpers/pick-paths/pick-paths.helper.js'
 export {
   changesTopLevel,
   isPathWithin,
@@ -33,14 +24,16 @@ export {
 export { selectCovers } from './select-covers.js'
 export { hasAllOwnProperties, hasOwnProperty } from './has-own-property.js'
 export { findAllOf } from './find-all.js'
-export { toArray } from './to-array.js'
+export { toArray } from '../helpers/to-array/to-array.helper.js'
 export { resolveBoolean } from './resolve-boolean.js'
 export { early } from './early.js'
-export { isEmptyObject } from './is-empty-object.js'
-export { isPlainObject } from './is-plain-object.js'
-export { isDeepEqual, isEqual, isUnchanged } from './is-equal.js'
+export { isEmptyObject } from '../helpers/is-empty-object/is-empty-object.helper.js'
+export { isPlainObject } from '../helpers/is-plain-object/is-plain-object.helper.js'
+export { isEqual } from '../helpers/is-equal/is-equal.helper.js'
+export { isDeepEqual, isUnchanged } from './is-deep-equal.js'
 export { snapshot } from './snapshot.js'
 export { ownEnumerableKeys } from './own-enumerable-keys.js'
+export { hasSymbolKeys } from './has-symbol-keys.js'
 export { isOnlyOperator } from './is-only-operator.js'
 export { singleProperty } from './single-property.js'
 export { dedupeBranches } from './dedupe-branches.js'

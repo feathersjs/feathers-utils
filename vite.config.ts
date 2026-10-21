@@ -30,6 +30,7 @@ export default defineConfig({
         'src/guards/index.ts',
         'src/transformers/index.ts',
         'src/testing/index.ts',
+        'src/helpers/index.ts',
         'src/utility-types/**',
       ],
       thresholds: {

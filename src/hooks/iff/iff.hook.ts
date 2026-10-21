@@ -34,14 +34,18 @@ export function iff<H extends HookContext = HookContext>(
     hooks = hooks[0]
   }
 
+  // built once: the hook is called per service call, `.else` only while
+  // the hooks are being registered
+  const run = iffElse(predicate, hooks)
+
   const iffWithoutElse = function (context: H, next?: NextFunction) {
-    return iffElse(predicate, hooks.slice())(context, next)
+    return run(context, next)
   }
 
-  iffWithoutElse.else =
-    (...falseHooks: any[]) =>
-    (context: H, next?: NextFunction) =>
-      iffElse(predicate, hooks.slice(), falseHooks.slice())(context, next)
+  iffWithoutElse.else = (...falseHooks: any[]) => {
+    const runElse = iffElse(predicate, hooks, falseHooks)
+    return (context: H, next?: NextFunction) => runElse(context, next)
+  }
 
   return iffWithoutElse as IffHook<H>
 }

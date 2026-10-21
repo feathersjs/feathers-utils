@@ -1,10 +1,7 @@
 import type { HookContext } from '@feathersjs/feathers'
-import { toArray } from '../../common/index.js'
+import { toArray } from '../../helpers/to-array/to-array.helper.js'
 import type { HookType, MethodName } from '../../types.js'
-import {
-  isContext,
-  type IsContextOptions,
-} from '../../predicates/is-context/is-context.predicate.js'
+import type { IsContextOptions } from '../../predicates/is-context/is-context.predicate.js'
 import type { UnpackMaybeArray } from '../../internal.utils.js'
 
 type NarrowedContext<H extends HookContext, O> = H &
@@ -23,6 +20,12 @@ type NarrowedContext<H extends HookContext, O> = H &
       ? unknown
       : { method: UnpackMaybeArray<M> }
     : unknown)
+
+/** `isContext`'s matching, inlined: runs in most hooks on every call. */
+const matches = (expected: unknown, actual: unknown): boolean =>
+  Array.isArray(expected)
+    ? expected.indexOf(actual) !== -1
+    : expected === actual
 
 export type CheckContextOptions<H extends HookContext = HookContext> =
   IsContextOptions<H> & {
@@ -85,9 +88,8 @@ export function checkContext<H extends HookContext = HookContext>(
     typeof typeOrOptions === 'object' &&
     !Array.isArray(typeOrOptions)
   ) {
-    const { label: optLabel, ...rest } = typeOrOptions
-    options = rest
-    hookLabel = optLabel ?? 'anonymous'
+    options = typeOrOptions
+    hookLabel = typeOrOptions.label ?? 'anonymous'
   } else {
     options = {
       method: methods ?? undefined,
@@ -96,11 +98,16 @@ export function checkContext<H extends HookContext = HookContext>(
     hookLabel = label
   }
 
-  if (!isContext(options)(context)) {
-    // each criterion on its own, to report only those that did not match - a
-    // criterion that was not given always matches
+  // a criterion that was not given always matches; `null` is a valid id to
+  // match (the multi variants)
+  const fails = (key: (typeof criteria)[number]): boolean =>
+    (key === 'id' ? options.id !== undefined : options[key] != null) &&
+    !matches(options[key], context[key])
+
+  if (fails('type') || fails('method') || fails('path') || fails('id')) {
+    // report only the criteria that did not match
     const details = criteria
-      .filter((key) => !isContext({ [key]: options[key] })(context))
+      .filter(fails)
       .map(
         (key) =>
           `${key}: expected '${toArray(options[key]).map(String).join("' | '")}' but got '${context[key]}'`,

@@ -1,4 +1,4 @@
-import { dequal as deepEqual } from 'dequal'
+import { isEqual, ownEnumerableKeys } from '../../common/index.js'
 
 type QueryRecord = Record<string, any>
 
@@ -7,8 +7,12 @@ type QueryRecord = Record<string, any>
  * deep-equal. Internal helper for {@link mergeQuery}.
  */
 export function hasConflict(target: QueryRecord, source: QueryRecord): boolean {
-  for (const key of Object.keys(target)) {
-    if (key in source && !deepEqual(target[key], source[key])) {
+  // symbol keys included - sequelize's operators
+  for (const key of ownEnumerableKeys(target)) {
+    if (
+      key in source &&
+      !isEqual(target[key as string], source[key as string])
+    ) {
       return true
     }
   }

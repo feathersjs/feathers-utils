@@ -56,4 +56,14 @@ describe('eqOrIn', function () {
       $in: [null, undefined],
     })
   })
+
+  // sequelize uses symbols as operators
+  describe('symbol operators', () => {
+    it('keeps values that differ only in symbol keys', () => {
+      const lt = Symbol('lt')
+      const result: any = eqOrIn([{ [lt]: 1 }, { [lt]: 2 }])
+
+      expect(result.$in).toHaveLength(2)
+    })
+  })
 })

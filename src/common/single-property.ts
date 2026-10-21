@@ -1,4 +1,5 @@
-import { isPlainObject } from './is-plain-object.js'
+import { hasSymbolKeys } from './has-symbol-keys.js'
+import { isPlainObject } from '../helpers/is-plain-object/is-plain-object.helper.js'
 
 /**
  * The one property a query branch constrains, as a `[property, value]` entry —
@@ -21,7 +22,7 @@ export function singleProperty(branch: unknown): [string, any] | undefined {
   }
 
   const keys = Object.keys(branch)
-  if (keys.length !== 1 || keys[0].startsWith('$')) {
+  if (keys.length !== 1 || keys[0].startsWith('$') || hasSymbolKeys(branch)) {
     return
   }
 
@@ -32,6 +33,10 @@ if (import.meta.vitest) {
   const { describe, it, expect } = import.meta.vitest
 
   describe('singleProperty', () => {
+    it('is undefined for a branch with symbol keys beside the property', () => {
+      expect(singleProperty({ a: 1, [Symbol.for('gt')]: 5 })).toBeUndefined()
+    })
+
     it('returns the entry of a single-property branch', () => {
       expect(singleProperty({ a: 1 })).toEqual(['a', 1])
       expect(singleProperty({ a: { $in: [1] } })).toEqual(['a', { $in: [1] }])

@@ -1,8 +1,9 @@
 import type { Params } from '@feathersjs/feathers'
 import type { Multi } from '../types.js'
 import { allowsMulti } from './allows-multi.js'
+import { DEFAULT_CONCURRENCY, mapLimit } from './map-limit.js'
 import { findAllOf } from './find-all.js'
-import { toArray } from './to-array.js'
+import { toArray } from '../helpers/to-array/to-array.helper.js'
 import { getIdField } from '../utils/get-id-field/get-id-field.util.js'
 
 /**
@@ -35,22 +36,28 @@ const toFindParams = (params: Params | undefined, idProperty: string) => {
   }
 }
 
+export type ChangeManyOptions = {
+  multi?: Multi
+  concurrency?: number
+}
+
 /**
  * Changes all items matching `params` with a single `patch`/`remove` call.
  *
  * If the service does not allow multi for the method, the matching items are
- * fetched with `find` and changed with one call per item instead.
+ * fetched with `find` and changed with one call per item instead, at most
+ * `concurrency` at a time.
  */
 export const changeMany = async (
   service: any,
   method: 'patch' | 'remove',
   data: any,
   params: Params | undefined,
-  multi: Multi | undefined,
+  options: ChangeManyOptions | undefined,
 ): Promise<any[]> => {
   const multiParams = { ...params, paginate: false as const }
 
-  if (allowsMulti(service, method, multi)) {
+  if (allowsMulti(service, method, options?.multi, params)) {
     const result =
       method === 'patch'
         ? await service.patch(null, data, multiParams)
@@ -69,11 +76,12 @@ export const changeMany = async (
 
   const singleParams = toSingleParams(params)
 
-  return await Promise.all(
-    items.map(async (item) =>
+  return await mapLimit(
+    items,
+    options?.concurrency ?? DEFAULT_CONCURRENCY,
+    (item) =>
       method === 'patch'
-        ? await service.patch(item[idProperty], data, singleParams)
-        : await service.remove(item[idProperty], singleParams),
-    ),
+        ? service.patch(item[idProperty], data, singleParams)
+        : service.remove(item[idProperty], singleParams),
   )
 }

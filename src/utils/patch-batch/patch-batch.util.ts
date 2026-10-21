@@ -1,21 +1,6 @@
 import type { Id, Params } from '@feathersjs/feathers'
+import safeStringify from 'safe-stable-stringify'
 import type { KeyOf } from '../../internal.utils.js'
-
-/**
- * Deterministic, key-order-independent serialization used to group items with
- * equal patch data in O(1) per item.
- */
-const stableKey = (value: any): string =>
-  JSON.stringify(value, (_key, val) =>
-    val && typeof val === 'object' && !Array.isArray(val)
-      ? Object.keys(val)
-          .sort()
-          .reduce<Record<string, any>>((acc, k) => {
-            acc[k] = val[k]
-            return acc
-          }, {})
-      : val,
-  )
 
 export type PatchBatchOptions<IdKey extends string> = {
   /** The key of the id property. */
@@ -65,17 +50,15 @@ export function patchBatch<
   const idKey = options?.id ?? 'id'
 
   // group items with identical (id-stripped) data in O(n) via a Map keyed by a
-  // stable serialization, instead of an O(n^2) findIndex + deepEqual scan.
+  // stable (key-order-independent) serialization, instead of an O(n^2)
+  // findIndex + deepEqual scan.
   const groups = new Map<string, { ids: Id[]; data: R }>()
 
   for (const item of items) {
-    const source = item as Record<string, any>
-    const id = source[idKey] as Id
-    // shallow copy then drop the id key, so the caller's input is never mutated.
-    const data = { ...source }
-    delete data[idKey as any]
+    // a copy without the id key, so the caller's input is never mutated
+    const { [idKey]: id, ...data } = item as Record<string, any>
 
-    const key = stableKey(data)
+    const key = safeStringify(data) as string
     const existing = groups.get(key)
 
     if (existing) {

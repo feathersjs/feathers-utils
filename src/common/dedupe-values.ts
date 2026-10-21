@@ -1,28 +1,51 @@
-import { dequal as deepEqual } from 'dequal'
+import { isEqual } from '../helpers/is-equal/is-equal.helper.js'
+
+/**
+ * The bucket a non-primitive is compared in. Values that are equal share it, so
+ * only the values of one bucket need the deep comparison:
+ *
+ * - a `Date` by its time,
+ * - a mongo `ObjectId` (anything with `toHexString`) by its hex string,
+ * - anything else by its constructor.
+ */
+const bucketOf = (value: object): unknown => {
+  if (value instanceof Date) return `D${value.getTime()}`
+  if (typeof (value as any).toHexString === 'function') {
+    return `H${(value as any).toHexString()}`
+  }
+  return value.constructor
+}
 
 /**
  * Removes duplicates from a list of query values, preserving the order of first
  * occurrence. Primitives are compared with `SameValueZero` (`Set` semantics),
- * non-primitives deep-equal — so value wrappers like `Date` or a mongo
- * `ObjectId` collapse even though they are distinct references.
+ * non-primitives with {@link isEqual} - so a `Date` or a mongo `ObjectId`
+ * collapses even though they are distinct references, while other class
+ * instances only collapse when they are the same instance.
  *
  * Primitives never hit the deep comparison, so the common case of a large list
- * of scalar ids stays a single `Set` pass; only the non-primitive elements are
- * compared pairwise against each other.
+ * of scalar ids stays a single `Set` pass. Non-primitives are only compared
+ * within their bucket (see {@link bucketOf}), so a list of dates or ids stays
+ * linear too.
  *
  * @internal shared by `eqOrIn` and `neOrNin`.
  */
 export function dedupeValues<T>(values: readonly T[]): T[] {
   const seenPrimitives = new Set<T>()
-  const seenObjects: T[] = []
+  const buckets = new Map<unknown, T[]>()
   const result: T[] = []
 
   for (const value of values) {
     if (value !== null && typeof value === 'object') {
-      if (seenObjects.some((seen) => deepEqual(seen, value))) {
+      const key = bucketOf(value)
+      const bucket = buckets.get(key)
+      if (!bucket) {
+        buckets.set(key, [value])
+      } else if (bucket.some((seen) => isEqual(seen, value))) {
         continue
+      } else {
+        bucket.push(value)
       }
-      seenObjects.push(value)
     } else {
       if (seenPrimitives.has(value)) {
         continue
@@ -67,16 +90,58 @@ if (import.meta.vitest) {
       expect(dedupeValues(values)).toEqual([new Date(5), new Date(6)])
     })
 
-    it('dedupes equal class instances by value', () => {
+    it('keeps class instances apart unless they are the same instance', () => {
+      // their state may live in private fields, so equal looking instances
+      // aren't necessarily equal
       class Id {
         constructor(public buffer: Uint8Array) {}
       }
-      const values = [
-        new Id(new Uint8Array([1])),
-        new Id(new Uint8Array([1])),
-        new Id(new Uint8Array([2])),
-      ]
-      expect(dedupeValues(values)).toHaveLength(2)
+      const id = new Id(new Uint8Array([1]))
+      const values = [id, id, new Id(new Uint8Array([1]))]
+      expect(dedupeValues(values)).toStrictEqual([id, values[2]])
+    })
+
+    it('keeps ObjectIds apart whose id deep equality cannot see', () => {
+      // like bson 4: the id lives in a symbol key, no enumerable key is left
+      const kId = Symbol('id')
+      class ObjectId {
+        [kId]: string
+        constructor(hex: string) {
+          this[kId] = hex
+        }
+        toHexString() {
+          return this[kId]
+        }
+      }
+      const a = new ObjectId('a1')
+      const b = new ObjectId('b2')
+
+      expect(dedupeValues([a, b, new ObjectId('a1')])).toStrictEqual([a, b])
+    })
+
+    it('keeps a date and an ObjectId apart from plain objects', () => {
+      const date = new Date(5)
+      const id = { toHexString: () => 'a1' }
+      const plain = { id: 1 }
+
+      expect(
+        dedupeValues([date, id, plain, new Date(5), { id: 1 }]),
+      ).toStrictEqual([date, id, plain])
+    })
+
+    it('keeps a date subclass apart from a date of the same time', () => {
+      class Day extends Date {}
+      const date = new Date(5)
+      const day = new Day(5)
+
+      expect(dedupeValues([date, day])).toStrictEqual([date, day])
+    })
+
+    it('dedupes objects without a prototype', () => {
+      const a = Object.assign(Object.create(null), { id: 1 })
+      const b = Object.assign(Object.create(null), { id: 1 })
+
+      expect(dedupeValues([a, b])).toStrictEqual([a])
     })
 
     it('does not mutate the input', () => {

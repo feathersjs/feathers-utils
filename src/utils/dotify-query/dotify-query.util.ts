@@ -1,5 +1,9 @@
 import type { Query } from '@feathersjs/feathers'
-import { branchOperators, isPlainObject } from '../../common/index.js'
+import {
+  branchOperators,
+  isPlainObject,
+  ownEnumerableKeys,
+} from '../../common/index.js'
 import { assignPath, dotifySortKeys, mergeAndBranches } from './dotify-keys.js'
 
 export type DotifyQueryPredicateOptions = {
@@ -126,18 +130,21 @@ const dotifyBody = (
 
     state.changed = true
 
-    // operators stay on the current path, plain sub-keys are descended
-    const operators: Record<string, any> = {}
+    // operators - symbol keys too, sequelize's - stay on the current path,
+    // plain sub-keys are descended
+    const operators: Record<PropertyKey, any> = {}
     const nested: Record<string, any> = {}
-    for (const subKey of Object.keys(value)) {
-      if (subKey.startsWith('$')) {
-        operators[subKey] = value[subKey]
+    let hasOperators = false
+    for (const subKey of ownEnumerableKeys(value)) {
+      if (typeof subKey === 'symbol' || subKey.startsWith('$')) {
+        operators[subKey] = value[subKey as string]
+        hasOperators = true
       } else {
         nested[subKey] = value[subKey]
       }
     }
 
-    if (Object.keys(operators).length > 0) {
+    if (hasOperators) {
       const conflict = assignPath(result, path, operators)
       if (conflict) {
         conflicts.push(conflict)
@@ -149,7 +156,7 @@ const dotifyBody = (
       // the sub-object's own conflicts belong to this level's implicit `$and`,
       // because its keys just became keys of this level
       if (dottedKey === '$and') {
-        conflicts.push(...dotted.$and)
+        for (const conflict of dotted.$and) conflicts.push(conflict)
         continue
       }
 
@@ -157,6 +164,13 @@ const dotifyBody = (
       if (conflict) {
         conflicts.push(conflict)
       }
+    }
+  }
+
+  // symbol keys - sequelize's operators - pass through like custom `$` operators
+  for (const symbol of Object.getOwnPropertySymbols(query)) {
+    if (Object.prototype.propertyIsEnumerable.call(query, symbol)) {
+      ;(result as Record<symbol, any>)[symbol] = query[symbol as any]
     }
   }
 

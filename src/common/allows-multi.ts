@@ -1,3 +1,4 @@
+import type { Params } from '@feathersjs/feathers'
 import type { MethodName, Multi } from '../types.js'
 
 const resolve = (multi: Multi, method: MethodName): boolean =>
@@ -8,8 +9,9 @@ const resolve = (multi: Multi, method: MethodName): boolean =>
  * for the given method.
  *
  * An explicit `multi` wins over the service's own configuration. Otherwise the
- * adapter's `allowsMulti`/`options.multi` is used. Services that declare
- * nothing (e.g. custom services) are assumed to allow it.
+ * adapter's `allowsMulti`/`options.multi` is used - with the `params` of the
+ * call, so a `params.adapter.multi` counts as it does for the adapter.
+ * Services that declare nothing (e.g. custom services) are assumed to allow it.
  *
  * @example
  * ```ts
@@ -21,13 +23,14 @@ export const allowsMulti = (
   service: any,
   method: MethodName,
   multi?: Multi,
+  params?: Params,
 ): boolean => {
   if (multi != null) {
     return resolve(multi, method)
   }
 
   if (typeof service?.allowsMulti === 'function') {
-    return !!service.allowsMulti(method)
+    return !!service.allowsMulti(method, params)
   }
 
   const serviceMulti = service?.options?.multi
@@ -58,6 +61,18 @@ if (import.meta.vitest) {
 
       expect(allowsMulti(service, 'patch')).toBe(true)
       expect(allowsMulti(service, 'remove')).toBe(false)
+    })
+
+    it("passes the params to the service's allowsMulti", () => {
+      const service = {
+        allowsMulti: (_method: string, params?: any) =>
+          params?.adapter?.multi === true,
+      }
+
+      expect(allowsMulti(service, 'remove')).toBe(false)
+      const params = { adapter: { multi: true } } as any
+
+      expect(allowsMulti(service, 'remove', undefined, params)).toBe(true)
     })
 
     it("falls back to the service's multi option", () => {

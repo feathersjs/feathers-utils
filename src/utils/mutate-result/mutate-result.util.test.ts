@@ -174,6 +174,34 @@ describe('mutateResult', () => {
     expect(context.dispatch).toStrictEqual({ result: true, test: true })
   })
 
+  it('copies the result only once for dispatch when it runs around the method', async () => {
+    let copies = 0
+    const item = { name: 'Jane' }
+    // a copy reads every enumerable property, so this counts the copies
+    Object.defineProperty(item, 'copied', {
+      enumerable: true,
+      get: () => ++copies,
+    })
+    const context = { method: 'find' } as any
+
+    await mutateResult(
+      context,
+      (item) => {
+        item.test = true
+      },
+      {
+        dispatch: true,
+        next: async () => {
+          context.result = { total: 1, data: [item] }
+        },
+      },
+    )
+
+    expect(copies).toBe(1)
+    expect(context.dispatch.data[0]).toMatchObject({ name: 'Jane', test: true })
+    expect(context.result.data[0]).not.toHaveProperty('test')
+  })
+
   it('does not mutate params', async () => {
     const context = await expectNoSideEffects(
       { query: { name: 'Jane' } },

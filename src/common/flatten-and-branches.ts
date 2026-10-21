@@ -1,3 +1,5 @@
+import { isEmptyObject } from '../helpers/is-empty-object/is-empty-object.helper.js'
+
 type QueryRecord = Record<string, any>
 
 /**
@@ -12,10 +14,11 @@ export function flattenAndBranches(branches: QueryRecord[]): QueryRecord[] {
   for (const branch of branches) {
     if (Array.isArray(branch.$and)) {
       const { $and, ...rest } = branch
-      if (Object.keys(rest).length > 0) {
+      // the rest may hold only symbol keys (sequelize's operators)
+      if (!isEmptyObject(rest)) {
         result.push(rest)
       }
-      result.push(...flattenAndBranches($and))
+      for (const nested of flattenAndBranches($and)) result.push(nested)
     } else {
       result.push(branch)
     }
@@ -27,6 +30,17 @@ if (import.meta.vitest) {
   const { describe, it, expect } = import.meta.vitest
 
   describe('flattenAndBranches', () => {
+    it('keeps the rest of a branch when it holds only symbol keys', () => {
+      const or = Symbol.for('or')
+      const result = flattenAndBranches([
+        { $and: [{ a: 1 }], [or]: [{ b: 1 }] },
+      ])
+
+      expect(result).toHaveLength(2)
+      expect(result[0][or as any]).toEqual([{ b: 1 }])
+      expect(result[1]).toEqual({ a: 1 })
+    })
+
     it('leaves plain branches untouched', () => {
       expect(flattenAndBranches([{ id: 1 }, { id: 2 }])).toEqual([
         { id: 1 },

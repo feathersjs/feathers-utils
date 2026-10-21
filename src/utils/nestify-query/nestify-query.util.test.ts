@@ -393,4 +393,15 @@ describe('nestifyQuery', () => {
       }
     })
   })
+
+  // sequelize's operators, e.g. `{ [Op.or]: [...] }`
+  describe('symbol keys', () => {
+    it('passes a symbol key at the top through', () => {
+      const or = Symbol.for('or')
+      const result: any = nestifyQuery({ [or]: [{ x: 1 }], 'a.b': 1 } as any)
+
+      expect(result.a).toEqual({ b: 1 })
+      expect(result[or]).toEqual([{ x: 1 }])
+    })
+  })
 })

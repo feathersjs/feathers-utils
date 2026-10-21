@@ -212,6 +212,46 @@ describe('checkMulti', function () {
     })
   })
 
+  describe('multi option', function () {
+    const makeContext = (method: string, allows: boolean) =>
+      ({
+        service: { allowsMulti: () => allows },
+        type: 'before',
+        method,
+        data: method === 'create' ? [{}, {}] : {},
+      }) as HookContext
+
+    it('refuses multi calls the service allows with `multi: false`', function () {
+      ;['create', 'patch', 'remove'].forEach((method) => {
+        assert.throws(
+          () => checkMulti({ multi: false })(makeContext(method, true)),
+          MethodNotAllowed,
+          `Can not ${method} multiple entries`,
+          `'${method}': throws`,
+        )
+      })
+    })
+
+    it('allows multi calls only for the listed methods', function () {
+      const hook = checkMulti({ multi: ['patch'] })
+
+      assert.doesNotThrow(() => hook(makeContext('patch', false)))
+      assert.throws(() => hook(makeContext('remove', true)), MethodNotAllowed)
+    })
+
+    it('passes single calls and find with `multi: false`', function () {
+      const hook = checkMulti({ multi: false })
+
+      assert.doesNotThrow(() =>
+        hook({ ...makeContext('patch', true), id: 1 } as HookContext),
+      )
+      assert.doesNotThrow(() =>
+        hook({ ...makeContext('create', true), data: {} } as HookContext),
+      )
+      assert.doesNotThrow(() => hook(makeContext('find', true)))
+    })
+  })
+
   it('can skip hook', function () {
     const makeContext = (type: string, method: string) => {
       const context = {
@@ -277,6 +317,16 @@ describe('checkMulti', function () {
 
       const created = await service.create({ name: 'Alice' })
       assert.equal(created.name, 'Alice')
+    })
+
+    it('allows multi-create when params.adapter allows multi', async () => {
+      const service = setup(false).service('users')
+
+      const created = await service.create(
+        [{ name: 'Alice' }, { name: 'Bob' }],
+        { adapter: { multi: true } },
+      )
+      assert.lengthOf(created, 2)
     })
 
     it('allows multi-create when multi is allowed', async () => {

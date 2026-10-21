@@ -1,9 +1,21 @@
 import { expect, expectTypeOf } from 'vitest'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
-import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
+import type {
+  AroundHookFunction,
+  HookContext,
+  Params,
+} from '@feathersjs/feathers'
 import { createRelated } from './create-related.hook.js'
 import { expectNoSideEffects, runHook } from '../../testing/index.js'
+import { trackConcurrency } from '../../../test/utils/index.js'
+
+/** Forwards the caller's transaction, as a SQL adapter takes it. */
+const transactionOf = (context: HookContext) =>
+  ({
+    transaction: (context.params as Params & { transaction?: unknown })
+      .transaction,
+  }) as Params
 
 type MockAppOptions = {
   multi?: boolean
@@ -128,6 +140,32 @@ describe('hook - createRelated (type tests)', function () {
               { title: 'test1', userId: item.id },
               { title: 'test2', userId: item.id },
             ],
+          }),
+        ],
+      },
+    })
+  })
+
+  it('params must fit the target service', function () {
+    type TodoParams = Params & { transaction?: string }
+    type TodoService = MemoryService<Todo, Partial<Todo>, TodoParams>
+    const app = feathers<{ users: MemoryService<User>; todos: TodoService }>()
+    app.use('users', new MemoryService<User>())
+    app.use('todos', new MemoryService<Todo, Partial<Todo>, TodoParams>())
+
+    app.service('users').hooks({
+      after: {
+        create: [
+          createRelated({
+            service: 'todos',
+            data: (item) => ({ title: 'test', userId: item.id }),
+            params: () => ({ transaction: 'trx' }),
+          }),
+          createRelated({
+            service: 'todos',
+            data: (item) => ({ title: 'test', userId: item.id }),
+            // @ts-expect-error - the todos service takes its transaction as a string
+            params: () => ({ transaction: 1 }),
           }),
         ],
       },
@@ -268,6 +306,33 @@ describe('hook - createRelated', function () {
     ])
   })
 
+  it('creates at most `concurrency` related items at a time', async function () {
+    const { app, todosService } = mockApp({ multi: false })
+    const tracker = trackConcurrency()
+    todosService.hooks({ around: { create: [tracker.hook] } })
+
+    app.service('users').hooks({
+      after: {
+        create: [
+          createRelated({
+            service: 'todos',
+            data: (item) =>
+              [1, 2, 3, 4, 5].map((n) => ({
+                title: `${item.name} ${n}`,
+                userId: item.id,
+              })),
+            concurrency: 2,
+          }),
+        ],
+      },
+    })
+
+    await app.service('users').create({ name: 'user1' })
+
+    expect(tracker.max).toBe(2)
+    expect(await todosService.find({ query: {} })).toHaveLength(5)
+  })
+
   it('creates with a single multi call if the related service allows multi', async function () {
     const { app, todosService } = mockApp({ multi: true })
 
@@ -371,6 +436,32 @@ describe('hook - createRelated', function () {
     expect(calls).toStrictEqual([
       { title: 'user1', userId: 1 },
       { title: 'user2', userId: 2 },
+    ])
+  })
+
+  it('creates the related records with the params of `params`', async function () {
+    const { usersService, todosService } = mockApp({ multi: false })
+    const create = vi.spyOn(todosService, 'create')
+
+    usersService.hooks({
+      after: {
+        create: [
+          createRelated({
+            service: 'todos',
+            data: (user) => ({ userId: user.id, title: 'First issue' }),
+            params: transactionOf,
+          }),
+        ],
+      },
+    })
+
+    await usersService.create([{ name: 'Jane' }, { name: 'John' }], {
+      transaction: 'trx',
+    } as Params)
+
+    expect(create.mock.calls.map(([, params]) => params)).toStrictEqual([
+      { transaction: 'trx' },
+      { transaction: 'trx' },
     ])
   })
 

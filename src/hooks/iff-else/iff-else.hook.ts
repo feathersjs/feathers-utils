@@ -26,20 +26,12 @@ export function iffElse<H extends HookContext = HookContext>(
   trueHook: HookFunction<H> | HookFunction<H>[] | undefined,
   falseHook?: HookFunction<H> | HookFunction<H>[] | undefined,
 ) {
+  // combined once here instead of on every call
+  const trueHooks = toCombined(trueHook)
+  const falseHooks = toCombined(falseHook)
+
   // fnArgs is [context] for service & permission hooks, [data, connection, context] for event filters
   return function (this: any, ctx: H, next?: NextFunction) {
-    const trueHooks = Array.isArray(trueHook)
-      ? trueHook
-      : typeof trueHook === 'function'
-        ? [trueHook]
-        : undefined
-
-    const falseHooks = Array.isArray(falseHook)
-      ? falseHook
-      : typeof falseHook === 'function'
-        ? [falseHook]
-        : undefined
-
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const that = this
     const check =
@@ -63,18 +55,26 @@ export function iffElse<H extends HookContext = HookContext>(
   }
 }
 
+function toCombined<H extends HookContext>(
+  hook: HookFunction<H> | HookFunction<H>[] | undefined,
+): ((this: any, ctx: H) => Promise<H>) | undefined {
+  if (Array.isArray(hook)) return combine(...hook)
+  if (typeof hook === 'function') return combine(hook)
+  return undefined
+}
+
 function callHooks<H extends HookContext = HookContext>(
   this: any,
   ctx: H,
-  serviceHooks: HookFunction<H>[],
+  combined: ((this: any, ctx: H) => Promise<H>) | undefined,
   next?: NextFunction,
 ) {
-  if (!serviceHooks) {
+  if (!combined) {
     if (next) return next()
     return ctx
   }
 
-  const result = combine(...serviceHooks).call(this, ctx)
+  const result = combined.call(this, ctx)
 
   if (!next) return result
 

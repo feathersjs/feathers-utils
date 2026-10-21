@@ -1,5 +1,5 @@
 import type { MergeQueryMode } from './merge-query.util.js'
-import { isEmptyObject } from '../../common/is-empty-object.js'
+import { isEmptyObject } from '../../helpers/is-empty-object/is-empty-object.helper.js'
 import { dedupeBranches } from '../../common/dedupe-branches.js'
 import { flattenAndBranches } from '../../common/flatten-and-branches.js'
 import { collapseOrBranches } from '../../common/collapse-or-branches.js'

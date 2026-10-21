@@ -441,4 +441,50 @@ describe('dotifyQuery', () => {
       )
     })
   })
+
+  // sequelize uses symbols as operators
+  describe('symbol operators', () => {
+    it('merges colliding paths that differ only in symbol operators', () => {
+      const lt = Symbol('lt')
+      const gt = Symbol('gt')
+
+      const result: any = dotifyQuery({
+        a: { b: { [lt]: 1 } },
+        'a.b': { [gt]: 2 },
+      } as any)
+
+      expect(result['a.b'][lt]).toBe(1)
+      expect(result['a.b'][gt]).toBe(2)
+    })
+  })
+
+  // sequelize's operators, e.g. `{ [Op.or]: [...] }` or `{ [Op.gt]: 5 }`
+  describe('symbol keys', () => {
+    const or = Symbol.for('or')
+    const gt = Symbol.for('gt')
+
+    it('passes a symbol key at the top through', () => {
+      const result: any = dotifyQuery({ [or]: [{ x: 1 }], a: { b: 1 } } as any)
+
+      expect(result['a.b']).toBe(1)
+      expect(result[or]).toEqual([{ x: 1 }])
+    })
+
+    it('keeps symbol operators on the path, like `$` operators', () => {
+      const result: any = dotifyQuery({ a: { b: 1, [gt]: 5 } } as any)
+
+      expect(result['a.b']).toBe(1)
+      expect(result.a[gt]).toBe(5)
+    })
+
+    it('moves a colliding symbol operator to the $and', () => {
+      const result: any = dotifyQuery({
+        a: { b: { [gt]: 1 } },
+        'a.b': { [gt]: 2 },
+      } as any)
+
+      expect(result['a.b'][gt]).toBe(1)
+      expect(result.$and[0]['a.b'][gt]).toBe(2)
+    })
+  })
 })

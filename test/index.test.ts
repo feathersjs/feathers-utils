@@ -4,6 +4,7 @@ import * as exportedUtils from '../src/utils/index.js'
 import * as exportedPredicates from '../src/predicates/index.js'
 import * as exportedTransformers from '../src/transformers/index.js'
 import * as exportedTesting from '../src/testing/index.js'
+import * as exportedHelpers from '../src/helpers/index.js'
 
 const hooks = [
   'aggregate',
@@ -150,6 +151,21 @@ const testing = [
   'runHook',
 ] satisfies (keyof typeof exportedTesting)[]
 
+// `helpers` are generic object/path helpers, not Feathers-specific — they get
+// their own entrypoint instead of riding along in the root barrel.
+const helpers = [
+  'getPath',
+  'hasPath',
+  'setPath',
+  'pickPaths',
+  'omitPaths',
+  'isEqual',
+  'isPlainObject',
+  'isEmptyObject',
+  'isPromise',
+  'toArray',
+] satisfies (keyof typeof exportedHelpers)[]
+
 describe('expose', () => {
   it('expose all hooks', () => {
     assert.deepEqual(Object.keys(exportedHooks).sort(), hooks.sort())
@@ -168,6 +184,10 @@ describe('expose', () => {
   })
   it('expose all testing utilities', () => {
     assert.deepEqual(Object.keys(exportedTesting).sort(), testing.sort())
+  })
+
+  it('expose all helpers', () => {
+    assert.deepEqual(Object.keys(exportedHelpers).sort(), helpers.sort())
   })
 
   it('expose all members', () => {

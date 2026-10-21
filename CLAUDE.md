@@ -5,17 +5,19 @@ ESM-only (`type: module`) Feathers utility library. All relative imports use the
 
 ## Entrypoints
 
-Eight barrels, each a package export and a tsdown build entry:
-`.` · `./hooks` · `./utils` · `./predicates` · `./resolvers` · `./transformers` · `./guards` · `./testing`
+Nine barrels, each a package export and a tsdown build entry:
+`.` · `./hooks` · `./utils` · `./predicates` · `./resolvers` · `./transformers` · `./guards` · `./helpers` · `./testing`
 → `src/<category>/index.ts`. A new public feature must be re-exported from its
 category barrel. `./testing` is test-only code and is deliberately **not** part
-of the root barrel, so it cannot end up in a production bundle.
+of the root barrel, so it cannot end up in a production bundle. `./helpers`
+(generic object/path helpers: `getPath`, `setPath`, `isEqual`, …) is not in the
+root barrel either — it is not Feathers-specific.
 
 ## Feature folder convention
 
 Each public feature is its own **kebab-case** folder under its category, holding
 sibling files named `<name>.<kind>.*` where `kind` ∈
-`util|hook|predicate|resolver|transformer|guard|testing`:
+`util|hook|predicate|resolver|transformer|guard|helper|testing`:
 
 - `<name>.<kind>.ts` — implementation; the main export is **camelCase**.
 - `<name>.<kind>.test.ts` — runtime tests (vitest).
@@ -24,8 +26,11 @@ sibling files named `<name>.<kind>.*` where `kind` ∈
 
 ## Shared internals
 
-- `src/common/` — shared helpers, exported via `src/common/index.js`, imported as
-  `../../common/index.js`. Small ones use in-source tests (`if (import.meta.vitest)`),
+- `src/common/` — shared internal helpers, exported via `src/common/index.js`,
+  imported as `../../common/index.js`. It also re-exports the public
+  `src/helpers/*`, so internal code reaches those through `common` too; a helper
+  itself imports sibling files directly (never `common/index.js`) to avoid an
+  import cycle. Small ones use in-source tests (`if (import.meta.vitest)`),
   stripped from the build.
 - `src/internal.utils.ts` — internal helpers/types, not public API.
 

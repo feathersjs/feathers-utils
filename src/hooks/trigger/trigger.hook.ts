@@ -388,7 +388,8 @@ const triggerAfter = async <H extends HookContext>(
     ).map(run)
 
     if (state.isBlocking) {
-      promises.push(...running)
+      // a loop, not a spread: one argument per item overflows the stack
+      for (const promise of running) promises.push(promise)
     } else {
       // nobody waits for them, and an unhandled rejection ends the process
       running.forEach((promise) =>

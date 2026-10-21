@@ -1,5 +1,9 @@
-import { dequal as deepEqual } from 'dequal'
-import { dedupeBranches, isPlainObject } from '../../common/index.js'
+import {
+  dedupeBranches,
+  isEqual,
+  isPlainObject,
+  ownEnumerableKeys,
+} from '../../common/index.js'
 
 /**
  * Flattens the keys of a `$sort` object into dot notation, keeping the sort
@@ -73,14 +77,15 @@ export const assignPath = (
 
   const existing = target[key]
 
-  if (deepEqual(existing, value)) {
+  if (isEqual(existing, value)) {
     return undefined
   }
 
   if (
     isPlainObject(existing) &&
     isPlainObject(value) &&
-    Object.keys(value).every((subKey) => !(subKey in existing))
+    // symbol keys included - sequelize's operators
+    ownEnumerableKeys(value).every((subKey) => !(subKey in existing))
   ) {
     target[key] = { ...existing, ...value }
     return undefined

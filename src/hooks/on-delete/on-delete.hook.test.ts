@@ -11,6 +11,14 @@ import { MemoryService } from '@feathersjs/memory'
 import { onDelete } from './on-delete.hook.js'
 import type { OnDeleteOptions } from './on-delete.hook.js'
 import { expectNoSideEffects, runHook } from '../../testing/index.js'
+import { trackConcurrency } from '../../../test/utils/index.js'
+
+/** Forwards the caller's transaction, as a SQL adapter takes it. */
+const transactionOf = (context: HookContext) =>
+  ({
+    transaction: (context.params as Params & { transaction?: unknown })
+      .transaction,
+  }) as Params
 
 type User = {
   id: number
@@ -369,6 +377,69 @@ describe('onDelete', function () {
       expect(todos).toStrictEqual([{ id: 3, title: 'Buy bread', userId: 3 }])
     })
 
+    it('removes the related items of id 0', async function () {
+      // the memory adapter hands out ids starting at 0 by default
+      const app = feathers()
+      app.use('users', new MemoryService({ multi: true }))
+      app.use('todos', new MemoryService({ multi: true }))
+      const usersService = app.service('users')
+      const todosService = app.service('todos')
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'cascade',
+              blocking: true,
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe' })
+      expect(user.id).toBe(0)
+
+      await todosService.create({ title: 'Buy milk', userId: 0 })
+      await todosService.create({ title: 'Buy eggs', userId: 1 })
+
+      await usersService.remove(0)
+
+      const todos = await todosService.find({ query: {} })
+
+      expect(todos).toStrictEqual([{ id: 1, title: 'Buy eggs', userId: 1 }])
+    })
+
+    it('treats an empty string key as unset instead of cascading on it', async function () {
+      const { usersService, todosService } = mockApp()
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'groupKey',
+              keyHere: 'groupKey',
+              onDelete: 'cascade',
+              blocking: true,
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe', groupKey: '' })
+      await todosService.create({ title: 'Buy milk', groupKey: '' })
+      await todosService.create({ title: 'Buy eggs', groupKey: '' })
+
+      await usersService.remove(user.id)
+
+      const todos = await todosService.find({ query: {} })
+
+      expect(todos).toHaveLength(2)
+    })
+
     it('does not remove items if not found', async function () {
       const { app, usersService, todosService } = mockApp()
 
@@ -485,6 +556,45 @@ describe('onDelete', function () {
         { id: 2, title: 'Buy eggs task', userId: 2 },
       ])
     })
+  })
+
+  it('changes the related items with the params of `params`, the relation winning', async function () {
+    const { usersService, todosService } = mockApp()
+    const remove = vi.spyOn(todosService, 'remove')
+
+    usersService.hooks({
+      after: {
+        remove: [
+          onDelete({
+            service: 'todos',
+            keyThere: 'userId',
+            keyHere: 'id',
+            onDelete: 'cascade',
+            blocking: true,
+            params: (context) => ({
+              ...transactionOf(context),
+              query: { title: 'Buy milk', userId: 99 },
+            }),
+          }),
+        ],
+      },
+    })
+
+    const user = await usersService.create({ name: 'John Doe' })
+    await todosService.create([
+      { title: 'Buy milk', userId: user.id },
+      { title: 'Buy eggs', userId: user.id },
+    ])
+
+    await usersService.remove(user.id, { transaction: 'trx' } as Params)
+
+    expect(remove.mock.calls[0][1]).toMatchObject({
+      transaction: 'trx',
+      query: { title: 'Buy milk', userId: user.id },
+    })
+    expect(await todosService.find({ query: {} })).toMatchObject([
+      { title: 'Buy eggs' },
+    ])
   })
 
   describe('set null', function () {
@@ -883,6 +993,37 @@ describe('onDelete', function () {
       expect(await todosService.find({ query: {} })).toStrictEqual([
         { id: 3, title: 'Buy bread', userId: 2 },
       ])
+    })
+
+    it('changes at most `concurrency` related items at a time', async function () {
+      const { usersService, todosService } = mockAppWithMulti(false)
+      const tracker = trackConcurrency()
+      todosService.hooks({ around: { remove: [tracker.hook] } })
+
+      usersService.hooks({
+        after: {
+          remove: [
+            onDelete({
+              service: 'todos',
+              keyThere: 'userId',
+              keyHere: 'id',
+              onDelete: 'cascade',
+              blocking: true,
+              concurrency: 2,
+            }),
+          ],
+        },
+      })
+
+      const user = await usersService.create({ name: 'John Doe' })
+      for (let i = 0; i < 5; i++) {
+        await todosService.create({ title: `todo ${i}`, userId: user.id })
+      }
+
+      await usersService.remove(user.id)
+
+      expect(tracker.max).toBe(2)
+      expect(await todosService.find({ query: {} })).toStrictEqual([])
     })
 
     it('set null patches one by one if the related service disallows multi', async function () {

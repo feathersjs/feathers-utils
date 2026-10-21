@@ -1,5 +1,6 @@
 import type { Query } from '@feathersjs/feathers'
-import { dequal as deepEqual } from 'dequal'
+import { isEqual } from '../../helpers/is-equal/is-equal.helper.js'
+import { ownEnumerableKeys } from '../../common/own-enumerable-keys.js'
 import { extractQueryFilters } from '../../common/extract-query-filters.js'
 import { mergeSelect } from '../../common/merge-select.js'
 
@@ -64,11 +65,16 @@ export function addToQuery<Q extends Query>(targetQuery: Q, query: Q): Q {
     return addFiltersToQuery(targetQuery, query)
   }
 
-  if (Object.keys(query).length === 0) {
+  // symbol keys included - sequelize's operators
+  const keys = ownEnumerableKeys(query)
+  if (keys.length === 0) {
     return targetQuery
   }
 
-  const entries = Object.entries(query) as [keyof Q, any][]
+  const entries = keys.map((key) => [key, query[key as string]]) as [
+    keyof Q,
+    any,
+  ][]
 
   if (entries.every(([property]) => !(property in targetQuery))) {
     // if none of the properties exist, merge them directly
@@ -81,7 +87,7 @@ export function addToQuery<Q extends Query>(targetQuery: Q, query: Q): Q {
   function isAlreadyInQuery(targetQuery: Q, entries: [keyof Q, any][]) {
     return entries.every(
       ([property, value]) =>
-        property in targetQuery && deepEqual(targetQuery[property], value),
+        property in targetQuery && isEqual(targetQuery[property], value),
     )
   }
 
@@ -95,7 +101,7 @@ export function addToQuery<Q extends Query>(targetQuery: Q, query: Q): Q {
   if (entries.length === 1 && Array.isArray(query.$and)) {
     const existing = (targetQuery.$and as any[]) ?? []
     const newBranches = (query.$and as any[]).filter(
-      (branch) => !existing.some((q) => deepEqual(q, branch)),
+      (branch) => !existing.some((q) => isEqual(q, branch)),
     )
     if (newBranches.length === 0) {
       return targetQuery

@@ -1,6 +1,6 @@
 import type { HookContext, Id, Params } from '@feathersjs/feathers'
 import { findAllOf } from '../../common/find-all.js'
-import { isEqual } from '../../common/is-equal.js'
+import { isEqual } from '../../helpers/is-equal/is-equal.helper.js'
 import { selectCovers } from '../../common/select-covers.js'
 import { snapshot } from '../../common/snapshot.js'
 import { addToQuery } from '../add-to-query/add-to-query.util.js'

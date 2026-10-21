@@ -169,4 +169,51 @@ describe('chunkFind', function () {
     )
     expect(skips).toEqual([0, 2])
   })
+
+  describe('keyset', () => {
+    it('yields the pages of `$limit`, sorted by id', async function () {
+      const app = feathers().use(
+        'items',
+        new MemoryService({ startId: 1, multi: true }),
+      )
+      await app.service('items').create(Array.from({ length: 25 }, () => ({})))
+
+      const pages: number[][] = []
+      for await (const page of chunkFind(app, 'items', {
+        params: { query: { $limit: 10 } },
+        keyset: true,
+      })) {
+        pages.push(page.map((item: any) => item.id))
+      }
+
+      expect(pages.map((page) => page.length)).toEqual([10, 10, 5])
+      expect(pages.flat()).toEqual(Array.from({ length: 25 }, (_, i) => i + 1))
+    })
+
+    it('yields every item when the loop changes them out of the query', async function () {
+      const app = feathers().use(
+        'jobs',
+        new MemoryService({ startId: 1, multi: true }),
+      )
+      const jobs = app.service('jobs')
+      await jobs.create(
+        Array.from({ length: 50 }, () => ({ status: 'pending' })),
+      )
+
+      let processed = 0
+      for await (const page of chunkFind(app, 'jobs', {
+        params: { query: { status: 'pending' } },
+        keyset: true,
+      })) {
+        processed += page.length
+        await jobs.patch(
+          null,
+          { status: 'done' },
+          { query: { id: { $in: page.map((job: any) => job.id) } } },
+        )
+      }
+
+      expect(processed).toBe(50)
+    })
+  })
 })

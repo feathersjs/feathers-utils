@@ -1,3 +1,4 @@
+import { isPromise } from '../../common/index.js'
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { mutateData } from '../../utils/mutate-data/mutate-data.util.js'
 import type { TransformerInputFn } from '../../types.js'
@@ -30,7 +31,8 @@ export const transformData =
     transformer: TransformerInputFn<D, H>,
   ) =>
   async (context: H, next?: NextFunction): Promise<void> => {
-    await mutateData(context, transformer)
+    const mutated = mutateData(context, transformer)
+    if (isPromise(mutated)) await mutated
 
     if (next) {
       await next()

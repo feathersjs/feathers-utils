@@ -1,4 +1,4 @@
-import { dequal as deepEqual } from 'dequal'
+import { isEqual, ownEnumerableKeys } from '../../common/index.js'
 
 type QueryRecord = Record<string, any>
 
@@ -17,10 +17,13 @@ export function mergeAndBranchesUp(
   }
   const rest = { ...result }
   delete rest.$and
-  const seen = new Map<string, any>(Object.entries(rest))
+  // symbol keys included - sequelize's operators
+  const seen = new Map<PropertyKey, any>()
+  for (const key of ownEnumerableKeys(rest)) seen.set(key, rest[key as string])
   for (const branch of result.$and) {
-    for (const [key, value] of Object.entries(branch)) {
-      if (seen.has(key) && !deepEqual(seen.get(key), value)) {
+    for (const key of ownEnumerableKeys(branch)) {
+      const value = branch[key as string]
+      if (seen.has(key) && !isEqual(seen.get(key), value)) {
         return result
       }
       seen.set(key, value)

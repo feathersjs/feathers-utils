@@ -1,13 +1,19 @@
-import type { Application } from '@feathersjs/feathers'
-import { allowsMulti, toArray } from '../../common/index.js'
+import type { Application, Params } from '@feathersjs/feathers'
+import {
+  allowsMulti,
+  DEFAULT_CONCURRENCY,
+  mapLimit,
+  toArray,
+} from '../../common/index.js'
 import type { KeyOf } from '../../internal.utils.js'
 import type { Multi } from '../../types.js'
 import type {
   InferCreateDataSingle,
+  InferCreateParams,
   InferCreateResultSingle,
 } from '../../utility-types/infer-service-methods.js'
 
-export type CreateManyOptions = {
+export type CreateManyOptions<P extends Params = Params> = {
   /**
    * Whether the service allows creating multiple items in a single call.
    *
@@ -15,6 +21,20 @@ export type CreateManyOptions = {
    * allowed, the items are created with one call per item.
    */
   multi?: Multi
+  /**
+   * How many `create` calls run at the same time when the items are created
+   * with one call per item, so a long list does not exhaust the database pool.
+   *
+   * @default 10
+   */
+  concurrency?: number
+  /**
+   * The params of every `create` call - e.g. to create the items in the
+   * caller's transaction.
+   *
+   * @example { transaction: context.params.transaction }
+   */
+  params?: P
 }
 
 /**
@@ -22,7 +42,8 @@ export type CreateManyOptions = {
  *
  * If the service does not allow multi creating (its `multi` option, or an
  * explicit `multi` option), the items are created with one call per item
- * instead - so it works regardless of the service's `multi` configuration.
+ * instead, at most `concurrency` at a time - so it works regardless of the
+ * service's `multi` configuration.
  * A single item is always created with a single call.
  *
  * @example
@@ -47,7 +68,7 @@ export async function createMany<
   app: Application<Services>,
   servicePath: Path,
   data: InferCreateDataSingle<Service>[],
-  options?: CreateManyOptions,
+  options?: CreateManyOptions<InferCreateParams<Service>>,
 ): Promise<Item[]> {
   const service = app.service(servicePath) as any
 
@@ -59,14 +80,20 @@ export async function createMany<
     return []
   }
 
+  const params = options?.params
+
   // a single item never needs multi
   if (data.length === 1) {
-    return toArray(await service.create(data[0]))
+    return toArray(await service.create(data[0], params))
   }
 
-  if (allowsMulti(service, 'create', options?.multi)) {
-    return toArray(await service.create(data))
+  if (allowsMulti(service, 'create', options?.multi, params)) {
+    return toArray(await service.create(data, params))
   }
 
-  return await Promise.all(data.map(async (item) => service.create(item)))
+  return await mapLimit(
+    data,
+    options?.concurrency ?? DEFAULT_CONCURRENCY,
+    (item) => service.create(item, params),
+  )
 }

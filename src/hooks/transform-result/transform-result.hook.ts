@@ -1,3 +1,4 @@
+import { isPromise } from '../../common/index.js'
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { mutateResult } from '../../utils/mutate-result/mutate-result.util.js'
 import type { DispatchOption, TransformerInputFn } from '../../types.js'
@@ -35,8 +36,9 @@ export const transformResult =
     options?: TransformResultOptions,
   ) =>
   async (context: H, next?: NextFunction): Promise<void> => {
-    await mutateResult(context, transformer, {
+    const mutated = mutateResult(context, transformer, {
       next,
       dispatch: options?.dispatch,
     })
+    if (isPromise(mutated)) await mutated
   }

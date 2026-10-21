@@ -1,6 +1,8 @@
 import { branchOperators } from '../../common/query-operators.js'
 import { collapseToEqOrNe } from '../../common/collapse-to-eq-or-ne.js'
-import { isPlainObject } from '../../common/is-plain-object.js'
+import { isPlainObject } from '../../helpers/is-plain-object/is-plain-object.helper.js'
+import { ownEnumerableKeys } from '../../common/own-enumerable-keys.js'
+import { setOwnProperty } from '../../common/set-own-property.js'
 
 type QueryRecord = Record<string, any>
 
@@ -20,10 +22,13 @@ export function collapseToEqOrNeDeep(query: any): any {
   let changed = false
   const result: QueryRecord = {}
 
-  for (const [key, value] of Object.entries(query)) {
+  for (const key of ownEnumerableKeys(query)) {
+    const value = query[key as string]
     let next = value
 
-    if (branchOperators.has(key) && Array.isArray(value)) {
+    if (typeof key === 'symbol') {
+      // a symbol key is one of sequelize's operators: kept as it is
+    } else if (branchOperators.has(key) && Array.isArray(value)) {
       const branches = value.map(collapseToEqOrNeDeep)
       if (branches.some((branch, i) => branch !== value[i])) {
         next = branches
@@ -35,7 +40,7 @@ export function collapseToEqOrNeDeep(query: any): any {
     if (next !== value) {
       changed = true
     }
-    result[key] = next
+    setOwnProperty(result, key, next)
   }
 
   return changed ? result : query

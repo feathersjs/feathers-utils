@@ -5,7 +5,7 @@ import type {
   Params,
 } from '@feathersjs/feathers'
 import { findAllOf } from '../../common/find-all.js'
-import { isEqual } from '../../common/is-equal.js'
+import { isEqual } from '../../helpers/is-equal/is-equal.helper.js'
 import { snapshot } from '../../common/snapshot.js'
 import { checkContext } from '../check-context/check-context.util.js'
 import { getIdField } from '../get-id-field/get-id-field.util.js'
