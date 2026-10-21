@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { Query } from '@feathersjs/feathers'
 import { mergeQuery, type MergeQueryOptions } from './merge-query.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 type Pair = {
   target: Query

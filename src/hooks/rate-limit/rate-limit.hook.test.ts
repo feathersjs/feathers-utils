@@ -4,7 +4,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { rateLimit } from './rate-limit.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 describe('hook - rateLimit', () => {
   it('passes through when under limit and sets context.params.rateLimit', async () => {
@@ -189,23 +189,26 @@ describe('hook - rateLimit', () => {
         const hook = rateLimit(
           new RateLimiterMemory({ points: 1, duration: 60 }),
         )
-        const allowed = {
+        const allowed = await runHook(hook, {
           type: 'before',
           method: 'find',
           path: 'users',
           params,
-        } as any
-        const limited = {
-          type: 'before',
-          method: 'find',
-          path: 'users',
-          params,
-        } as any
+        })
 
-        await hook(allowed)
-        await expect(hook(limited)).rejects.toThrow('Too many requests')
+        // the call fails, so the context is taken from inside it
+        let limited: HookContext | undefined
+        await expect(
+          runHook(
+            (context: HookContext) => {
+              limited = context
+              return hook(context)
+            },
+            { type: 'before', method: 'find', path: 'users', params },
+          ),
+        ).rejects.toThrow('Too many requests')
 
-        return [allowed, limited].map(
+        return [allowed, limited!].map(
           (context) => context.params.rateLimit.remainingPoints,
         )
       },

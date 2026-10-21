@@ -8,6 +8,7 @@ tags:
 options: StashOptions
 see:
   - hooks/stashable
+  - utils/getMergedData
 ---
 
 Without options, `stash` and `stashed` can be imported directly:

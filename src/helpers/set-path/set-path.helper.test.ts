@@ -1,5 +1,5 @@
 import { setPath, setPathInPlace } from './set-path.helper.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('setPath', () => {
   it('writes at a nested path', () => {

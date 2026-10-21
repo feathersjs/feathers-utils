@@ -3,7 +3,7 @@ import { checkRequired } from './check-required.hook.js'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 let hookBefore: HookContext
 
@@ -97,13 +97,14 @@ describe('checkRequired', () => {
   })
 
   it('does not mutate params', async () => {
-    await expectNoSideEffects({ query: { name: 'Jane' } }, (params) =>
-      checkRequired('name')({
+    await expectNoSideEffects({ query: { name: 'Jane' } }, async (params) => {
+      const context = await runHook(checkRequired('name'), {
         type: 'before',
         method: 'create',
         data: { name: 'Jane' },
         params,
-      } as any),
-    )
+      })
+      return context.params
+    })
   })
 })

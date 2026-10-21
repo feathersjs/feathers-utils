@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { queryHasProperty } from './query-has-property.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('queryHasProperty', () => {
   it('finds a top-level property', () => {

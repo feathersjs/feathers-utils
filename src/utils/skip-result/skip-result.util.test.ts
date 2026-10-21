@@ -1,6 +1,6 @@
 import type { HookContext } from '@feathersjs/feathers'
 import { skipResult } from './skip-result.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('skipResult', function () {
   const paginatedService = {

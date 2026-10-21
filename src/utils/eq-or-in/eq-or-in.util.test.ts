@@ -1,5 +1,5 @@
 import { eqOrIn } from './eq-or-in.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('eqOrIn', function () {
   it('returns a $in for multiple values', function () {

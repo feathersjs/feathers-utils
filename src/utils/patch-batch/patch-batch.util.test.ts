@@ -1,5 +1,5 @@
 import { patchBatch } from './patch-batch.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('patchBatch', () => {
   it('patchBatch', () => {

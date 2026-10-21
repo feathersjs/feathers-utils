@@ -3,7 +3,7 @@ import { feathers } from '@feathersjs/feathers'
 import type { HookContext, PaginationOptions } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { count } from './count.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 type Todo = {
   id: number

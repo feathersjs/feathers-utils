@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { gateParams } from './gate-params.util.js'
 import { omitPaths } from '../../common/index.js'
-import { deepFreeze, expectNoSideEffects } from '../../../test/utils/index.js'
+import { deepFreeze, expectNoSideEffects } from '../../testing/index.js'
 
 describe('gateParams', () => {
   it('rule true includes the value as-is', () => {

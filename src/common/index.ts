@@ -14,13 +14,23 @@ export { getPath } from '../helpers/get-path/get-path.helper.js'
 export { hasPath } from '../helpers/has-path/has-path.helper.js'
 export { omitPaths } from '../helpers/omit-paths/omit-paths.helper.js'
 export { pickPaths } from '../helpers/pick-paths/pick-paths.helper.js'
-export { hasOwnProperty } from './has-own-property.js'
+export {
+  changesTopLevel,
+  isPathWithin,
+  pathsOverlap,
+  topLevelKey,
+  topLevelKeys,
+} from './paths.js'
+export { selectCovers } from './select-covers.js'
+export { hasAllOwnProperties, hasOwnProperty } from './has-own-property.js'
+export { findAllOf } from './find-all.js'
 export { toArray } from '../helpers/to-array/to-array.helper.js'
 export { resolveBoolean } from './resolve-boolean.js'
 export { early } from './early.js'
 export { isEmptyObject } from '../helpers/is-empty-object/is-empty-object.helper.js'
 export { isPlainObject } from '../helpers/is-plain-object/is-plain-object.helper.js'
 export { isEqual } from '../helpers/is-equal/is-equal.helper.js'
+export { isDeepEqual, isUnchanged } from './is-deep-equal.js'
 export { snapshot } from './snapshot.js'
 export { ownEnumerableKeys } from './own-enumerable-keys.js'
 export { hasSymbolKeys } from './has-symbol-keys.js'

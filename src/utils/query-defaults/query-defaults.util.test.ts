@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { queryDefaults } from './query-defaults.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('queryDefaults', () => {
   it('adds a default when the field is absent', () => {

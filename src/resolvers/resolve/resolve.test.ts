@@ -1,7 +1,7 @@
 import { expect } from 'vitest'
 import { resolve } from './resolve.js'
 import type { HookContext } from '@feathersjs/feathers'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 describe('resolve (combined)', () => {
   it('throws if no resolvers are provided', () => {
@@ -133,14 +133,12 @@ describe('resolve (combined)', () => {
     const params = await expectNoSideEffects(
       { query: { name: 'dave', $or: [{ a: 1 }] } },
       async (params) => {
-        const context = {
-          type: 'before',
-          method: 'find',
-          params,
-        } as HookContext
-        await resolve({
-          query: { name: ({ value }) => value?.toUpperCase() },
-        })(context)
+        const context = await runHook(
+          resolve({
+            query: { name: ({ value }) => value?.toUpperCase() },
+          }),
+          { type: 'before', method: 'find', params },
+        )
         return context.params
       },
     )

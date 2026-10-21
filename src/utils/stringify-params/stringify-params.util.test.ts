@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import safeStringify from 'safe-stable-stringify'
 import { normalize } from '../sort-query-properties/normalize.js'
 import { stringifyParams } from './stringify-params.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('stringifyParams', () => {
   it('is order-independent for top-level keys', () => {

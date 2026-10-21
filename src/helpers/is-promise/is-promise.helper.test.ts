@@ -1,5 +1,5 @@
 import { isPromise } from './is-promise.helper.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('isPromise', () => {
   it('is true for a native promise', () => {

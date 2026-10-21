@@ -1,5 +1,5 @@
 import { isEmptyObject } from './is-empty-object.helper.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('isEmptyObject', () => {
   it('is true only for a plain empty object', () => {

@@ -1,5 +1,5 @@
 import { getPath } from './get-path.helper.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('getPath', () => {
   it('reads a nested value', () => {

@@ -4,7 +4,7 @@ import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { shouldSkip } from '../../predicates/should-skip/should-skip.predicate.js'
 import { skippable } from './skippable.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 describe('skippable', () => {
   it('runs hook when not skipped', async () => {
@@ -279,12 +279,14 @@ describe('skippable', () => {
     const params = await expectNoSideEffects(
       { query: { name: 'Jane' } },
       async (params) => {
-        const context = {
-          type: 'before',
-          method: 'find',
-          params,
-        } as HookContext
-        await skippable(populate, () => false)(context)
+        const context = await runHook(
+          skippable(populate, () => false),
+          {
+            type: 'before',
+            method: 'find',
+            params,
+          },
+        )
         return context.params
       },
     )

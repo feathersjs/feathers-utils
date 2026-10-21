@@ -1,5 +1,5 @@
 import { omitPaths } from './omit-paths.helper.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('omitPaths', () => {
   it('omits top-level keys', () => {

@@ -1,5 +1,5 @@
 import { hasPath } from './has-path.helper.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('hasPath', () => {
   it('is true for an own property along the whole path', () => {

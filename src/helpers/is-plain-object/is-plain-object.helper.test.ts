@@ -1,5 +1,5 @@
 import { isPlainObject } from './is-plain-object.helper.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('isPlainObject', () => {
   it('is true for plain objects', () => {

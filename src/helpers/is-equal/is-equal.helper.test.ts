@@ -1,5 +1,5 @@
 import { isEqual } from './is-equal.helper.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 // distinct instances with the same value
 const [reA, reAAgain, reAIgnoreCase, reAIgnoreCaseAgain, reB] = [

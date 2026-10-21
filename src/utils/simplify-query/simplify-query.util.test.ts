@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { simplifyQuery } from './simplify-query.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('simplifyQuery', () => {
   it('returns falsy queries as-is', () => {

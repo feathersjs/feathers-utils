@@ -1,7 +1,7 @@
 import type { HookContext } from '@feathersjs/feathers'
 import { throwIfIsProvider } from './throw-if-is-provider.hook.js'
 import { MethodNotAllowed } from '@feathersjs/errors'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 describe('throwIfIsProvider', () => {
   it('should throw if provider matches', async () => {
@@ -39,12 +39,13 @@ describe('throwIfIsProvider', () => {
   })
 
   it('does not mutate params', async () => {
-    await expectNoSideEffects({ query: { name: 'Jane' } }, (params) =>
-      throwIfIsProvider('external')({
+    await expectNoSideEffects({ query: { name: 'Jane' } }, async (params) => {
+      const context = await runHook(throwIfIsProvider('external'), {
         type: 'before',
         method: 'find',
         params,
-      } as HookContext),
-    )
+      })
+      return context.params
+    })
   })
 })

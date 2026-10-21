@@ -4,10 +4,8 @@ import type { HookContext, Params } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { Multi } from '../../types.js'
 import { removeMany } from './remove-many.util.js'
-import {
-  expectNoSideEffects,
-  trackConcurrency,
-} from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
+import { trackConcurrency } from '../../../test/utils/index.js'
 
 type Todo = {
   id: number

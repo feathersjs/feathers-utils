@@ -2,7 +2,7 @@ import type { HookContext } from '@feathersjs/feathers'
 import { assert, expect, vi } from 'vitest'
 import { unless } from './unless.hook.js'
 import { clone, isPromise } from '../../common/index.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 let hook: any
 let hookBefore: any
@@ -496,12 +496,11 @@ describe('side effects', () => {
     const params = await expectNoSideEffects(
       { query: { name: 'Jane' } },
       async (params) => {
-        const context = {
+        const context = await runHook(unless(false, populate), {
           type: 'before',
           method: 'find',
           params,
-        } as HookContext
-        await unless(false, populate)(context)
+        })
         return context.params
       },
     )

@@ -1,5 +1,5 @@
 import { toArray } from './to-array.helper.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('toArray', () => {
   it('wraps a non-array value in an array', () => {

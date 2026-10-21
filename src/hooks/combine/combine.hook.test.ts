@@ -4,7 +4,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { combine } from './combine.hook.js'
 import { clone } from '../../common/index.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 const startId = 6
 const storeInit = {
@@ -161,11 +161,13 @@ describe('util combine', () => {
     const params = await expectNoSideEffects(
       { query: { name: 'Jane' } },
       async (params) => {
-        const context = { type: 'before', method: 'find', params } as any
-        const result = await combine((context: any) => {
-          context.params = { ...context.params, populate: true }
-        })(context)
-        return result.params
+        const context = await runHook(
+          combine((context: any) => {
+            context.params = { ...context.params, populate: true }
+          }),
+          { type: 'before', method: 'find', params },
+        )
+        return context.params
       },
     )
     assert.deepEqual(params, { query: { name: 'Jane' }, populate: true })

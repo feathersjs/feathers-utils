@@ -8,7 +8,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import { stashable } from './stashable.hook.js'
 import { clone } from '../../common/index.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 const startId = 6
 const storeInit = {
@@ -273,18 +273,16 @@ describe('stashable', () => {
     const stashed = await expectNoSideEffects(
       { query: { name: 'Jane' } },
       async (params) => {
-        const app = feathers().use('users', new MemoryService())
-        const service = app.service('users')
-        const jane = await service.create({ name: 'Jane' })
-        const context = {
-          app,
-          service,
+        const users = new MemoryService()
+        const jane = await users.create({ name: 'Jane' })
+        const context = await runHook(stashable(), {
           type: 'before',
           method: 'patch',
           id: jane.id,
+          data: {},
           params,
-        } as any
-        stashable()(context)
+          service: users,
+        })
         return context.params.stashed()
       },
     )

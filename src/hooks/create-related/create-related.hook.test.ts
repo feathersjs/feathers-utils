@@ -7,10 +7,8 @@ import type {
   Params,
 } from '@feathersjs/feathers'
 import { createRelated } from './create-related.hook.js'
-import {
-  expectNoSideEffects,
-  trackConcurrency,
-} from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
+import { trackConcurrency } from '../../../test/utils/index.js'
 
 /** Forwards the caller's transaction, as a SQL adapter takes it. */
 const transactionOf = (context: HookContext) =>
@@ -863,16 +861,20 @@ describe('hook - createRelated', function () {
           'profiles',
           new MemoryService({ multi: true }),
         )
-        await createRelated({
-          service: 'profiles',
-          data: (user: any) => ({ userId: user.id }),
-        })({
-          app,
-          type: 'after',
-          method: 'create',
-          params,
-          result: { id: 1 },
-        } as any)
+        await runHook(
+          createRelated({
+            service: 'profiles',
+            data: (user: any) => ({ userId: user.id }),
+          }),
+          {
+            type: 'after',
+            method: 'create',
+            data: { name: 'Jane' },
+            params,
+            result: { id: 1 },
+            app,
+          },
+        )
         return app.service('profiles').find({ paginate: false } as any)
       },
     )

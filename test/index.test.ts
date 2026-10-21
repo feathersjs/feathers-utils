@@ -7,16 +7,20 @@ import * as exportedTesting from '../src/testing/index.js'
 import * as exportedHelpers from '../src/helpers/index.js'
 
 const hooks = [
+  'aggregate',
   'cache',
+  'check',
   'checkMulti',
   'checkRequired',
   'combine',
   'createRelated',
   'debug',
+  'denormalize',
   'disablePagination',
   'disallow',
   'findOrCreate',
   'FROM_CLIENT_FOR_SERVER_DEFAULT_KEY',
+  'generated',
   'iff',
   'iffElse',
   'muteEvent',
@@ -25,6 +29,7 @@ const hooks = [
   'paramsFromClient',
   'preventChanges',
   'rateLimit',
+  'restrictQuery',
   'resolve',
   'resolveData',
   'resolveQuery',
@@ -34,6 +39,7 @@ const hooks = [
   'setQueryDefaults',
   'setResult',
   'setSlug',
+  'skipUnchanged',
   'skippable',
   'softDelete',
   'stashable',
@@ -46,6 +52,7 @@ const hooks = [
   'traverse',
   'trigger',
   'unless',
+  'unique',
   'when',
 ] satisfies (keyof typeof exportedHooks)[]
 
@@ -60,10 +67,14 @@ const utils = [
   'defineHooks',
   'defineStash',
   'dotifyQuery',
+  'findAll',
   'eqOrIn',
   'gateParams',
   'getDataIsArray',
+  'getChanges',
   'getExposedMethods',
+  'getIdField',
+  'getMergedData',
   'getPaginate',
   'getResultIsArray',
   'iterateFind',
@@ -103,6 +114,7 @@ const predicates = [
   'some',
   'isContext',
   'isPaginated',
+  'isSelected',
   'shouldSkip',
   // re-export hooks
   'iff',
@@ -132,7 +144,12 @@ const transformers = [
 
 // `testing` is deliberately absent from the root barrel — it is test-only code
 // and should not ride along in a production bundle.
-const testing = ['recordHooks'] satisfies (keyof typeof exportedTesting)[]
+const testing = [
+  'deepFreeze',
+  'expectNoSideEffects',
+  'recordHooks',
+  'runHook',
+] satisfies (keyof typeof exportedTesting)[]
 
 // `helpers` are generic object/path helpers, not Feathers-specific — they get
 // their own entrypoint instead of riding along in the root barrel.

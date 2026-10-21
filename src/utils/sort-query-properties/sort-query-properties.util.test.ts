@@ -1,5 +1,5 @@
 import { sortQueryProperties } from './sort-query-properties.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('sortQueryProperties', () => {
   it('sorts top-level object keys', () => {

@@ -1,5 +1,5 @@
 import { addToQuery } from './add-to-query.util.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('addToQuery', () => {
   it('basic usage', () => {

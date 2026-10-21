@@ -2,6 +2,7 @@ import { BadRequest } from '@feathersjs/errors'
 import type { HookContext, NextFunction, Params } from '@feathersjs/feathers'
 import { checkContext, getDataIsArray } from '../../utils/index.js'
 import { getPath, setPath, toArray } from '../../common/index.js'
+import { findAll } from '../../utils/find-all/find-all.util.js'
 import type {
   KeyOfOrDotNotation,
   MaybeArray,
@@ -106,12 +107,10 @@ export function findOrCreate<H extends HookContext = HookContext>(
     // telling one match from several needs no more than two
     if (query.$limit === undefined) query.$limit = 2
 
-    const found = (await context.app.service(service as string).find({
+    const items = await findAll(context.app, service as string, {
       ...baseParams,
       query,
-      paginate: false as const,
-    })) as unknown[]
-    const items = Array.isArray(found) ? found : []
+    })
 
     if (items.length === 1 || (items.length > 1 && onMultiple === 'first')) {
       // Short-circuit: skips the real create for `before` (Feathers skips the method) and for

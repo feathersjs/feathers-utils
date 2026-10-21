@@ -1,4 +1,5 @@
 import type { HookContext } from '@feathersjs/feathers'
+import { toArray } from '../../helpers/to-array/to-array.helper.js'
 import type { HookType, MethodName } from '../../types.js'
 import type { IsContextOptions } from '../../predicates/is-context/is-context.predicate.js'
 import type { UnpackMaybeArray } from '../../internal.utils.js'
@@ -30,6 +31,9 @@ export type CheckContextOptions<H extends HookContext = HookContext> =
   IsContextOptions<H> & {
     label?: string
   }
+
+/** in the order they are reported */
+const criteria = ['type', 'method', 'path', 'id'] as const
 
 /**
  * Validates that the hook context matches the expected type(s) and method(s).
@@ -94,35 +98,20 @@ export function checkContext<H extends HookContext = HookContext>(
     hookLabel = label
   }
 
-  if (
-    (options.type != null && !matches(options.type, context.type)) ||
-    (options.method != null && !matches(options.method, context.method)) ||
-    (options.path != null && !matches(options.path, context.path)) ||
-    // `null` is a valid id to match (the multi variants)
-    (options.id !== undefined && !matches(options.id, context.id))
-  ) {
-    const details: string[] = []
+  // a criterion that was not given always matches; `null` is a valid id to
+  // match (the multi variants)
+  const fails = (key: (typeof criteria)[number]): boolean =>
+    (key === 'id' ? options.id !== undefined : options[key] != null) &&
+    !matches(options[key], context[key])
 
-    if (options.type != null) {
-      details.push(
-        `type: expected '${Array.isArray(options.type) ? options.type.join("' | '") : options.type}' but got '${context.type}'`,
+  if (fails('type') || fails('method') || fails('path') || fails('id')) {
+    // report only the criteria that did not match
+    const details = criteria
+      .filter(fails)
+      .map(
+        (key) =>
+          `${key}: expected '${toArray(options[key]).map(String).join("' | '")}' but got '${context[key]}'`,
       )
-    }
-    if (options.method != null) {
-      details.push(
-        `method: expected '${Array.isArray(options.method) ? options.method.join("' | '") : options.method}' but got '${context.method}'`,
-      )
-    }
-    if (options.path != null) {
-      details.push(
-        `path: expected '${Array.isArray(options.path) ? options.path.join("' | '") : options.path}' but got '${context.path}'`,
-      )
-    }
-    if (options.id !== undefined) {
-      details.push(
-        `id: expected '${Array.isArray(options.id) ? options.id.join("' | '") : options.id}' but got '${context.id}'`,
-      )
-    }
 
     throw new Error(
       `The '${hookLabel}' hook has invalid context (${details.join(', ')}).`,

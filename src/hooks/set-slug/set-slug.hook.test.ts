@@ -4,7 +4,7 @@ import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 
 import { setSlug } from './set-slug.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 
 let hook: any
 
@@ -97,9 +97,12 @@ describe('services setSlug', () => {
   it('does not mutate params', async () => {
     const params = await expectNoSideEffects(
       { provider: 'rest', route: { storeId: '42' }, query: { name: 'Jane' } },
-      (params) => {
-        const context = { type: 'before', method: 'find', params } as any
-        setSlug('storeId')(context)
+      async (params) => {
+        const context = await runHook(setSlug('storeId'), {
+          type: 'before',
+          method: 'find',
+          params,
+        })
         return context.params
       },
     )

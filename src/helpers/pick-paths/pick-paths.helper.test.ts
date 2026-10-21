@@ -1,5 +1,5 @@
 import { pickPaths } from './pick-paths.helper.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects } from '../../testing/index.js'
 
 describe('pickPaths', () => {
   it('picks top-level keys', () => {

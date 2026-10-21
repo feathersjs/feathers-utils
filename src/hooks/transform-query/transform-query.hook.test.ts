@@ -3,7 +3,7 @@ import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
 import { transformQuery } from './transform-query.hook.js'
-import { expectNoSideEffects } from '../../../test/utils/index.js'
+import { expectNoSideEffects, runHook } from '../../testing/index.js'
 import { lowercase } from '../../transformers/lowercase/lowercase.transformer.js'
 
 describe('transformQuery', () => {
@@ -71,14 +71,19 @@ describe('transformQuery', () => {
     const queries = await expectNoSideEffects(
       { query: { name: 'Jane', email: 'JANE@EXAMPLE.COM' } },
       (params) =>
-        [
-          (query: any) => lowercase(query, 'email'),
-          (query: any) => ({ ...query, active: true }),
-        ].map((transformer) => {
-          const context = { params } as HookContext
-          transformQuery(transformer)(context)
-          return context.params.query
-        }),
+        Promise.all(
+          [
+            (query: any) => lowercase(query, 'email'),
+            (query: any) => ({ ...query, active: true }),
+          ].map(async (transformer) => {
+            const context = await runHook(transformQuery(transformer), {
+              type: 'before',
+              method: 'find',
+              params,
+            })
+            return context.params.query
+          }),
+        ),
     )
     expect(queries).toEqual([
       { name: 'Jane', email: 'jane@example.com' },
