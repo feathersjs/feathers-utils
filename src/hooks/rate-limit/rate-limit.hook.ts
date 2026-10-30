@@ -22,7 +22,74 @@ export type RateLimitOptions<H extends HookContext = HookContext> = {
    * @default 1
    */
   points?: number | ((context: H) => Promisable<number>)
+  /**
+   * Tells the client where it stands, on `context.http.headers` for REST
+   * transports: `'legacy'` sends `X-RateLimit-Limit`, `-Remaining` and `-Reset`
+   * (epoch seconds), `'draft-6'`, `'draft-7'` and `'draft-8'` the `RateLimit`
+   * fields of the IETF draft in that version. A function returns headers of
+   * your own. A rejection adds `Retry-After` and carries the headers on
+   * `error.data.headers`, since Feathers' REST error handlers don't send
+   * hook headers.
+   *
+   * @default false
+   * @example
+   * ```ts
+   * rateLimit(rateLimiter, { headers: 'draft-8' })
+   * ```
+   */
+  headers?:
+    | false
+    | RateLimitHeaderFormat
+    | ((info: RateLimitInfo, context: H) => Record<string, string>)
 }
+
+export type RateLimitHeaderFormat = 'legacy' | 'draft-6' | 'draft-7' | 'draft-8'
+
+/** Where a caller stands, as the headers report it. */
+export type RateLimitInfo = {
+  /** Points per window. */
+  limit: number
+  /** Points left in the current window. */
+  remaining: number
+  /** Seconds until the window resets. */
+  reset: number
+  /** The window, in seconds. */
+  window: number
+  /** Whether this call was rejected. */
+  limited: boolean
+}
+
+const formats: Record<
+  RateLimitHeaderFormat,
+  (info: RateLimitInfo) => Record<string, string>
+> = {
+  legacy: ({ limit, remaining, reset }) => ({
+    'X-RateLimit-Limit': `${limit}`,
+    'X-RateLimit-Remaining': `${remaining}`,
+    'X-RateLimit-Reset': `${Math.ceil(Date.now() / 1000) + reset}`,
+  }),
+  'draft-6': ({ limit, remaining, reset, window }) => ({
+    'RateLimit-Policy': `${limit};w=${window}`,
+    'RateLimit-Limit': `${limit}`,
+    'RateLimit-Remaining': `${remaining}`,
+    'RateLimit-Reset': `${reset}`,
+  }),
+  'draft-7': ({ limit, remaining, reset, window }) => ({
+    'RateLimit-Policy': `${limit};w=${window}`,
+    RateLimit: `limit=${limit}, remaining=${remaining}, reset=${reset}`,
+  }),
+  'draft-8': ({ limit, remaining, reset, window }) => {
+    const name = `${limit}-in-${window}sec`
+    return {
+      'RateLimit-Policy': `"${name}";q=${limit};w=${window}`,
+      RateLimit: `"${name}";r=${remaining};t=${reset}`,
+    }
+  },
+}
+
+/** A limiter's store may fail with an error instead of a `RateLimiterRes`. */
+const isRateLimiterRes = (res: unknown): res is RateLimiterRes =>
+  typeof (res as RateLimiterRes | undefined)?.msBeforeNext === 'number'
 
 /**
  * Rate limits service method calls using `rate-limiter-flexible`.
@@ -49,6 +116,27 @@ export const rateLimit = <H extends HookContext = HookContext>(
 ) => {
   const key = options?.key ?? ((context: HookContext) => context.path)
   const points = options?.points ?? 1
+  const headers = options?.headers ?? false
+
+  const infoFor = (res: RateLimiterRes, limited: boolean): RateLimitInfo => ({
+    limit: rateLimiter.points,
+    remaining: Math.max(0, res.remainingPoints),
+    reset: Math.ceil(res.msBeforeNext / 1000),
+    window: rateLimiter.duration,
+    limited,
+  })
+
+  const headersFor = (info: RateLimitInfo, context: H) =>
+    typeof headers === 'function'
+      ? headers(info, context)
+      : formats[headers as RateLimitHeaderFormat](info)
+
+  const setHeaders = (context: H, values: Record<string, string>) => {
+    context.http = {
+      ...context.http,
+      headers: { ...context.http?.headers, ...values },
+    }
+  }
 
   return async (context: H, next?: NextFunction): Promise<void> => {
     checkContext(context, { type: ['before', 'around'], label: 'rateLimit' })
@@ -60,10 +148,27 @@ export const rateLimit = <H extends HookContext = HookContext>(
     try {
       const res = await rateLimiter.consume(resolvedKey, resolvedPoints)
       context.params = { ...context.params, rateLimit: res }
+      if (headers) setHeaders(context, headersFor(infoFor(res, false), context))
     } catch (res) {
       context.params = { ...context.params, rateLimit: res as RateLimiterRes }
+      if (!isRateLimiterRes(res)) {
+        throw new TooManyRequests('Too many requests', { rateLimitRes: res })
+      }
+      const retryAfter = Math.ceil(res.msBeforeNext / 1000)
+      const values = headers
+        ? {
+            ...headersFor(infoFor(res, true), context),
+            'Retry-After': `${retryAfter}`,
+          }
+        : undefined
+      if (values) setHeaders(context, values)
       throw new TooManyRequests('Too many requests', {
-        rateLimitRes: res as RateLimiterRes,
+        // TODO(next major): drop `rateLimitRes` from the error. `data` goes to the client, and on a
+        // shared bucket its points tell every caller how much everyone else calls. It stays on
+        // `context.params.rateLimit` for the server.
+        rateLimitRes: res,
+        retryAfter,
+        ...(values ? { headers: values } : {}),
       })
     }
 

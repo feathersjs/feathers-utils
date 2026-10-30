@@ -152,6 +152,100 @@ describe('hook - rateLimit', () => {
     expect(next).toHaveBeenCalledOnce()
   })
 
+  describe('headers', () => {
+    const contextFor = (http?: { headers: Record<string, string> }): any => ({
+      type: 'before',
+      method: 'find',
+      path: 'users',
+      params: {},
+      ...(http ? { http } : {}),
+    })
+
+    it('sends none unless asked to', async () => {
+      const context = contextFor()
+
+      await rateLimit(new RateLimiterMemory({ points: 5, duration: 60 }))(
+        context,
+      )
+
+      expect(context.http).toBeUndefined()
+    })
+
+    it('reports the limit in each format, keeping headers already set', async () => {
+      const send = async (headers: any) => {
+        const context = contextFor({ headers: { 'X-Other': 'kept' } })
+        await rateLimit(new RateLimiterMemory({ points: 5, duration: 60 }), {
+          headers,
+        })(context)
+        return context.http.headers
+      }
+
+      expect(await send('legacy')).toEqual({
+        'X-Other': 'kept',
+        'X-RateLimit-Limit': '5',
+        'X-RateLimit-Remaining': '4',
+        'X-RateLimit-Reset': expect.stringMatching(/^\d{10}$/),
+      })
+      expect(await send('draft-6')).toMatchObject({
+        'RateLimit-Policy': '5;w=60',
+        'RateLimit-Limit': '5',
+        'RateLimit-Remaining': '4',
+        'RateLimit-Reset': '60',
+      })
+      expect(await send('draft-7')).toMatchObject({
+        'RateLimit-Policy': '5;w=60',
+        RateLimit: 'limit=5, remaining=4, reset=60',
+      })
+      expect(await send('draft-8')).toMatchObject({
+        'RateLimit-Policy': '"5-in-60sec";q=5;w=60',
+        RateLimit: '"5-in-60sec";r=4;t=60',
+      })
+    })
+
+    it('takes headers of your own', async () => {
+      const context = contextFor()
+
+      await rateLimit(new RateLimiterMemory({ points: 5, duration: 60 }), {
+        headers: ({ remaining, limited }) => ({
+          'X-Requests-Left': `${remaining}`,
+          'X-Limited': `${limited}`,
+        }),
+      })(context)
+
+      expect(context.http.headers).toEqual({
+        'X-Requests-Left': '4',
+        'X-Limited': 'false',
+      })
+    })
+
+    it('hands a rejection the headers with Retry-After, also on the error', async () => {
+      const rateLimiter = new RateLimiterMemory({ points: 1, duration: 60 })
+      const hook = rateLimit(rateLimiter, { headers: 'draft-7' })
+      await hook(contextFor())
+      const context = contextFor()
+
+      const error: any = await hook(context).catch((error) => error)
+
+      const expected = {
+        'RateLimit-Policy': '1;w=60',
+        RateLimit: 'limit=1, remaining=0, reset=60',
+        'Retry-After': '60',
+      }
+      expect(context.http.headers).toEqual(expected)
+      expect(error.data).toMatchObject({ retryAfter: 60, headers: expected })
+    })
+
+    it('tells how long to wait even without headers', async () => {
+      const hook = rateLimit(new RateLimiterMemory({ points: 1, duration: 30 }))
+      await hook(contextFor())
+
+      const error: any = await hook(contextFor()).catch((error) => error)
+
+      expect(error.data.retryAfter).toBe(30)
+      expect(error.data.headers).toBeUndefined()
+    })
+  })
+
   describe('integration with service.hooks({ around })', () => {
     type Item = { id: number; name: string }
     type Services = { items: MemoryService<Item> }

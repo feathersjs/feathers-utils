@@ -18,6 +18,35 @@ Any rate limiter backend supported by `rate-limiter-flexible` can be used (Memor
 
 The `RateLimiterRes` is stored on `context.params.rateLimit` on both success and failure, so downstream hooks or services can inspect `remainingPoints`, `consumedPoints`, `msBeforeNext`, etc.
 
+A rejection's `TooManyRequests` carries `data.retryAfter`, the seconds until the next call may pass, so a socket client can say when to try again.
+
+## Headers
+
+With `headers`, a REST response tells the client where it stands. The formats follow [`express-rate-limit`](https://express-rate-limit.mintlify.app/reference/configuration#standardheaders): `'legacy'` for the widespread `X-RateLimit-*` headers, `'draft-6'`, `'draft-7'` or `'draft-8'` for that version of the IETF [RateLimit header fields draft](https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/), or a function for a scheme of your own, such as `X-RateLimit-Remaining-Requests`.
+
+Send them only where the bucket is the caller's own, keyed per user or IP. On a shared bucket (a static `key`, or the default `context.path`) `remaining` tells every caller how much everyone else is calling. On a login or another brute-force target, they help an attacker pace just under the limit; send no `headers` there and let `data.retryAfter` say when to try again.
+
+A rejection adds `Retry-After`. Feathers' REST error handlers send only the error's status and body, not the headers hooks set, so the hook puts them on `error.data.headers` as well. Send them from a middleware before the error handler:
+
+```ts
+// Express
+app.use((error, req, res, next) => {
+  if (error.data?.headers) res.set(error.data.headers)
+  next(error)
+})
+app.use(errorHandler())
+
+// Koa, after `app.use(errorHandler())`
+app.use(async (ctx, next) => {
+  try {
+    await next()
+  } catch (error) {
+    if (error.data?.headers) ctx.set(error.data.headers)
+    throw error
+  }
+})
+```
+
 ## Examples
 
 ### Basic Usage
@@ -34,6 +63,16 @@ const rateLimiter = new RateLimiterMemory({
 app.service('users').hooks({
   before: {
     find: [rateLimit(rateLimiter)],
+  },
+})
+```
+
+### Headers for REST Clients
+
+```ts
+app.service('messages').hooks({
+  before: {
+    create: [rateLimit(rateLimiter, { headers: 'draft-8' })],
   },
 })
 ```
