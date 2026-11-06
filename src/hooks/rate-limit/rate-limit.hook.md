@@ -16,7 +16,7 @@ Any rate limiter backend supported by `rate-limiter-flexible` can be used (Memor
 
 <!-- options -->
 
-The `RateLimiterRes` is stored on `context.params.rateLimit` on both success and failure, so downstream hooks or services can inspect `remainingPoints`, `consumedPoints`, `msBeforeNext`, etc.
+The `RateLimiterRes` is stored on `context.params.rateLimit` on both success and failure, so downstream hooks or services can inspect `remainingPoints`, `consumedPoints`, `msBeforeNext`, etc. It stays there: an error's `data` goes to the client, and on a shared bucket its points would tell every caller how much everyone else calls. A store that fails leaves its error there.
 
 A rejection's `TooManyRequests` carries `data.retryAfter`, the seconds until the next call may pass, so a socket client can say when to try again.
 

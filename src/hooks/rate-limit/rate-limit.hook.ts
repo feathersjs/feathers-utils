@@ -174,9 +174,11 @@ export const rateLimit = <H extends HookContext = HookContext>(
       context.params = { ...context.params, rateLimit: res }
       if (headers) setHeaders(context, headersFor(infoFor(res, false), context))
     } catch (res) {
+      // the error's `data` goes to the client: the limiter's answer - or a failing store's
+      // error - stays here, for the server
       context.params = { ...context.params, rateLimit: res as RateLimiterRes }
       if (!isRateLimiterRes(res)) {
-        throw new TooManyRequests('Too many requests', { rateLimitRes: res })
+        throw new TooManyRequests('Too many requests')
       }
       const info = infoFor(res, true)
       await options?.onLimited?.(info, context)
@@ -191,10 +193,6 @@ export const rateLimit = <H extends HookContext = HookContext>(
           : undefined
         if (values) setHeaders(context, values)
         throw new TooManyRequests('Too many requests', {
-          // TODO(next major): drop `rateLimitRes` from the error. `data` goes to the client, and on a
-          // shared bucket its points tell every caller how much everyone else calls. It stays on
-          // `context.params.rateLimit` for the server.
-          rateLimitRes: res,
           retryAfter,
           ...(values ? { headers: values } : {}),
         })

@@ -232,7 +232,9 @@ describe('hook - rateLimit', () => {
         'Retry-After': '60',
       }
       expect(context.http.headers).toEqual(expected)
-      expect(error.data).toMatchObject({ retryAfter: 60, headers: expected })
+      // the limiter's points stay on the server: on a shared bucket they'd tell on others
+      expect(error.data).toEqual({ retryAfter: 60, headers: expected })
+      expect(context.params.rateLimit.consumedPoints).toBe(2)
     })
 
     it('tells how long to wait even without headers', async () => {
@@ -241,8 +243,7 @@ describe('hook - rateLimit', () => {
 
       const error: any = await hook(contextFor()).catch((error) => error)
 
-      expect(error.data.retryAfter).toBe(30)
-      expect(error.data.headers).toBeUndefined()
+      expect(error.data).toEqual({ retryAfter: 30 })
     })
   })
 
@@ -324,9 +325,15 @@ describe('hook - rateLimit', () => {
       const failing = new RateLimiterMemory({ points: 1, duration: 60 })
       failing.consume = () => Promise.reject(new Error('store down'))
 
-      await expect(
-        rateLimit(failing, { dryRun: true, onLimited })(contextFor()),
-      ).rejects.toThrow('Too many requests')
+      const context = contextFor()
+
+      const error: any = await rateLimit(failing, { dryRun: true, onLimited })(
+        context,
+      ).catch((error) => error)
+
+      expect(error.message).toBe('Too many requests')
+      expect(error.data).toBeUndefined()
+      expect(context.params.rateLimit.message).toBe('store down')
       expect(onLimited).not.toHaveBeenCalled()
     })
   })
