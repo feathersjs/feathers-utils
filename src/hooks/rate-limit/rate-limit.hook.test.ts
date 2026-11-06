@@ -232,7 +232,9 @@ describe('hook - rateLimit', () => {
         'Retry-After': '60',
       }
       expect(context.http.headers).toEqual(expected)
-      expect(error.data).toMatchObject({ retryAfter: 60, headers: expected })
+      // the limiter's points stay on the server: on a shared bucket they'd tell on others
+      expect(error.data).toEqual({ retryAfter: 60, headers: expected })
+      expect(context.params.rateLimit.consumedPoints).toBe(2)
     })
 
     it('tells how long to wait even without headers', async () => {
@@ -241,8 +243,98 @@ describe('hook - rateLimit', () => {
 
       const error: any = await hook(contextFor()).catch((error) => error)
 
-      expect(error.data.retryAfter).toBe(30)
-      expect(error.data.headers).toBeUndefined()
+      expect(error.data).toEqual({ retryAfter: 30 })
+    })
+  })
+
+  describe('dryRun and onLimited', () => {
+    const contextFor = (params: Record<string, unknown> = {}): any => ({
+      type: 'before',
+      method: 'find',
+      path: 'users',
+      params,
+    })
+
+    it('lets a call over the limit through, with the headers but nothing to wait for', async () => {
+      const onLimited = vi.fn()
+      const hook = rateLimit(
+        new RateLimiterMemory({ points: 1, duration: 60 }),
+        {
+          dryRun: true,
+          onLimited,
+          headers: 'draft-7',
+        },
+      )
+      await hook(contextFor())
+      expect(onLimited).not.toHaveBeenCalled()
+      const context = { ...contextFor(), type: 'around' }
+      const next = vi.fn()
+
+      await hook(context, next)
+
+      expect(next).toHaveBeenCalledOnce()
+      expect(context.http.headers).toEqual({
+        'RateLimit-Policy': '1;w=60',
+        RateLimit: 'limit=1, remaining=0, reset=60',
+      })
+      // the call over the limit consumed its point too
+      expect(context.params.rateLimit.consumedPoints).toBe(2)
+      expect(onLimited).toHaveBeenCalledOnce()
+      expect(onLimited.mock.calls[0][0]).toEqual({
+        limit: 1,
+        remaining: 0,
+        reset: 60,
+        window: 60,
+        limited: true,
+      })
+      expect(onLimited.mock.calls[0][1]).toBe(context)
+    })
+
+    it('decides per call with a predicate', async () => {
+      const rateLimiter = new RateLimiterMemory({ points: 1, duration: 60 })
+      const hook = rateLimit(rateLimiter, {
+        key: 'shared',
+        dryRun: (context) => context.params.trial === true,
+      })
+      await hook(contextFor())
+
+      await expect(hook(contextFor({ trial: true }))).resolves.toBeUndefined()
+      await expect(hook(contextFor())).rejects.toThrow('Too many requests')
+    })
+
+    it('tells onLimited of a rejection too, before it throws', async () => {
+      const onLimited = vi.fn()
+      const hook = rateLimit(
+        new RateLimiterMemory({ points: 1, duration: 60 }),
+        {
+          onLimited,
+        },
+      )
+      await hook(contextFor())
+
+      await expect(hook(contextFor())).rejects.toThrow('Too many requests')
+      expect(onLimited).toHaveBeenCalledOnce()
+      expect(onLimited.mock.calls[0][0]).toMatchObject({
+        limited: true,
+        remaining: 0,
+      })
+    })
+
+    it('rejects when the store fails, dry run or not', async () => {
+      const onLimited = vi.fn()
+      const failing = new RateLimiterMemory({ points: 1, duration: 60 })
+      failing.consume = () => Promise.reject(new Error('store down'))
+
+      const context = contextFor()
+
+      const error: any = await rateLimit(failing, { dryRun: true, onLimited })(
+        context,
+      ).catch((error) => error)
+
+      expect(error.message).toBe('Too many requests')
+      expect(error.data).toBeUndefined()
+      expect(context.params.rateLimit.message).toBe('store down')
+      expect(onLimited).not.toHaveBeenCalled()
     })
   })
 
