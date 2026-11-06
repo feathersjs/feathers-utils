@@ -1,6 +1,10 @@
 import { TooManyRequests } from '@feathersjs/errors'
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
-import type { RateLimiterAbstract, RateLimiterRes } from 'rate-limiter-flexible'
+import type {
+  BurstyRateLimiter,
+  RateLimiterAbstract,
+  RateLimiterRes,
+} from 'rate-limiter-flexible'
 import { checkContext } from '../../utils/index.js'
 import { resolveBoolean } from '../../common/index.js'
 import type { Promisable } from '../../internal.utils.js'
@@ -110,14 +114,26 @@ const formats: Record<
   },
 }
 
+/** A limiter of `rate-limiter-flexible`, a `BurstyRateLimiter` for bursts too. */
+export type RateLimiter = RateLimiterAbstract | BurstyRateLimiter
+
+/**
+ * The limit the headers report: a `BurstyRateLimiter`'s steady one, its main limiter -
+ * found by its shape, as `rate-limiter-flexible` is only an optional peer of this hook.
+ */
+const steadyOf = (rateLimiter: RateLimiter): RateLimiterAbstract =>
+  '_rateLimiter' in rateLimiter
+    ? (rateLimiter._rateLimiter as RateLimiterAbstract)
+    : (rateLimiter as RateLimiterAbstract)
+
 /** A limiter's store may fail with an error instead of a `RateLimiterRes`. */
 const isRateLimiterRes = (res: unknown): res is RateLimiterRes =>
   typeof (res as RateLimiterRes | undefined)?.msBeforeNext === 'number'
 
 /**
  * Rate limits service method calls using `rate-limiter-flexible`.
- * You provide a pre-configured `RateLimiterAbstract` instance
- * (Memory, Redis, Mongo, etc.) and the hook consumes points per request.
+ * You provide a pre-configured limiter (Memory, Redis, Mongo, etc., or a
+ * `BurstyRateLimiter` for bursts) and the hook consumes points per request.
  *
  * @example
  * ```ts
@@ -134,19 +150,20 @@ const isRateLimiterRes = (res: unknown): res is RateLimiterRes =>
  * @see https://utils.feathersjs.com/hooks/rate-limit.html
  */
 export const rateLimit = <H extends HookContext = HookContext>(
-  rateLimiter: RateLimiterAbstract,
+  rateLimiter: RateLimiter,
   options?: RateLimitOptions<H>,
 ) => {
+  const steady = steadyOf(rateLimiter)
   const key = options?.key ?? ((context: HookContext) => context.path)
   const points = options?.points ?? 1
   const headers = options?.headers ?? false
   const dryRun = options?.dryRun ?? false
 
   const infoFor = (res: RateLimiterRes, limited: boolean): RateLimitInfo => ({
-    limit: rateLimiter.points,
+    limit: steady.points,
     remaining: Math.max(0, res.remainingPoints),
     reset: Math.ceil(res.msBeforeNext / 1000),
-    window: rateLimiter.duration,
+    window: steady.duration,
     limited,
   })
 

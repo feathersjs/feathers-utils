@@ -20,6 +20,22 @@ The `RateLimiterRes` is stored on `context.params.rateLimit` on both success and
 
 A rejection's `TooManyRequests` carries `data.retryAfter`, the seconds until the next call may pass, so a socket client can say when to try again.
 
+## Bursts
+
+A limiter counts its points per window, so a caller may spend them all at its start. To allow a steady rate and a burst above it, pass `rate-limiter-flexible`'s `BurstyRateLimiter`: a call over the steady limiter draws on the burst one.
+
+```ts
+import { BurstyRateLimiter, RateLimiterMemory } from 'rate-limiter-flexible'
+
+// 10 per second, and 30 more per 10 seconds for a burst
+const rateLimiter = new BurstyRateLimiter(
+  new RateLimiterMemory({ points: 10, duration: 1 }),
+  new RateLimiterMemory({ keyPrefix: 'burst', points: 30, duration: 10 }),
+)
+```
+
+The headers report the steady limit; a call on the burst has none of it left.
+
 ## Headers
 
 With `headers`, a REST response tells the client where it stands. The formats follow [`express-rate-limit`](https://express-rate-limit.mintlify.app/reference/configuration#standardheaders): `'legacy'` for the widespread `X-RateLimit-*` headers, `'draft-6'`, `'draft-7'` or `'draft-8'` for that version of the IETF [RateLimit header fields draft](https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/), or a function for a scheme of your own, such as `X-RateLimit-Remaining-Requests`.
