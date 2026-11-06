@@ -1272,6 +1272,138 @@ describe('onDelete', function () {
     })
   })
 
+  describe('before and after', function () {
+    const cascadeByGroup = {
+      service: 'todos',
+      keyThere: 'groupId',
+      keyHere: 'groupId',
+      onDelete: 'cascade',
+      blocking: true,
+    } as const
+
+    const createUserWithTodos = async ({ usersService, todosService }: any) => {
+      const user = await usersService.create({ name: 'John Doe', groupId: 7 })
+      await todosService.create([
+        { title: 'Buy milk', groupId: 7 },
+        { title: 'Buy eggs', groupId: 8 },
+      ])
+      return user
+    }
+
+    it('changes the related items by the keys before the removal', async function () {
+      const app = mockApp()
+      const hook = onDelete(cascadeByGroup)
+      app.usersService.hooks({
+        before: { remove: [hook] },
+        after: { remove: [hook] },
+      })
+      const user = await createUserWithTodos(app)
+
+      // the result lacks `groupId`
+      await app.usersService.remove(user.id, { query: { $select: ['name'] } })
+
+      expect(await app.todosService.find({ query: {} })).toStrictEqual([
+        { id: 2, title: 'Buy eggs', groupId: 8 },
+      ])
+    })
+
+    it('takes the keys from the result in an after hook alone', async function () {
+      const app = mockApp()
+      app.usersService.hooks({ after: { remove: [onDelete(cascadeByGroup)] } })
+      const user = await createUserWithTodos(app)
+
+      await app.usersService.remove(user.id, { query: { $select: ['name'] } })
+
+      expect(await app.todosService.find({ query: {} })).toHaveLength(2)
+    })
+
+    it('does both as an around hook', async function () {
+      const app = mockApp()
+      app.usersService.hooks({ around: { remove: [onDelete(cascadeByGroup)] } })
+      const user = await createUserWithTodos(app)
+
+      await app.usersService.remove(user.id, { query: { $select: ['name'] } })
+
+      expect(await app.todosService.find({ query: {} })).toStrictEqual([
+        { id: 2, title: 'Buy eggs', groupId: 8 },
+      ])
+    })
+
+    it('changes the related items after the removal', async function () {
+      const { usersService, todosService } = mockApp()
+      const usersLeft: number[] = []
+      todosService.hooks({
+        before: {
+          remove: [
+            async () => void usersLeft.push((await usersService.find()).length),
+          ],
+        },
+      })
+      const hook = onDelete({
+        service: 'todos',
+        keyThere: 'userId',
+        keyHere: 'id',
+        onDelete: 'cascade',
+        blocking: true,
+      })
+      usersService.hooks({
+        before: { remove: [hook] },
+        after: { remove: [hook] },
+      })
+
+      await usersService.create([
+        { name: 'John Doe' },
+        { name: 'Jane Doe' },
+        { name: 'Jack Doe' },
+      ])
+      await todosService.create([
+        { title: 'Buy milk', userId: 1 },
+        { title: 'Buy eggs', userId: 2 },
+        { title: 'Buy bread', userId: 3 },
+      ])
+
+      await usersService.remove(null, { query: { id: { $in: [1, 2] } } })
+
+      expect(usersLeft).toStrictEqual([1])
+      expect(await todosService.find({ query: {} })).toStrictEqual([
+        { id: 3, title: 'Buy bread', userId: 3 },
+      ])
+    })
+
+    it('changes nothing if the removal fails', async function () {
+      const app = mockApp()
+      const hook = onDelete(cascadeByGroup)
+      app.usersService.hooks({
+        before: {
+          remove: [
+            hook,
+            () => {
+              throw new Error('forbidden')
+            },
+          ],
+        },
+        after: { remove: [hook] },
+      })
+      const user = await createUserWithTodos(app)
+
+      await expect(app.usersService.remove(user.id)).rejects.toThrow(
+        'forbidden',
+      )
+
+      expect(await app.todosService.find({ query: {} })).toHaveLength(2)
+    })
+
+    it('changes nothing in a before hook alone', async function () {
+      const app = mockApp()
+      app.usersService.hooks({ before: { remove: [onDelete(cascadeByGroup)] } })
+      const user = await createUserWithTodos(app)
+
+      await app.usersService.remove(user.id)
+
+      expect(await app.todosService.find({ query: {} })).toHaveLength(2)
+    })
+  })
+
   describe('types', function () {
     interface TodoResult {
       id: number
@@ -1399,5 +1531,39 @@ describe('onDelete', function () {
       },
     )
     expect(remaining).toEqual([{ id: 1, userId: 2, archived: false }])
+  })
+
+  it('does not mutate params in `before` and `after`', async function () {
+    const remaining = await expectNoSideEffects(
+      { params: { query: { name: 'Jane' } } },
+      async ({ params }) => {
+        const app = feathers()
+          .use('users', new MemoryService({ multi: true }))
+          .use('posts', new MemoryService({ multi: true }))
+        await app.service('users').create([{ name: 'Jane' }, { name: 'John' }])
+        await app.service('posts').create([{ userId: 0 }, { userId: 1 }])
+        const hook = onDelete({
+          service: 'posts',
+          keyHere: 'id',
+          keyThere: 'userId',
+          onDelete: 'cascade',
+          blocking: true,
+        } as any)
+        const context: any = {
+          app,
+          service: app.service('users'),
+          type: 'before',
+          method: 'remove',
+          id: null,
+          params,
+        }
+        await hook(context)
+        context.type = 'after'
+        context.result = [{ id: 0 }]
+        await hook(context)
+        return app.service('posts').find({ paginate: false } as any)
+      },
+    )
+    expect(remaining).toEqual([{ id: 1, userId: 1 }])
   })
 })

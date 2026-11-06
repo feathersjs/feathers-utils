@@ -1,6 +1,7 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import {
   checkContext,
+  defineStash,
   eqOrIn,
   getResultIsArray,
   patchMany,
@@ -101,6 +102,8 @@ type OnDeleteOptionsDistributed<H extends HookContext> = {
  * Manipulates related items when a record is deleted, similar to SQL foreign key actions.
  * Supports `'cascade'` (remove related records) and `'set null'` (nullify the foreign key).
  * Unlike database-level cascades, this hook triggers service events and hooks for related items.
+ * Registered in `before` and `after`, or as `around`, it fetches the items before the removal and
+ * changes the related items of those it removed after it.
  *
  * @example
  * ```ts
@@ -140,21 +143,37 @@ export const onDelete = <H extends HookContext = HookContext>(
   options: MaybeArray<OnDeleteOptionsDistributed<H>>,
 ) => {
   const optionsMulti = Array.isArray(options) ? options : [options]
+  const { stash, stashed } = defineStash<any, H>()
+  // a context lives as long as its call, through `before` and `after`
+  const stashedCalls = new WeakSet<HookContext>()
 
   return async (context: H, next?: NextFunction): Promise<void> => {
     checkContext(context, {
-      type: ['after', 'around'],
+      type: ['before', 'after', 'around'],
       method: 'remove',
       label: 'onDelete',
     })
+
+    if (context.type === 'before' || next) {
+      await stash(context)
+      stashedCalls.add(context)
+    }
+
+    if (context.type === 'before') {
+      return
+    }
 
     if (next) {
       await next()
     }
 
-    const { result } = getResultIsArray(context)
+    // the removed items as they were before the removal: its result may lack
+    // `keyHere`, e.g. by a `$select`
+    const items = stashedCalls.has(context)
+      ? (await stashed(context)).map(({ before, result }) => before ?? result)
+      : getResultIsArray(context).result
 
-    if (!result.length) {
+    if (!items.length) {
       return
     }
 
@@ -185,7 +204,7 @@ export const onDelete = <H extends HookContext = HookContext>(
     ] of optionsMulti.entries()) {
       // 0 is a valid id (the memory adapter starts there), but an empty string is
       // an unset key: cascading on it would hit every related item without one
-      const ids = result
+      const ids = items
         .map((x) => x[keyHere])
         .filter((x) => x != null && x !== '')
 
