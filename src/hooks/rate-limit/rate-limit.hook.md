@@ -10,7 +10,7 @@ hook:
   multi: true
 ---
 
-The `rateLimit` hook limits how many times a service method can be called within a time window using [rate-limiter-flexible](https://github.com/animir/node-rate-limiter-flexible). You provide a pre-configured rate limiter instance — the hook calls `consume()` on each request and throws a `TooManyRequests` error when the limit is exceeded.
+The `rateLimit` hook limits how many times a service method can be called within a time window using [rate-limiter-flexible](https://github.com/animir/node-rate-limiter-flexible). You provide a pre-configured rate limiter instance — the hook calls `consume()` on each request and throws a `TooManyRequests` error when the limit is exceeded. With `dryRun`, it lets such a call through and only reports it to `onLimited`, to measure a limit before enforcing it.
 
 Any rate limiter backend supported by `rate-limiter-flexible` can be used (Memory, Redis, Mongo, Postgres, etc.).
 

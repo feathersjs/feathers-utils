@@ -2,7 +2,9 @@ import { TooManyRequests } from '@feathersjs/errors'
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import type { RateLimiterAbstract, RateLimiterRes } from 'rate-limiter-flexible'
 import { checkContext } from '../../utils/index.js'
+import { resolveBoolean } from '../../common/index.js'
 import type { Promisable } from '../../internal.utils.js'
+import type { PredicateFn } from '../../types.js'
 
 export type RateLimitOptions<H extends HookContext = HookContext> = {
   /**
@@ -22,6 +24,27 @@ export type RateLimitOptions<H extends HookContext = HookContext> = {
    * @default 1
    */
   points?: number | ((context: H) => Promisable<number>)
+  /**
+   * Lets a call over the limit through, to measure before enforcing: it still
+   * consumes its points and reaches `onLimited` and the headers, but gets no
+   * `Retry-After` and no `TooManyRequests`. A predicate decides per call, e.g.
+   * to enforce for some callers first.
+   *
+   * @default false
+   * @example
+   * ```ts
+   * rateLimit(rateLimiter, {
+   *   dryRun: true,
+   *   onLimited: (info, context) => logger.warn('over the limit', context.params.user?.id),
+   * })
+   * ```
+   */
+  dryRun?: boolean | PredicateFn<H>
+  /**
+   * Called for every call over the limit, rejected or let through by `dryRun`,
+   * e.g. to log or count it. A store that fails is no call over the limit.
+   */
+  onLimited?: (info: RateLimitInfo, context: H) => Promisable<void>
   /**
    * Tells the client where it stands, on `context.http.headers` for REST
    * transports: `'legacy'` sends `X-RateLimit-Limit`, `-Remaining` and `-Reset`
@@ -55,7 +78,7 @@ export type RateLimitInfo = {
   reset: number
   /** The window, in seconds. */
   window: number
-  /** Whether this call was rejected. */
+  /** Whether this call is over the limit: rejected, unless `dryRun`. */
   limited: boolean
 }
 
@@ -117,6 +140,7 @@ export const rateLimit = <H extends HookContext = HookContext>(
   const key = options?.key ?? ((context: HookContext) => context.path)
   const points = options?.points ?? 1
   const headers = options?.headers ?? false
+  const dryRun = options?.dryRun ?? false
 
   const infoFor = (res: RateLimiterRes, limited: boolean): RateLimitInfo => ({
     limit: rateLimiter.points,
@@ -154,22 +178,27 @@ export const rateLimit = <H extends HookContext = HookContext>(
       if (!isRateLimiterRes(res)) {
         throw new TooManyRequests('Too many requests', { rateLimitRes: res })
       }
-      const retryAfter = Math.ceil(res.msBeforeNext / 1000)
-      const values = headers
-        ? {
-            ...headersFor(infoFor(res, true), context),
-            'Retry-After': `${retryAfter}`,
-          }
-        : undefined
-      if (values) setHeaders(context, values)
-      throw new TooManyRequests('Too many requests', {
-        // TODO(next major): drop `rateLimitRes` from the error. `data` goes to the client, and on a
-        // shared bucket its points tell every caller how much everyone else calls. It stays on
-        // `context.params.rateLimit` for the server.
-        rateLimitRes: res,
-        retryAfter,
-        ...(values ? { headers: values } : {}),
-      })
+      const info = infoFor(res, true)
+      await options?.onLimited?.(info, context)
+
+      if (await resolveBoolean(dryRun, context, false)) {
+        // through, as under the limit: nothing to wait for
+        if (headers) setHeaders(context, headersFor(info, context))
+      } else {
+        const retryAfter = Math.ceil(res.msBeforeNext / 1000)
+        const values = headers
+          ? { ...headersFor(info, context), 'Retry-After': `${retryAfter}` }
+          : undefined
+        if (values) setHeaders(context, values)
+        throw new TooManyRequests('Too many requests', {
+          // TODO(next major): drop `rateLimitRes` from the error. `data` goes to the client, and on a
+          // shared bucket its points tell every caller how much everyone else calls. It stays on
+          // `context.params.rateLimit` for the server.
+          rateLimitRes: res,
+          retryAfter,
+          ...(values ? { headers: values } : {}),
+        })
+      }
     }
 
     if (next) await next()
