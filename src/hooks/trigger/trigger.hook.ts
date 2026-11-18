@@ -1,5 +1,9 @@
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
-import { resolveBoolean, toArray } from '../../common/index.js'
+import {
+  maybeArrayMatches,
+  resolveBoolean,
+  toArray,
+} from '../../common/index.js'
 import type { MaybeArray, Promisable } from '../../internal.utils.js'
 import { shouldSkip } from '../../predicates/should-skip/should-skip.predicate.js'
 import type { PredicateFn } from '../../types.js'
@@ -35,6 +39,9 @@ export type TriggerBatchAction<H extends HookContext, T> = (
   options: TriggerActionOptions<H, T>,
 ) => Promisable<void>
 
+/** The methods a trigger runs on */
+export type TriggerMethod = 'create' | 'update' | 'patch' | 'remove'
+
 export type TriggerSubscriptionOptions<
   H extends HookContext = HookContext,
   T = ResultSingleHookContext<H>,
@@ -44,6 +51,16 @@ export type TriggerSubscriptionOptions<
    * `shouldSkip`), and the debug log shows it.
    */
   name?: string
+  /**
+   * The methods it runs on; all of them without. Tested first: a call on
+   * another method fetches nothing for it and asks none of its conditions.
+   *
+   * @example
+   * ```ts
+   * trigger({ method: 'patch', change: ({ before, result }) => …, action })
+   * ```
+   */
+  method?: MaybeArray<TriggerMethod>
   /**
    * Whether the subscription applies to the call, tested once before it -
    * e.g. with `isContext` or `isProvider`.
@@ -307,6 +324,14 @@ const matchBefore = async <H extends HookContext, T>(
 
   if (!subscription.action && !subscription.batchAction) {
     log("skipping because of no 'action' or 'batchAction'")
+    return
+  }
+
+  if (
+    subscription.method &&
+    !maybeArrayMatches(subscription.method, context.method)
+  ) {
+    log("skipping because of 'method'")
     return
   }
 

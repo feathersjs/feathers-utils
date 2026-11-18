@@ -165,6 +165,56 @@ describe('trigger', () => {
         })
       })
 
+      describe('method', () => {
+        it('runs only on the method it names', async () => {
+          const action = vi.fn()
+          const { service } = setup(mode, { method: 'patch', action })
+
+          await service.create({ id: 0 })
+          await service.patch(0, { test: true })
+          await service.remove(0)
+
+          expect(itemsOf(action).map(({ result }) => result)).toStrictEqual([
+            { id: 0, test: true },
+          ])
+        })
+
+        it('runs on each of several methods', async () => {
+          const action = vi.fn()
+          const { service } = setup(mode, {
+            method: ['create', 'remove'],
+            action,
+          })
+
+          await service.create({ id: 0 })
+          await service.patch(0, { test: true })
+          await service.remove(0)
+
+          expect(
+            itemsOf(action).map(({ before, result }) => [before, result]),
+          ).toStrictEqual([
+            [undefined, { id: 0 }],
+            [undefined, { id: 0, test: true }],
+          ])
+        })
+
+        it('asks nothing else of a call on another method', async () => {
+          const iff = vi.fn(() => true)
+          const { service, calls } = setup(mode, {
+            method: 'remove',
+            iff,
+            fetchBefore: true,
+            action: () => {},
+          })
+          await service.create({ id: 0 })
+
+          await service.patch(0, { test: true })
+
+          expect(iff).not.toHaveBeenCalled()
+          expect(calls.all).toHaveLength(0)
+        })
+      })
+
       describe('iff', () => {
         it('skips the call if false', async () => {
           const action = vi.fn()
@@ -1089,6 +1139,12 @@ describe('trigger', () => {
         result: (result) => result.nope,
         action: () => {},
       })
+    })
+
+    it("takes only the methods it runs on as 'method'", () => {
+      trigger({ method: ['create', 'patch'], action: () => {} })
+      // @ts-expect-error a trigger runs on create, update, patch and remove only
+      trigger({ method: 'find', action: () => {} })
     })
 
     it('is a before, after and around hook', () => {
