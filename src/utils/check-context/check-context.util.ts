@@ -2,6 +2,7 @@ import type { HookContext } from '@feathersjs/feathers'
 import type { HookType, MethodName } from '../../types.js'
 import type { IsContextOptions } from '../../predicates/is-context/is-context.predicate.js'
 import type { UnpackMaybeArray } from '../../internal.utils.js'
+import { maybeArrayMatches } from '../../common/index.js'
 
 type NarrowedContext<H extends HookContext, O> = H &
   (O extends { path: infer P }
@@ -19,12 +20,6 @@ type NarrowedContext<H extends HookContext, O> = H &
       ? unknown
       : { method: UnpackMaybeArray<M> }
     : unknown)
-
-/** `isContext`'s matching, inlined: runs in most hooks on every call. */
-const matches = (expected: unknown, actual: unknown): boolean =>
-  Array.isArray(expected)
-    ? expected.indexOf(actual) !== -1
-    : expected === actual
 
 export type CheckContextOptions<H extends HookContext = HookContext> =
   IsContextOptions<H> & {
@@ -95,11 +90,12 @@ export function checkContext<H extends HookContext = HookContext>(
   }
 
   if (
-    (options.type != null && !matches(options.type, context.type)) ||
-    (options.method != null && !matches(options.method, context.method)) ||
-    (options.path != null && !matches(options.path, context.path)) ||
+    (options.type != null && !maybeArrayMatches(options.type, context.type)) ||
+    (options.method != null &&
+      !maybeArrayMatches(options.method, context.method)) ||
+    (options.path != null && !maybeArrayMatches(options.path, context.path)) ||
     // `null` is a valid id to match (the multi variants)
-    (options.id !== undefined && !matches(options.id, context.id))
+    (options.id !== undefined && !maybeArrayMatches(options.id, context.id))
   ) {
     const details: string[] = []
 

@@ -23,7 +23,7 @@ see:
 
 All conditions a subscription has must match. They may be async.
 
-- Before the call: `iff` tests the call, e.g. with [`isContext`](/predicates/is-context) or [`isProvider`](/predicates/is-provider), and `data` tests `context.data` — on multi create every item on its own.
+- Before the call: `method` names the methods it runs on, `iff` tests the call, e.g. with [`isContext`](/predicates/is-context) or [`isProvider`](/predicates/is-provider), and `data` tests `context.data` — on multi create every item on its own.
 - After the call, for every item: `result` tests the item after the call, `before` the item before it, and `change` both of them, to compare them.
 
 ## Items Before and After the Call
@@ -50,7 +50,8 @@ await app.service('posts').patch(id, data, { skipHooks: ['notifyOnPublish'] })
 
 | `feathers-trigger`                                      | `feathers-utils`                                                      |
 | ------------------------------------------------------- | --------------------------------------------------------------------- |
-| `service: 'posts'`, `method: 'patch'`                   | `iff: isContext({ path: 'posts', method: 'patch' })`                  |
+| `service: 'posts'`                                      | `iff: isContext({ path: 'posts' })`                                   |
+| `method: 'patch'`                                       | `method: 'patch'`                                                     |
 | `params: { provider: 'rest' }`                          | `iff: isProvider('rest')`                                             |
 | `data: { … }`, `before: { … }`, `result: { … }`         | `data: (data) => …`, `before: (before) => …`, `result: (result) => …` |
 | `result: ({ item, before }) => …`, a query or a boolean | `change: ({ before, result }) => boolean`                             |
