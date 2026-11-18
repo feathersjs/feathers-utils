@@ -1,6 +1,6 @@
 import type { HookContext } from '@feathersjs/feathers'
 import type { MaybeArray } from '../../internal.utils.js'
-import { toArray } from '../../common/index.js'
+import { maybeArrayMatches } from '../../common/index.js'
 
 export type IsContextOptions<H extends HookContext = HookContext> = {
   /**
@@ -52,30 +52,13 @@ export type IsContextOptions<H extends HookContext = HookContext> = {
 export const isContext = <H extends HookContext = HookContext>(
   options: IsContextOptions<H>,
 ) => {
-  const path = options.path != null ? toArray(options.path) : undefined
-  const type = options.type != null ? toArray(options.type) : undefined
-  const method = options.method != null ? toArray(options.method) : undefined
-  // `null` is a valid id to match (the multi variants), so only `undefined`
-  // can mean "not given" here
-  const id = options.id !== undefined ? toArray(options.id) : undefined
+  const { path, type, method, id } = options
 
-  return (context: any): boolean => {
-    if (path && !path.some((x) => context.path === x)) {
-      return false
-    }
-
-    if (type && !type.some((x) => context.type === x)) {
-      return false
-    }
-
-    if (method && !method.some((x) => context.method === x)) {
-      return false
-    }
-
-    if (id && !id.some((x) => context.id === x)) {
-      return false
-    }
-
-    return true
-  }
+  return (context: any): boolean =>
+    (path == null || maybeArrayMatches(path, context.path)) &&
+    (type == null || maybeArrayMatches(type, context.type)) &&
+    (method == null || maybeArrayMatches(method, context.method)) &&
+    // `null` is a valid id to match (the multi variants), so only `undefined`
+    // can mean "not given" here
+    (id === undefined || maybeArrayMatches(id, context.id))
 }
