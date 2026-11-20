@@ -1,5 +1,5 @@
 import { describe, it, expect, expectTypeOf, vi } from 'vitest'
-import { RateLimiterMemory } from 'rate-limiter-flexible'
+import { BurstyRateLimiter, RateLimiterMemory } from 'rate-limiter-flexible'
 import { feathers } from '@feathersjs/feathers'
 import { MemoryService } from '@feathersjs/memory'
 import type { AroundHookFunction, HookContext } from '@feathersjs/feathers'
@@ -244,6 +244,48 @@ describe('hook - rateLimit', () => {
       const error: any = await hook(contextFor()).catch((error) => error)
 
       expect(error.data).toEqual({ retryAfter: 30 })
+    })
+  })
+
+  describe('bursts', () => {
+    const contextFor = (): any => ({
+      type: 'before',
+      method: 'find',
+      path: 'users',
+      params: {},
+    })
+
+    it('lets a burst draw on its limiter, and reports the steady limit', async () => {
+      // 1 per minute, and 2 more per minute for a burst
+      const hook = rateLimit(
+        new BurstyRateLimiter(
+          new RateLimiterMemory({ points: 1, duration: 60 }),
+          new RateLimiterMemory({
+            keyPrefix: 'burst',
+            points: 2,
+            duration: 60,
+          }),
+        ),
+        { headers: 'draft-7' },
+      )
+      const steady = contextFor()
+      await hook(steady)
+      await hook(contextFor())
+      const burst = contextFor()
+      await hook(burst)
+
+      const error: any = await hook(contextFor()).catch((error) => error)
+
+      expect(steady.http.headers).toEqual({
+        'RateLimit-Policy': '1;w=60',
+        RateLimit: 'limit=1, remaining=0, reset=60',
+      })
+      // a call on the burst has no steady points left
+      expect(burst.http.headers.RateLimit).toBe(
+        'limit=1, remaining=0, reset=60',
+      )
+      expect(error.message).toBe('Too many requests')
+      expect(error.data.retryAfter).toBe(60)
     })
   })
 
